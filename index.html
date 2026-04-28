@@ -60,8 +60,7 @@ button {
 <script>
 
 // 🔥 ТВОЄ GOOGLE SHEETS CSV
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111";
-
+const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
 let data = [];
 
 fetch(url)
