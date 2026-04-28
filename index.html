@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Пошук додаток</title>
+
+<style>
+body {
+    font-family: Arial;
+    background:#f2f2f2;
+    padding:20px;
+}
+
+.container {
+    background:white;
+    padding:20px;
+    border-radius:10px;
+}
+
+input {
+    width:100%;
+    padding:12px;
+    font-size:16px;
+    margin-bottom:10px;
+    box-sizing:border-box;
+}
+
+button {
+    width:100%;
+    padding:12px;
+    background:#007bff;
+    color:white;
+    border:none;
+    font-size:16px;
+    border-radius:5px;
+}
+
+.result {
+    margin-top:15px;
+    font-size:18px;
+    line-height:1.5;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<h2>🔎 Пошук</h2>
+
+<input id="input" placeholder="Введи станцію / матеріал / артикул">
+<button onclick="search()">Знайти</button>
+
+<div id="result" class="result"></div>
+
+</div>
+
+<script>
+
+// 🔥 ТВОЄ GOOGLE SHEETS CSV
+const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=0";
+
+let data = [];
+
+fetch(url)
+.then(res => res.text())
+.then(text => {
+
+    let rows = text.trim().split("\n");
+
+    data = rows.map(r => {
+        let c = r.split(",");
+
+        return {
+            station: c[0],
+            material: c[1],
+            article: c[2]
+        };
+    });
+});
+
+function search(){
+
+    let val = document.getElementById("input").value.toLowerCase();
+
+    if(val === ""){
+        document.getElementById("result").innerHTML = "";
+        return;
+    }
+
+    let res = data.filter(x =>
+        (x.station && x.station.toLowerCase().includes(val)) ||
+        (x.material && x.material.toLowerCase().includes(val)) ||
+        (x.article && x.article.toLowerCase().includes(val))
+    );
+
+    if(res.length > 0){
+
+        let out = "";
+
+        res.forEach(r => {
+            out += `
+            <b>Станція:</b> ${r.station}<br>
+            <b>Матеріал:</b> ${r.material}<br>
+            <b>Артикул:</b> ${r.article}
+            <hr>
+            `;
+        });
+
+        document.getElementById("result").innerHTML = out;
+
+    } else {
+        document.getElementById("result").innerHTML = "Не знайдено";
+    }
+}
+
+</script>
+
+</body>
+</html>
