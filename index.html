@@ -84,10 +84,9 @@ hr {
     position: sticky;
     bottom: 0;
 
-    transition: transform 0.3s ease, opacity 0.3s ease;
+    transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
-/* ХОВАННЯ */
 .keyboard.hide {
     transform: translateY(120%);
     opacity: 0;
@@ -201,24 +200,34 @@ function search(){
         : "Не знайдено";
 }
 
-/* 🔥 ЛОГІКА АВТОСКРИТТЯ */
-let lastScroll = 0;
+/* 🔥 SMART SCROLL LOGIC */
 const keyboard = document.getElementById("keyboard");
+
+let lastScroll = 0;
+let lastTime = Date.now();
 
 window.addEventListener("scroll", () => {
 
     let current = window.scrollY;
+    let now = Date.now();
 
-    if (current > lastScroll + 5) {
-        // скрол вниз → сховати
+    let deltaY = current - lastScroll;
+    let deltaT = now - lastTime;
+
+    let speed = Math.abs(deltaY / deltaT); // швидкість скролу
+
+    // вниз → ховаємо завжди
+    if (deltaY > 0) {
         keyboard.classList.add("hide");
-    } 
-    else if (current < lastScroll - 5) {
-        // скрол вгору → показати
+    }
+
+    // вверх → тільки якщо швидко
+    if (deltaY < 0 && speed > 0.8) {
         keyboard.classList.remove("hide");
     }
 
     lastScroll = current;
+    lastTime = now;
 });
 
 </script>
