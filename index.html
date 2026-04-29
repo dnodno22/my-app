@@ -1,18 +1,7 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-
-<title>Пошук</title>
-
 <style>
+
 * {
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -23,6 +12,7 @@ body {
     overflow: hidden;
     display: flex;
     justify-content: center;
+    align-items: stretch;
 }
 
 .container {
@@ -36,11 +26,11 @@ body {
     overflow: hidden;
 }
 
-/* INPUT */
+/* INPUT — ЗБІЛЬШЕНО */
 input {
     width: 100%;
-    padding: 16px;
-    font-size: 20px;
+    padding: 18px;
+    font-size: 24px; /* було 20px */
     border-radius: 14px;
     border: 1px solid #e5e7eb;
     text-align: center;
@@ -57,14 +47,25 @@ input {
     margin-bottom: 10px;
 }
 
-/* BUTTONS */
+/* BUTTONS — ЗБІЛЬШЕНО */
 button {
-    padding: 16px;
-    font-size: 18px;
+    padding: 18px;
+    font-size: 20px; /* було 18px */
     border: none;
     border-radius: 14px;
     background: #e9ecef;
+    color: #111;
     font-weight: 600;
+}
+
+/* RESULT — ЗБІЛЬШЕНО */
+.result {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 18px; /* було 16px */
+    line-height: 1.6;
+    color: #333;
+    padding-top: 10px;
 }
 
 button:active {
@@ -72,124 +73,8 @@ button:active {
     background: #dfe3e8;
 }
 
-/* RESULT */
-.result {
-    flex: 1;
-    overflow-y: auto;
-    font-size: 16px;
-    line-height: 1.5;
-    color: #333;
-}
-
-/* remove highlight */
 * {
     -webkit-tap-highlight-color: transparent;
 }
+
 </style>
-
-</head>
-
-<body>
-
-<div class="container">
-
-<input id="input" readonly>
-
-<div class="keyboard">
-
-    <button onclick="add('1')">1</button>
-    <button onclick="add('2')">2</button>
-    <button onclick="add('3')">3</button>
-
-    <button onclick="add('4')">4</button>
-    <button onclick="add('5')">5</button>
-    <button onclick="add('6')">6</button>
-
-    <button onclick="add('7')">7</button>
-    <button onclick="add('8')">8</button>
-    <button onclick="add('9')">9</button>
-
-    <div></div>
-    <button onclick="add('0')">0</button>
-    <button onclick="clearAll()">⌫</button>
-
-    <button onclick="add('sp')">sp</button>
-    <button onclick="add('ts')">ts</button>
-
-</div>
-
-<div id="result" class="result"></div>
-
-</div>
-
-<script>
-
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
-
-let data = [];
-
-fetch(url)
-.then(res => res.text())
-.then(text => {
-
-    let rows = text.trim().split("\n");
-
-    data = rows.map(r => {
-        let c = r.split(",");
-        return {
-            station: c[0] || "",
-            material: c[1] || "",
-            article: c[2] || ""
-        };
-    });
-});
-
-function add(val){
-    document.getElementById("input").value += val;
-    search();
-}
-
-function clearAll(){
-    document.getElementById("input").value = "";
-    document.getElementById("result").innerHTML = "";
-}
-
-function search(){
-
-    let val = document.getElementById("input").value.toLowerCase();
-
-    if(val === ""){
-        document.getElementById("result").innerHTML = "";
-        return;
-    }
-
-    let res = data.filter(x =>
-        (x.station && x.station.toLowerCase().includes(val)) ||
-        (x.material && x.material.toLowerCase().includes(val)) ||
-        (x.article && x.article.toLowerCase().includes(val))
-    );
-
-    if(res.length > 0){
-
-        let out = "";
-
-        res.forEach(r => {
-            out += `
-                <b>Станція:</b> ${r.station}<br>
-                <b>Матеріал:</b> ${r.material}<br>
-                <b>Артикул:</b> ${r.article}
-                <hr>
-            `;
-        });
-
-        document.getElementById("result").innerHTML = out;
-
-    } else {
-        document.getElementById("result").innerHTML = "Не знайдено";
-    }
-}
-
-</script>
-
-</body>
-</html>
