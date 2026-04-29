@@ -83,28 +83,44 @@ hr {
 
     position: sticky;
     bottom: 0;
-
-    transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
-.keyboard.hide {
-    transform: translateY(120%);
-    opacity: 0;
+/* 🔥 BUTTON 23 STYLE */
+.button-23 {
+  background-color: #FFFFFF;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: #222222;
+  cursor: pointer;
+  display: inline-block;
+
+  font-family: Circular, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+
+  padding: 14px 0;
+  text-align: center;
+
+  transition: transform .1s ease, box-shadow .2s ease;
+  user-select: none;
 }
 
-/* BUTTONS */
-button {
-    padding: 18px;
-    font-size: 20px;
-    border: none;
-    border-radius: 14px;
-    background: #e9ecef;
-    font-weight: 600;
+.button-23:active {
+  background-color: #F7F7F7;
+  border-color: #000000;
+  transform: scale(0.96);
 }
 
-button:active {
-    transform: scale(0.95);
-    background: #dfe3e8;
+.button-23:focus-visible {
+  box-shadow: #222222 0 0 0 2px;
+}
+
+.button-23:disabled {
+  border-color: #DDDDDD;
+  color: #DDDDDD;
+  cursor: not-allowed;
 }
 
 </style>
@@ -118,26 +134,26 @@ button:active {
 
 <div id="result" class="result"></div>
 
-<div class="keyboard" id="keyboard">
+<div class="keyboard">
 
-<button onclick="add('1')">1</button>
-<button onclick="add('2')">2</button>
-<button onclick="add('3')">3</button>
+<button class="button-23" onclick="add('1')">1</button>
+<button class="button-23" onclick="add('2')">2</button>
+<button class="button-23" onclick="add('3')">3</button>
 
-<button onclick="add('4')">4</button>
-<button onclick="add('5')">5</button>
-<button onclick="add('6')">6</button>
+<button class="button-23" onclick="add('4')">4</button>
+<button class="button-23" onclick="add('5')">5</button>
+<button class="button-23" onclick="add('6')">6</button>
 
-<button onclick="add('7')">7</button>
-<button onclick="add('8')">8</button>
-<button onclick="add('9')">9</button>
+<button class="button-23" onclick="add('7')">7</button>
+<button class="button-23" onclick="add('8')">8</button>
+<button class="button-23" onclick="add('9')">9</button>
 
 <div></div>
-<button onclick="add('0')">0</button>
-<button onclick="clearAll()">⌫</button>
+<button class="button-23" onclick="add('0')">0</button>
+<button class="button-23" onclick="clearAll()">⌫</button>
 
-<button onclick="add('sp')">sp</button>
-<button onclick="add('ts')">ts</button>
+<button class="button-23" onclick="add('sp')">sp</button>
+<button class="button-23" onclick="add('ts')">ts</button>
 
 </div>
 
@@ -199,36 +215,6 @@ function search(){
         `).join("")
         : "Не знайдено";
 }
-
-/* 🔥 SMART SCROLL LOGIC */
-const keyboard = document.getElementById("keyboard");
-
-let lastScroll = 0;
-let lastTime = Date.now();
-
-window.addEventListener("scroll", () => {
-
-    let current = window.scrollY;
-    let now = Date.now();
-
-    let deltaY = current - lastScroll;
-    let deltaT = now - lastTime;
-
-    let speed = Math.abs(deltaY / deltaT); // швидкість скролу
-
-    // вниз → ховаємо завжди
-    if (deltaY > 0) {
-        keyboard.classList.add("hide");
-    }
-
-    // вверх → тільки якщо швидко
-    if (deltaY < 0 && speed > 1.2) {
-        keyboard.classList.remove("hide");
-    }
-
-    lastScroll = current;
-    lastTime = now;
-});
 
 </script>
 
