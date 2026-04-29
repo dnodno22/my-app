@@ -30,6 +30,7 @@ body {
     padding: 16px;
 }
 
+/* INPUT */
 input {
     width: 100%;
     padding: 18px;
@@ -46,13 +47,21 @@ input {
     z-index: 10;
 }
 
+/* RESULT */
 .result {
     font-size: 18px;
     line-height: 1.6;
     color: #333;
+    padding-bottom: 20px;
 }
 
-/* КЛАВІАТУРА БЕЗ ВІДСТУПІВ */
+hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 10px 0;
+}
+
+/* KEYBOARD (як було нормально) */
 .keyboard {
     margin-top: auto;
     position: sticky;
@@ -60,35 +69,34 @@ input {
 
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
 
-    gap: 0; /* ❌ прибрали відступи */
+    padding: 14px;
 
-    padding: 0;
-
-    background: rgba(255,255,255,0.95);
+    background: rgba(255,255,255,0.9);
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 
     border-top: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
+
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
 }
 
-/* КНОПКИ ЩІЛЬНО */
+/* BUTTONS */
 button {
-    padding: 22px;
+    padding: 18px;
     font-size: 20px;
-    border: 1px solid #e0e0e0; /* щоб були межі */
-    border-radius: 0; /* ❌ без округлення між кнопками */
+    border: none;
+    border-radius: 14px;
     background: #e9ecef;
     font-weight: 600;
 }
 
 button:active {
+    transform: scale(0.95);
     background: #dfe3e8;
-}
-
-hr {
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 10px 0;
 }
 
 </style>
@@ -116,10 +124,11 @@ hr {
 <button onclick="add('8')">8</button>
 <button onclick="add('9')">9</button>
 
-<button onclick="add('sp')">sp</button>
+<div></div>
 <button onclick="add('0')">0</button>
 <button onclick="clearAll()">⌫</button>
 
+<button onclick="add('sp')">sp</button>
 <button onclick="add('ts')">ts</button>
 
 </div>
