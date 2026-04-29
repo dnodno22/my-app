@@ -27,7 +27,7 @@ body {
     align-items: stretch;
 }
 
-/* FULLSCREEN APP */
+/* APP */
 .container {
     width: 100%;
     max-width: 420px;
@@ -59,13 +59,9 @@ input {
     gap: 10px;
     margin-bottom: 10px;
 
-    transition: transform 0.25s ease, opacity 0.25s ease;
-}
-
-.keyboard.hidden {
-    transform: translateY(120%);
-    opacity: 0;
-    pointer-events: none;
+    transform: translateY(0);
+    transition: transform 0.28s ease;
+    will-change: transform;
 }
 
 /* BUTTONS */
@@ -94,7 +90,7 @@ button:active {
     padding-top: 10px;
 }
 
-/* hr */
+/* divider */
 hr {
     border: none;
     border-top: 1px solid #ddd;
@@ -206,23 +202,31 @@ function search(){
 }
 
 /* =========================
-   HIDE / SHOW KEYBOARD ON SCROLL
+   SMOOTH KEYBOARD SLIDE
 ========================= */
 
 let lastScrollTop = 0;
 const resultBox = document.getElementById("result");
 const keyboard = document.querySelector(".keyboard");
 
-resultBox.addEventListener("scroll", () => {
-    let currentScroll = resultBox.scrollTop;
+let hidden = false;
 
-    if (currentScroll > lastScrollTop) {
-        keyboard.classList.add("hidden"); // вниз
-    } else {
-        keyboard.classList.remove("hidden"); // вверх
+resultBox.addEventListener("scroll", () => {
+    let current = resultBox.scrollTop;
+
+    // вниз → ховаємо (їде вниз)
+    if (current > lastScrollTop + 5 && !hidden) {
+        keyboard.style.transform = "translateY(140%)";
+        hidden = true;
     }
 
-    lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+    // вверх → показуємо (піднімається)
+    if (current < lastScrollTop - 5 && hidden) {
+        keyboard.style.transform = "translateY(0)";
+        hidden = false;
+    }
+
+    lastScrollTop = current <= 0 ? 0 : current;
 });
 
 </script>
