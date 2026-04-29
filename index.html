@@ -3,9 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0f1115">
 
 <title>Пошук</title>
 
@@ -13,17 +11,19 @@
 
 * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
     margin: 0;
     font-family: -apple-system, Arial, sans-serif;
-    background: #f4f6f8;
+    background: #0f1115;
     height: 100vh;
     overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: stretch;
+    color: #e5e7eb;
 }
 
 /* FULLSCREEN APP */
@@ -31,7 +31,7 @@ body {
     width: 100%;
     max-width: 420px;
     height: 100vh;
-    background: #ffffff;
+    background: #151922;
     padding: 16px;
     display: flex;
     flex-direction: column;
@@ -44,11 +44,12 @@ input {
     padding: 16px;
     font-size: 20px;
     border-radius: 14px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #2a2f3a;
     text-align: center;
     margin-bottom: 12px;
     outline: none;
-    background: #fafafa;
+    background: #0f1115;
+    color: #fff;
 }
 
 /* KEYBOARD */
@@ -65,14 +66,14 @@ button {
     font-size: 18px;
     border: none;
     border-radius: 14px;
-    background: #e9ecef;
-    color: #111;
+    background: #222836;
+    color: #e5e7eb;
     font-weight: 600;
 }
 
 button:active {
     transform: scale(0.96);
-    background: #dfe3e8;
+    background: #2c3345;
 }
 
 /* RESULT */
@@ -81,13 +82,15 @@ button:active {
     overflow-y: auto;
     font-size: 16px;
     line-height: 1.5;
-    color: #333;
+    color: #cbd5e1;
     padding-top: 10px;
 }
 
-/* remove highlight */
-* {
-    -webkit-tap-highlight-color: transparent;
+/* hr */
+hr {
+    border: none;
+    border-top: 1px solid #2a2f3a;
+    margin: 10px 0;
 }
 
 </style>
