@@ -56,10 +56,8 @@ button {
 
 <h2>🔎 Пошук</h2>
 
-<!-- 🔥 INPUT БЕЗ СИСТЕМНОЇ КЛАВІАТУРИ -->
 <input id="input" placeholder="Введи код" readonly>
 
-<!-- 🔢 КАСТОМНА КЛАВІАТУРА -->
 <div class="keyboard">
 
 <button onclick="add('1')">1</button>
@@ -78,6 +76,10 @@ button {
 <button onclick="add('0')">0</button>
 <button onclick="backspace()">⌫</button>
 
+<!-- 🔥 НОВІ КНОПКИ -->
+<button onclick="add('sp')">sp</button>
+<button onclick="add('ts')">ts</button>
+
 </div>
 
 <div id="result" class="result"></div>
@@ -86,12 +88,10 @@ button {
 
 <script>
 
-// 🔥 GOOGLE SHEETS CSV
 const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
 
 let data = [];
 
-// 📥 завантаження
 fetch(url)
 .then(res => res.text())
 .then(text => {
@@ -108,27 +108,23 @@ fetch(url)
     });
 });
 
-// 🔢 ДОДАТИ ЦИФРУ
-function add(num){
+function add(val){
     let input = document.getElementById("input");
-    input.value += num;
+    input.value += val;
     search();
 }
 
-// ❌ ОЧИСТИТИ ВСЕ
 function clearInput(){
     document.getElementById("input").value = "";
     document.getElementById("result").innerHTML = "";
 }
 
-// ⌫ СТЕРТИ 1 ЦИФРУ
 function backspace(){
     let input = document.getElementById("input");
     input.value = input.value.slice(0, -1);
     search();
 }
 
-// 🔎 ПОШУК
 function search(){
 
     let val = document.getElementById("input").value.toLowerCase();
