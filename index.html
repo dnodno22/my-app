@@ -20,6 +20,7 @@ body {
     background: #f4f6f8;
 }
 
+/* КОНТЕЙНЕР */
 .container {
     max-width: 420px;
     margin: 0 auto;
@@ -28,6 +29,8 @@ body {
     display: flex;
     flex-direction: column;
     padding: 16px;
+
+    padding-bottom: 220px; /* 🔥 резерв під клавіатуру */
 }
 
 /* INPUT */
@@ -52,18 +55,17 @@ input {
     font-size: 18px;
     line-height: 1.6;
     color: #333;
-    padding-bottom: 20px;
 }
 
-hr {
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 10px 0;
-}
-
-/* KEYBOARD */
+/* 🔥 СТАБІЛЬНА КЛАВІАТУРА */
 .keyboard {
-    margin-top: auto;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+
+    width: 100%;
+    max-width: 420px;
 
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -71,7 +73,7 @@ hr {
 
     padding: 14px;
 
-    background: rgba(255,255,255,0.9);
+    background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 
@@ -80,47 +82,32 @@ hr {
 
     border-top-left-radius: 18px;
     border-top-right-radius: 18px;
-
-    position: sticky;
-    bottom: 0;
 }
 
-/* 🔥 BUTTON 23 STYLE */
+/* BUTTON */
 .button-23 {
   background-color: #FFFFFF;
   border: 1px solid #222222;
   border-radius: 8px;
-  box-sizing: border-box;
-  color: #222222;
-  cursor: pointer;
-  display: inline-block;
-
-  font-family: Circular, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+  color: #222;
   font-size: 16px;
   font-weight: 600;
-  line-height: 20px;
 
   padding: 14px 0;
-  text-align: center;
 
-  transition: transform .1s ease, box-shadow .2s ease;
-  user-select: none;
+  cursor: pointer;
+  transition: transform .1s ease;
 }
 
 .button-23:active {
-  background-color: #F7F7F7;
-  border-color: #000000;
   transform: scale(0.96);
+  background-color: #F7F7F7;
 }
 
-.button-23:focus-visible {
-  box-shadow: #222222 0 0 0 2px;
-}
-
-.button-23:disabled {
-  border-color: #DDDDDD;
-  color: #DDDDDD;
-  cursor: not-allowed;
+hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 10px 0;
 }
 
 </style>
@@ -133,6 +120,8 @@ hr {
 <input id="input" readonly>
 
 <div id="result" class="result"></div>
+
+</div>
 
 <div class="keyboard">
 
@@ -154,8 +143,6 @@ hr {
 
 <button class="button-23" onclick="add('sp')">sp</button>
 <button class="button-23" onclick="add('ts')">ts</button>
-
-</div>
 
 </div>
 
