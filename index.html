@@ -8,49 +8,72 @@
 <style>
 
 body {
-    font-family: Arial;
-    background:#f2f2f2;
-    padding:20px;
+    margin: 0;
+    font-family: -apple-system, Arial, sans-serif;
+    background: #0a66ff;
+    display: flex;
+    justify-content: center;
 }
 
+/* головний екран як app */
 .container {
-    background:white;
-    padding:20px;
-    border-radius:10px;
+    width: 100%;
+    max-width: 420px;
+    margin: 20px;
+    background: #ffffff;
+    border-radius: 28px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
 }
 
+/* input як поле в застосунку */
 input {
-    width:100%;
-    padding:15px;
-    font-size:20px;
-    margin-bottom:10px;
-    text-align:center;
-    box-sizing:border-box;
+    width: 100%;
+    padding: 18px;
+    font-size: 22px;
+    border-radius: 16px;
+    border: 1px solid #e5e5e5;
+    text-align: center;
+    margin-bottom: 15px;
+    outline: none;
 }
 
+/* клавіатура як app grid */
 .keyboard {
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:10px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
 }
 
+/* великі “app buttons” */
 button {
-    padding:15px;
-    font-size:18px;
-    border:none;
-    border-radius:10px;
-    background:#007bff;
-    color:white;
+    padding: 18px;
+    font-size: 20px;
+    border: none;
+    border-radius: 18px;
+    background: #0a66ff;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 6px 15px rgba(10,102,255,0.25);
+    transition: 0.15s;
 }
 
+/* натискання як у застосунку */
 button:active {
-    background:#0056b3;
+    transform: scale(0.96);
+    background: #0047b3;
 }
 
+/* результати як картки */
 .result {
-    margin-top:15px;
-    font-size:18px;
-    line-height:1.5;
+    margin-top: 15px;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+/* прибирає “браузерні ефекти” */
+* {
+    -webkit-tap-highlight-color: transparent;
 }
 
 </style>
