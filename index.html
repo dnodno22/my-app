@@ -124,7 +124,10 @@ function backspace(){
     input.value = input.value.slice(0, -1);
     search();
 }
-
+function clearAll(){
+    document.getElementById("input").value = "";
+    document.getElementById("result").innerHTML = "";
+}
 function search(){
 
     let val = document.getElementById("input").value.toLowerCase();
