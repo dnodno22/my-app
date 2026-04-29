@@ -2,10 +2,15 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f4f6f8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+
 <title>Пошук</title>
 
 <style>
+
 * {
     box-sizing: border-box;
 }
@@ -14,23 +19,26 @@ body {
     margin: 0;
     font-family: -apple-system, Arial, sans-serif;
     background: #f4f6f8;
+    height: 100vh;
+    overflow: hidden;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
-    padding: 16px;
+    align-items: stretch;
 }
 
+/* FULLSCREEN APP */
 .container {
     width: 100%;
     max-width: 420px;
+    height: 100vh;
     background: #ffffff;
-    border-radius: 24px;
     padding: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
 }
-/* input */
+
+/* INPUT */
 input {
     width: 100%;
     padding: 16px;
@@ -38,19 +46,20 @@ input {
     border-radius: 14px;
     border: 1px solid #e5e7eb;
     text-align: center;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     outline: none;
     background: #fafafa;
 }
 
-/* клавіатура */
+/* KEYBOARD */
 .keyboard {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
+    margin-bottom: 10px;
 }
 
-/* кнопки */
+/* BUTTONS */
 button {
     padding: 16px;
     font-size: 18px;
@@ -59,24 +68,24 @@ button {
     background: #e9ecef;
     color: #111;
     font-weight: 600;
-    transition: 0.15s;
 }
 
-/* натискання */
 button:active {
     transform: scale(0.96);
     background: #dfe3e8;
 }
 
-/* результати */
+/* RESULT */
 .result {
-    margin-top: 15px;
+    flex: 1;
+    overflow-y: auto;
     font-size: 16px;
-    line-height: 1.6;
+    line-height: 1.5;
     color: #333;
+    padding-top: 10px;
 }
 
-/* прибрати підсвітку на телефонах */
+/* remove highlight */
 * {
     -webkit-tap-highlight-color: transparent;
 }
