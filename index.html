@@ -30,6 +30,15 @@ body {
     flex-direction: column;
 }
 
+/* RESULT */
+.result {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    padding-bottom: 260px; /* буде оновлюватись JS */
+    transition: padding-bottom 0.25s ease;
+}
+
 /* KEYBOARD */
 .top-bar {
     position: fixed;
@@ -43,17 +52,12 @@ body {
     border-bottom: 1px solid #e5e7eb;
     transition: transform 0.35s ease;
     z-index: 10;
-
-    /* важливо */
-    --kb-height: 180px;
 }
 
-/* hidden keyboard */
 .top-bar.hidden {
     transform: translateX(-50%) translateY(-100%);
 }
 
-/* INPUT */
 input {
     width: 100%;
     padding: 14px;
@@ -66,7 +70,6 @@ input {
     outline: none;
 }
 
-/* keyboard grid */
 .keyboard {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -85,17 +88,6 @@ button {
 button:active {
     transform: scale(0.96);
     background: #dfe3e8;
-}
-
-/* RESULTS */
-.result {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-
-    /* 👇 ключове: завжди враховує клавіатуру */
-    padding-top: calc(var(--kb-height) + 20px);
-    transition: padding-top 0.35s ease;
 }
 </style>
 </head>
@@ -193,11 +185,18 @@ function search(){
         : "Не знайдено";
 }
 
-/* SCROLL BEHAVIOR */
+/* ===== SCROLL LOGIC ===== */
 const result = document.getElementById("result");
 const topBar = document.getElementById("topBar");
 
 let lastScroll = 0;
+
+function updateLayout(hidden){
+    const kbHeight = hidden ? 0 : topBar.offsetHeight;
+    result.style.paddingBottom = kbHeight + "px";
+}
+
+updateLayout(false);
 
 result.addEventListener("scroll", () => {
 
@@ -205,16 +204,12 @@ result.addEventListener("scroll", () => {
 
     if(current > lastScroll + 5){
         topBar.classList.add("hidden");
-
-        // клавіатура схована → висота = 0
-        document.documentElement.style.setProperty('--kb-height', '0px');
+        updateLayout(true);
     }
 
     if(current < lastScroll - 5){
         topBar.classList.remove("hidden");
-
-        // клавіатура показана → повертаємо висоту
-        document.documentElement.style.setProperty('--kb-height', '180px');
+        updateLayout(false);
     }
 
     lastScroll = current;
