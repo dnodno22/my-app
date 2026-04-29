@@ -13,6 +13,7 @@
 
 * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -57,6 +58,14 @@ input {
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
     margin-bottom: 10px;
+
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.keyboard.hidden {
+    transform: translateY(120%);
+    opacity: 0;
+    pointer-events: none;
 }
 
 /* BUTTONS */
@@ -85,9 +94,11 @@ button:active {
     padding-top: 10px;
 }
 
-/* remove highlight */
-* {
-    -webkit-tap-highlight-color: transparent;
+/* hr */
+hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 10px 0;
 }
 
 </style>
@@ -193,6 +204,26 @@ function search(){
         document.getElementById("result").innerHTML = "Не знайдено";
     }
 }
+
+/* =========================
+   HIDE / SHOW KEYBOARD ON SCROLL
+========================= */
+
+let lastScrollTop = 0;
+const resultBox = document.getElementById("result");
+const keyboard = document.querySelector(".keyboard");
+
+resultBox.addEventListener("scroll", () => {
+    let currentScroll = resultBox.scrollTop;
+
+    if (currentScroll > lastScrollTop) {
+        keyboard.classList.add("hidden"); // вниз
+    } else {
+        keyboard.classList.remove("hidden"); // вверх
+    }
+
+    lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+});
 
 </script>
 
