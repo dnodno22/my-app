@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f9">
+<meta name="theme-color" content="#f4f6f8">
 
 <title>Пошук</title>
 
@@ -29,7 +29,8 @@ body {
     display: flex;
     flex-direction: column;
     padding: 16px;
-    padding-bottom: 220px;
+
+    padding-bottom: 260px; /* 🔥 резерв під клавіатуру */
 }
 
 /* INPUT */
@@ -83,9 +84,11 @@ input {
     border-top-right-radius: 18px;
 
     transition: transform 0.25s ease, opacity 0.25s ease;
+
+    z-index: 9999; /* 🔥 ВАЖЛИВО */
 }
 
-/* HIDE STATE */
+/* HIDE */
 .keyboard.hide {
     transform: translateX(-50%) translateY(120%);
     opacity: 0;
@@ -155,66 +158,13 @@ hr {
 
 <script>
 
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
-
-let data = [];
-
-fetch(url)
-.then(res => res.text())
-.then(text => {
-
-    let rows = text.trim().split("\n");
-
-    data = rows.map(r => {
-        let c = r.split(",");
-        return {
-            station: c[0] || "",
-            material: c[1] || "",
-            article: c[2] || ""
-        };
-    });
-});
-
-function add(val){
-    document.getElementById("input").value += val;
-    search();
-}
-
-function clearAll(){
-    document.getElementById("input").value = "";
-    document.getElementById("result").innerHTML = "";
-}
-
-function search(){
-
-    let val = document.getElementById("input").value.toLowerCase();
-
-    if(val === ""){
-        document.getElementById("result").innerHTML = "";
-        return;
-    }
-
-    let res = data.filter(x =>
-        (x.station && x.station.toLowerCase().includes(val)) ||
-        (x.material && x.material.toLowerCase().includes(val)) ||
-        (x.article && x.article.toLowerCase().includes(val))
-    );
-
-    document.getElementById("result").innerHTML = res.length
-        ? res.map(r => `
-            <b>Станція:</b> ${r.station}<br>
-            <b>Матеріал:</b> ${r.material}<br>
-            <b>Артикул:</b> ${r.article}
-            <hr>
-        `).join("")
-        : "Не знайдено";
-}
-
-/* 🔥 SMART SCROLL KEYBOARD */
 const keyboard = document.getElementById("keyboard");
 
 let lastScroll = 0;
 let lastTime = Date.now();
+
+/* 🔥 менш чутлива швидкість */
+const SPEED_THRESHOLD = 1.4;
 
 window.addEventListener("scroll", () => {
 
@@ -226,13 +176,20 @@ window.addEventListener("scroll", () => {
 
     let speed = Math.abs(deltaY / deltaT);
 
-    // вниз → завжди ховаємо
+    let atTop = current <= 5;
+
+    // ↓ вниз → ховаємо
     if (deltaY > 0) {
         keyboard.classList.add("hide");
     }
 
-    // вверх → тільки швидкий рух
-    if (deltaY < 0 && speed > 0.8) {
+    // ↑ швидкий скрол → показ
+    if (deltaY < 0 && speed > SPEED_THRESHOLD) {
+        keyboard.classList.remove("hide");
+    }
+
+    // 🔥 завжди показати на самому верху
+    if (atTop) {
         keyboard.classList.remove("hide");
     }
 
