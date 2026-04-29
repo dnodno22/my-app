@@ -29,7 +29,7 @@ body {
     display: flex;
     flex-direction: column;
     padding: 16px;
-    padding-bottom: 220px;
+    padding-bottom: 260px;
 }
 
 /* INPUT */
@@ -83,9 +83,11 @@ input {
     border-top-right-radius: 18px;
 
     transition: transform 0.25s ease, opacity 0.25s ease;
+
+    z-index: 9999;
 }
 
-/* HIDE STATE */
+/* HIDE */
 .keyboard.hide {
     transform: translateX(-50%) translateY(120%);
     opacity: 0;
@@ -93,28 +95,22 @@ input {
 
 /* BUTTON */
 .button-23 {
-  background-color: #FFFFFF;
-  border: 1px solid #222222;
-  border-radius: 8px;
-  color: #222;
-  font-size: 16px;
-  font-weight: 600;
+    background-color: #FFFFFF;
+    border: 1px solid #222222;
+    border-radius: 8px;
+    color: #222;
+    font-size: 16px;
+    font-weight: 600;
 
-  padding: 14px 0;
+    padding: 14px 0;
 
-  cursor: pointer;
-  transition: transform .1s ease;
+    cursor: pointer;
+    transition: transform .1s ease;
 }
 
 .button-23:active {
-  transform: scale(0.96);
-  background-color: #F7F7F7;
-}
-
-hr {
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 10px 0;
+    transform: scale(0.96);
+    background-color: #F7F7F7;
 }
 
 </style>
@@ -155,90 +151,62 @@ hr {
 
 <script>
 
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
-
-let data = [];
-
-fetch(url)
-.then(res => res.text())
-.then(text => {
-
-    let rows = text.trim().split("\n");
-
-    data = rows.map(r => {
-        let c = r.split(",");
-        return {
-            station: c[0] || "",
-            material: c[1] || "",
-            article: c[2] || ""
-        };
-    });
-});
-
-function add(val){
-    document.getElementById("input").value += val;
-    search();
-}
-
-function clearAll(){
-    document.getElementById("input").value = "";
-    document.getElementById("result").innerHTML = "";
-}
-
-function search(){
-
-    let val = document.getElementById("input").value.toLowerCase();
-
-    if(val === ""){
-        document.getElementById("result").innerHTML = "";
-        return;
-    }
-
-    let res = data.filter(x =>
-        (x.station && x.station.toLowerCase().includes(val)) ||
-        (x.material && x.material.toLowerCase().includes(val)) ||
-        (x.article && x.article.toLowerCase().includes(val))
-    );
-
-    document.getElementById("result").innerHTML = res.length
-        ? res.map(r => `
-            <b>Станція:</b> ${r.station}<br>
-            <b>Матеріал:</b> ${r.material}<br>
-            <b>Артикул:</b> ${r.article}
-            <hr>
-        `).join("")
-        : "Не знайдено";
-}
-
-/* 🔥 SMART SCROLL KEYBOARD */
 const keyboard = document.getElementById("keyboard");
 
 let lastScroll = 0;
 let lastTime = Date.now();
 
+function updateKeyboard() {
+    const current = window.scrollY;
+
+    // 🔥 завжди показуємо при самому верху
+    if (current <= 5) {
+        keyboard.classList.remove("hide");
+    }
+}
+
 window.addEventListener("scroll", () => {
 
-    let current = window.scrollY;
-    let now = Date.now();
+    const current = window.scrollY;
+    const now = Date.now();
 
-    let deltaY = current - lastScroll;
-    let deltaT = now - lastTime;
+    const deltaY = current - lastScroll;
+    const deltaT = now - lastTime;
 
-    let speed = Math.abs(deltaY / deltaT);
+    const speed = Math.abs(deltaY / deltaT);
 
-    // вниз → завжди ховаємо
+    updateKeyboard();
+
+    // ↓ вниз → ховаємо
     if (deltaY > 0) {
         keyboard.classList.add("hide");
     }
 
-    // вверх → тільки швидкий рух
-    if (deltaY < 0 && speed > 0.8) {
+    // ↑ швидкий скрол → показуємо
+    if (deltaY < 0 && speed > 1.4) {
         keyboard.classList.remove("hide");
     }
 
     lastScroll = current;
     lastTime = now;
-});
+
+}, { passive: true });
+
+// iOS bounce фікс
+window.addEventListener("touchmove", updateKeyboard, { passive: true });
+window.addEventListener("touchend", updateKeyboard, { passive: true });
+
+// старт
+window.addEventListener("load", updateKeyboard);
+
+// (заглушки щоб не ламалось)
+function add(v){
+    document.getElementById("input").value += v;
+}
+
+function clearAll(){
+    document.getElementById("input").value = "";
+}
 
 </script>
 
