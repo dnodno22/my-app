@@ -21,7 +21,6 @@ body {
     justify-content: center;
 }
 
-/* APP */
 .container {
     width: 100%;
     max-width: 420px;
@@ -31,7 +30,7 @@ body {
     flex-direction: column;
 }
 
-/* TOP BAR (keyboard) */
+/* KEYBOARD */
 .top-bar {
     position: fixed;
     top: 0;
@@ -44,9 +43,12 @@ body {
     border-bottom: 1px solid #e5e7eb;
     transition: transform 0.35s ease;
     z-index: 10;
+
+    /* важливо */
+    --kb-height: 180px;
 }
 
-/* hide */
+/* hidden keyboard */
 .top-bar.hidden {
     transform: translateX(-50%) translateY(-100%);
 }
@@ -64,7 +66,7 @@ input {
     outline: none;
 }
 
-/* KEYBOARD */
+/* keyboard grid */
 .keyboard {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -90,13 +92,10 @@ button:active {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    padding-top: 180px;
-    transition: padding-top 0.35s ease;
-}
 
-/* compact mode (коли клавіатура схована) */
-.container.compact .result {
-    padding-top: 20px;
+    /* 👇 ключове: завжди враховує клавіатуру */
+    padding-top: calc(var(--kb-height) + 20px);
+    transition: padding-top 0.35s ease;
 }
 </style>
 </head>
@@ -194,10 +193,9 @@ function search(){
         : "Не знайдено";
 }
 
-/* ===== SCROLL LOGIC ===== */
+/* SCROLL BEHAVIOR */
 const result = document.getElementById("result");
 const topBar = document.getElementById("topBar");
-const container = document.querySelector(".container");
 
 let lastScroll = 0;
 
@@ -206,15 +204,17 @@ result.addEventListener("scroll", () => {
     let current = result.scrollTop;
 
     if(current > lastScroll + 5){
-        // вниз → ховаємо клавіатуру
         topBar.classList.add("hidden");
-        container.classList.add("compact");
+
+        // клавіатура схована → висота = 0
+        document.documentElement.style.setProperty('--kb-height', '0px');
     }
 
     if(current < lastScroll - 5){
-        // вверх → показуємо клавіатуру
         topBar.classList.remove("hidden");
-        container.classList.remove("compact");
+
+        // клавіатура показана → повертаємо висоту
+        document.documentElement.style.setProperty('--kb-height', '180px');
     }
 
     lastScroll = current;
