@@ -22,11 +22,11 @@ body {
     overflow: hidden;
 }
 
-/* ВЕРХНЯ ЧАСТИНА (СКРОЛ) */
+/* ВЕРХНЯ ЧАСТИНА */
 .container {
     position: absolute;
     top: 0;
-    bottom: 220px; /* місце під клавіатуру */
+    bottom: 190px; /* місце під клавіатуру */
     left: 0;
     right: 0;
 
@@ -60,9 +60,16 @@ input {
     font-size: 18px;
     line-height: 1.6;
     color: #333;
+    padding-bottom: 20px;
 }
 
-/* КЛАВІАТУРА ЗНИЗУ */
+hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 10px 0;
+}
+
+/* КЛАВІАТУРА (липка) */
 .keyboard {
     position: fixed;
     bottom: 0;
@@ -72,14 +79,23 @@ input {
     width: 100%;
     max-width: 420px;
 
-    background: #ffffff;
-    padding: 12px;
+    padding: 14px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
 
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
 
-    border-top: 1px solid #e5e7eb;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    border-top: 1px solid rgba(0,0,0,0.08);
+
+    box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
+
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
 }
 
 /* BUTTONS */
@@ -90,17 +106,12 @@ button {
     border-radius: 14px;
     background: #e9ecef;
     font-weight: 600;
+    transition: 0.15s ease;
 }
 
 button:active {
-    transform: scale(0.96);
+    transform: scale(0.95);
     background: #dfe3e8;
-}
-
-hr {
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 10px 0;
 }
 
 </style>
@@ -186,18 +197,14 @@ function search(){
         (x.article && x.article.toLowerCase().includes(val))
     );
 
-    if(res.length > 0){
-
-        document.getElementById("result").innerHTML = res.map(r => `
+    document.getElementById("result").innerHTML = res.length
+        ? res.map(r => `
             <b>Станція:</b> ${r.station}<br>
             <b>Матеріал:</b> ${r.material}<br>
             <b>Артикул:</b> ${r.article}
             <hr>
-        `).join("");
-
-    } else {
-        document.getElementById("result").innerHTML = "Не знайдено";
-    }
+        `).join("")
+        : "Не знайдено";
 }
 
 </script>
