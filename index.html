@@ -6,48 +6,71 @@
 <title>Пошук</title>
 
 <style>
+
 body {
-    font-family: Arial;
-    background:#f2f2f2;
-    margin:0;
-    padding:20px;
+    margin: 0;
+    font-family: -apple-system, Arial, sans-serif;
+    background: linear-gradient(180deg, #0a66ff, #0047b3);
+    padding: 0;
 }
 
+/* верхній “app” простір */
 .container {
-    background:white;
-    padding:20px;
-    border-radius:10px;
+    background: white;
+    margin: 20px;
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.25);
 }
 
+/* input як у мобільних app */
 input {
-    width:100%;
-    padding:15px;
-    font-size:20px;
-    margin-bottom:10px;
-    text-align:center;
-    box-sizing:border-box;
+    width: 100%;
+    padding: 18px;
+    font-size: 22px;
+    border-radius: 14px;
+    border: 1px solid #e5e5e5;
+    text-align: center;
+    margin-bottom: 15px;
+    outline: none;
 }
 
+/* клавіатура як в додатку */
 .keyboard {
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:10px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
 }
 
+/* кнопки */
 button {
-    padding:15px;
-    font-size:18px;
-    border:none;
-    border-radius:10px;
-    background:#007bff;
-    color:white;
+    padding: 18px;
+    font-size: 18px;
+    border: none;
+    border-radius: 16px;
+    background: #0a66ff;
+    color: white;
+    font-weight: 600;
+    transition: 0.15s;
 }
 
-.result {
-    margin-top:15px;
-    font-size:18px;
-    line-height:1.5;
+button:active {
+    transform: scale(0.96);
+    background: #0047b3;
 }
+
+/* результати як картки */
+.result {
+    margin-top: 15px;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+/* “app feel” */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
 </style>
 
 </head>
