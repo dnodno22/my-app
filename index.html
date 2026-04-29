@@ -50,11 +50,18 @@ button {
 </style>
 
 </head>
-<body>
+body {
+    font-family: Arial;
+    background:#f2f2f2;
+    margin:0;
+    padding:0;
+}
 
-<div class="container">
-
-<h2>🔎 Пошук</h2>
+.container {
+    background:white;
+    padding:15px;
+    border-radius:0;
+}
 
 <input id="input" placeholder="Введи код" readonly>
 
@@ -72,13 +79,13 @@ button {
 <button onclick="add('8')">8</button>
 <button onclick="add('9')">9</button>
 
+<div></div>
 <button onclick="add('0')">0</button>
-<button onclick="clearAll()">AC</button>
+<button onclick="clearAll()">⌫</button>
 
-<!-- 🔥 НОВІ КНОПКИ -->
-<div style="grid-column: span 3; display:flex; gap:10px;">
-    <button style="flex:1" onclick="add('sp')">sp</button>
-    <button style="flex:1" onclick="add('ts')">ts</button>
+<button onclick="add('sp')">sp</button>
+<button onclick="add('ts')">ts</button>
+
 </div>
 
 </div>
