@@ -9,6 +9,7 @@
 body {
     font-family: Arial;
     background:#f2f2f2;
+    margin:0;
     padding:20px;
 }
 
@@ -50,21 +51,14 @@ button {
 </style>
 
 </head>
-body {
-    font-family: Arial;
-    background:#f2f2f2;
-    margin:0;
-    padding:0;
-}
 
-.container {
-    background:white;
-    padding:15px;
-    border-radius:0;
-}
+<body>
+
+<div class="container">
 
 <input id="input" placeholder="Введи код" readonly>
 
+<!-- 🔢 КЛАВІАТУРА -->
 <div class="keyboard">
 
 <button onclick="add('1')">1</button>
@@ -85,8 +79,6 @@ body {
 
 <button onclick="add('sp')">sp</button>
 <button onclick="add('ts')">ts</button>
-
-</div>
 
 </div>
 
@@ -122,15 +114,11 @@ function add(val){
     search();
 }
 
-function clearInput(){
-    document.getElementById("input").value = "";
-    document.getElementById("result").innerHTML = "";
-    
-}
 function clearAll(){
     document.getElementById("input").value = "";
     document.getElementById("result").innerHTML = "";
 }
+
 function search(){
 
     let val = document.getElementById("input").value.toLowerCase();
