@@ -20,20 +20,26 @@ body {
 
 input {
     width:100%;
-    padding:12px;
-    font-size:16px;
+    padding:15px;
+    font-size:20px;
     margin-bottom:10px;
+    text-align:center;
     box-sizing:border-box;
 }
 
+.keyboard {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+}
+
 button {
-    width:100%;
-    padding:12px;
+    padding:15px;
+    font-size:18px;
+    border:none;
+    border-radius:10px;
     background:#007bff;
     color:white;
-    border:none;
-    font-size:16px;
-    border-radius:5px;
 }
 
 .result {
@@ -50,8 +56,29 @@ button {
 
 <h2>🔎 Пошук</h2>
 
-<input id="input" placeholder="Введи станцію / матеріал / артикул">
-<button onclick="search()">Знайти</button>
+<!-- 🔥 INPUT БЕЗ СИСТЕМНОЇ КЛАВІАТУРИ -->
+<input id="input" placeholder="Введи код" readonly>
+
+<!-- 🔢 КАСТОМНА КЛАВІАТУРА -->
+<div class="keyboard">
+
+<button onclick="add('1')">1</button>
+<button onclick="add('2')">2</button>
+<button onclick="add('3')">3</button>
+
+<button onclick="add('4')">4</button>
+<button onclick="add('5')">5</button>
+<button onclick="add('6')">6</button>
+
+<button onclick="add('7')">7</button>
+<button onclick="add('8')">8</button>
+<button onclick="add('9')">9</button>
+
+<button onclick="clearInput()">C</button>
+<button onclick="add('0')">0</button>
+<button onclick="backspace()">⌫</button>
+
+</div>
 
 <div id="result" class="result"></div>
 
@@ -59,10 +86,12 @@ button {
 
 <script>
 
-// 🔥 ТВОЄ GOOGLE SHEETS CSV
+// 🔥 GOOGLE SHEETS CSV
 const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
+
 let data = [];
 
+// 📥 завантаження
 fetch(url)
 .then(res => res.text())
 .then(text => {
@@ -71,15 +100,35 @@ fetch(url)
 
     data = rows.map(r => {
         let c = r.split(",");
-
         return {
-            station: c[0],
-            material: c[1],
-            article: c[2]
+            station: c[0] || "",
+            material: c[1] || "",
+            article: c[2] || ""
         };
     });
 });
 
+// 🔢 ДОДАТИ ЦИФРУ
+function add(num){
+    let input = document.getElementById("input");
+    input.value += num;
+    search();
+}
+
+// ❌ ОЧИСТИТИ ВСЕ
+function clearInput(){
+    document.getElementById("input").value = "";
+    document.getElementById("result").innerHTML = "";
+}
+
+// ⌫ СТЕРТИ 1 ЦИФРУ
+function backspace(){
+    let input = document.getElementById("input");
+    input.value = input.value.slice(0, -1);
+    search();
+}
+
+// 🔎 ПОШУК
 function search(){
 
     let val = document.getElementById("input").value.toLowerCase();
@@ -90,9 +139,9 @@ function search(){
     }
 
     let res = data.filter(x =>
-        (x.station && x.station.toLowerCase().includes(val)) ||
-        (x.material && x.material.toLowerCase().includes(val)) ||
-        (x.article && x.article.toLowerCase().includes(val))
+        x.station.toLowerCase().includes(val) ||
+        x.material.toLowerCase().includes(val) ||
+        x.article.toLowerCase().includes(val)
     );
 
     if(res.length > 0){
