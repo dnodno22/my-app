@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 
 <title>Пошук</title>
 
@@ -13,6 +10,7 @@
 
 * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -21,21 +19,19 @@ body {
     background: #f4f6f8;
     height: 100vh;
     overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: stretch;
 }
 
-/* FULLSCREEN APP */
+/* APP */
 .container {
     width: 100%;
     max-width: 420px;
     height: 100vh;
-    background: #ffffff;
-    padding: 16px;
+    margin: 0 auto;
+    background: #fff;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    padding: 16px;
+    padding-bottom: 260px; /* місце під клавіатуру */
 }
 
 /* INPUT */
@@ -51,12 +47,33 @@ input {
     background: #fafafa;
 }
 
-/* KEYBOARD */
+/* RESULT */
+.result {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #333;
+}
+
+/* KEYBOARD FIXED BOTTOM */
 .keyboard {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 420px;
+
+    background: #fff;
+    padding: 12px;
+    padding-bottom: env(safe-area-inset-bottom);
+    
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    margin-bottom: 10px;
+
+    border-top: 1px solid #e5e7eb;
 }
 
 /* BUTTONS */
@@ -75,21 +92,6 @@ button:active {
     background: #dfe3e8;
 }
 
-/* RESULT */
-.result {
-    flex: 1;
-    overflow-y: auto;
-    font-size: 16px;
-    line-height: 1.5;
-    color: #333;
-    padding-top: 10px;
-}
-
-/* remove highlight */
-* {
-    -webkit-tap-highlight-color: transparent;
-}
-
 </style>
 
 </head>
@@ -99,6 +101,9 @@ button:active {
 <div class="container">
 
 <input id="input" readonly>
+<div id="result" class="result"></div>
+
+</div>
 
 <div class="keyboard">
 
@@ -114,84 +119,21 @@ button:active {
 <button onclick="add('8')">8</button>
 <button onclick="add('9')">9</button>
 
-<div></div>
-<button onclick="add('0')">0</button>
 <button onclick="clearAll()">⌫</button>
-
+<button onclick="add('0')">0</button>
 <button onclick="add('sp')">sp</button>
-<button onclick="add('ts')">ts</button>
-
-</div>
-
-<div id="result" class="result"></div>
 
 </div>
 
 <script>
 
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
-
-let data = [];
-
-fetch(url)
-.then(res => res.text())
-.then(text => {
-
-    let rows = text.trim().split("\n");
-
-    data = rows.map(r => {
-        let c = r.split(",");
-        return {
-            station: c[0] || "",
-            material: c[1] || "",
-            article: c[2] || ""
-        };
-    });
-});
-
 function add(val){
     document.getElementById("input").value += val;
-    search();
 }
 
 function clearAll(){
     document.getElementById("input").value = "";
     document.getElementById("result").innerHTML = "";
-}
-
-function search(){
-
-    let val = document.getElementById("input").value.toLowerCase();
-
-    if(val === ""){
-        document.getElementById("result").innerHTML = "";
-        return;
-    }
-
-    let res = data.filter(x =>
-        (x.station && x.station.toLowerCase().includes(val)) ||
-        (x.material && x.material.toLowerCase().includes(val)) ||
-        (x.article && x.article.toLowerCase().includes(val))
-    );
-
-    if(res.length > 0){
-
-        let out = "";
-
-        res.forEach(r => {
-            out += `
-            <b>Станція:</b> ${r.station}<br>
-            <b>Матеріал:</b> ${r.material}<br>
-            <b>Артикул:</b> ${r.article}
-            <hr>
-            `;
-        });
-
-        document.getElementById("result").innerHTML = out;
-
-    } else {
-        document.getElementById("result").innerHTML = "Не знайдено";
-    }
 }
 
 </script>
