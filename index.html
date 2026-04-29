@@ -61,11 +61,9 @@ hr {
     margin: 10px 0;
 }
 
-/* KEYBOARD (як було нормально) */
+/* KEYBOARD */
 .keyboard {
     margin-top: auto;
-    position: sticky;
-    bottom: 0;
 
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -82,6 +80,17 @@ hr {
 
     border-top-left-radius: 18px;
     border-top-right-radius: 18px;
+
+    position: sticky;
+    bottom: 0;
+
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* ХОВАННЯ */
+.keyboard.hide {
+    transform: translateY(120%);
+    opacity: 0;
 }
 
 /* BUTTONS */
@@ -110,7 +119,7 @@ button:active {
 
 <div id="result" class="result"></div>
 
-<div class="keyboard">
+<div class="keyboard" id="keyboard">
 
 <button onclick="add('1')">1</button>
 <button onclick="add('2')">2</button>
@@ -191,6 +200,26 @@ function search(){
         `).join("")
         : "Не знайдено";
 }
+
+/* 🔥 ЛОГІКА АВТОСКРИТТЯ */
+let lastScroll = 0;
+const keyboard = document.getElementById("keyboard");
+
+window.addEventListener("scroll", () => {
+
+    let current = window.scrollY;
+
+    if (current > lastScroll + 5) {
+        // скрол вниз → сховати
+        keyboard.classList.add("hide");
+    } 
+    else if (current < lastScroll - 5) {
+        // скрол вгору → показати
+        keyboard.classList.remove("hide");
+    }
+
+    lastScroll = current;
+});
 
 </script>
 
