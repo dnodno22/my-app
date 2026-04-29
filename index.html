@@ -11,10 +11,8 @@ body {
     margin: 0;
     font-family: -apple-system, Arial, sans-serif;
     background: linear-gradient(180deg, #0a66ff, #0047b3);
-    padding: 0;
 }
 
-/* верхній “app” простір */
 .container {
     background: white;
     margin: 20px;
@@ -23,7 +21,6 @@ body {
     box-shadow: 0 15px 40px rgba(0,0,0,0.25);
 }
 
-/* input як у мобільних app */
 input {
     width: 100%;
     padding: 18px;
@@ -33,16 +30,15 @@ input {
     text-align: center;
     margin-bottom: 15px;
     outline: none;
+    box-sizing: border-box;
 }
 
-/* клавіатура як в додатку */
 .keyboard {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
 }
 
-/* кнопки */
 button {
     padding: 18px;
     font-size: 18px;
@@ -51,7 +47,6 @@ button {
     background: #0a66ff;
     color: white;
     font-weight: 600;
-    transition: 0.15s;
 }
 
 button:active {
@@ -59,14 +54,12 @@ button:active {
     background: #0047b3;
 }
 
-/* результати як картки */
 .result {
     margin-top: 15px;
     font-size: 16px;
     line-height: 1.6;
 }
 
-/* “app feel” */
 * {
     -webkit-tap-highlight-color: transparent;
 }
@@ -81,7 +74,6 @@ button:active {
 
 <input id="input" readonly>
 
-<!-- 🔢 КЛАВІАТУРА -->
 <div class="keyboard">
 
 <button onclick="add('1')">1</button>
@@ -132,8 +124,7 @@ fetch(url)
 });
 
 function add(val){
-    let input = document.getElementById("input");
-    input.value += val;
+    document.getElementById("input").value += val;
     search();
 }
 
@@ -152,9 +143,9 @@ function search(){
     }
 
     let res = data.filter(x =>
-        x.station.toLowerCase().includes(val) ||
-        x.material.toLowerCase().includes(val) ||
-        x.article.toLowerCase().includes(val)
+        (x.station && x.station.toLowerCase().includes(val)) ||
+        (x.material && x.material.toLowerCase().includes(val)) ||
+        (x.article && x.article.toLowerCase().includes(val))
     );
 
     if(res.length > 0){
