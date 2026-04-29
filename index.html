@@ -6,16 +6,19 @@
 <title>Пошук</title>
 
 <style>
+* {
+    box-sizing: border-box;
+}
 
-/* 🌿 СКАНДИНАВСЬКИЙ СТИЛЬ */
 body {
     margin: 0;
     font-family: -apple-system, Arial, sans-serif;
     background: #f4f6f8;
     display: flex;
     justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
     padding: 16px;
-    box-sizing: border-box;
 }
 
 .container {
@@ -23,9 +26,9 @@ body {
     max-width: 420px;
     background: #ffffff;
     border-radius: 24px;
-    padding: 20px;
+    padding: 16px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-    box-sizing: border-box;
+    overflow: hidden;
 }
 /* input */
 input {
