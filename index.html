@@ -107,12 +107,6 @@ input {
   background-color: #F7F7F7;
 }
 
-hr {
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 10px 0;
-}
-
 /* SIDE PANEL */
 .side-panel {
     position: fixed;
@@ -123,13 +117,33 @@ hr {
     height: 100%;
     background: #fff;
     z-index: 20;
-    padding: 16px;
-    overflow-y: auto;
+    padding: 10px;
+    overflow: auto;
     transition: right 0.3s ease;
 }
 
 .side-panel.show {
     right: 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+th {
+    background: #f1f5f9;
+    border: 1px solid #ddd;
+    padding: 8px;
+    cursor: pointer;
+    position: sticky;
+    top: 0;
+}
+
+td {
+    border: 1px solid #ddd;
+    padding: 6px;
 }
 
 </style>
@@ -145,7 +159,7 @@ hr {
 
 </div>
 
-<!-- SIDE PANEL -->
+<!-- PANEL -->
 <div class="side-panel" id="panel"></div>
 
 <!-- KEYBOARD -->
@@ -165,7 +179,7 @@ hr {
 
 <button class="button-23" onclick="add('с')">с</button>
 <button class="button-23" onclick="add('0')">0</button>
-<button class="button-23" onclick="clearAll()">⌫Delete</button>
+<button class="button-23" onclick="clearAll()">⌫</button>
 
 <button class="button-23" onclick="add('sp')">sp</button>
 <button class="button-23" onclick="add('ts')">ts</button>
@@ -174,17 +188,15 @@ hr {
 
 <script>
 
-// Аркуш1
+// 🔥 Аркуш1
 const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
 
 let data = [];
 
 fetch(url)
-.then(res => res.text())
-.then(text => {
-    let rows = text.trim().split("\n");
-
-    data = rows.map(r => {
+.then(r => r.text())
+.then(t => {
+    data = t.trim().split("\n").map(r => {
         let c = r.split(",");
         return {
             station: c[0] || "",
@@ -194,20 +206,19 @@ fetch(url)
     });
 });
 
-// Аркуш3
+// 🔥 Аркуш3
 const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + new Date().getTime();
 
 let data2 = [];
 
 fetch(url2)
-.then(res => res.text())
-.then(text => {
-    let rows = text.trim().split("\n");
-    data2 = rows.map(r => r.split(","));
+.then(r => r.text())
+.then(t => {
+    data2 = t.trim().split("\n").map(r => r.split(","));
 });
 
-function add(val){
-    document.getElementById("input").value += val;
+function add(v){
+    document.getElementById("input").value += v;
     search();
 }
 
@@ -217,48 +228,74 @@ function clearAll(){
 }
 
 function search(){
-
-    let val = document.getElementById("input").value.toLowerCase();
-
-    if(val === ""){
-        document.getElementById("result").innerHTML = "";
-        return;
-    }
+    let v = document.getElementById("input").value.toLowerCase();
+    if(!v) return document.getElementById("result").innerHTML = "";
 
     let res = data.filter(x =>
-        (x.station && x.station.toLowerCase().includes(val)) ||
-        (x.material && x.material.toLowerCase().includes(val)) ||
-        (x.article && x.article.toLowerCase().includes(val))
+        (x.station && x.station.toLowerCase().includes(v)) ||
+        (x.material && x.material.toLowerCase().includes(v)) ||
+        (x.article && x.article.toLowerCase().includes(v))
     );
 
-    document.getElementById("result").innerHTML = res.length
-        ? res.map(r => `
+    document.getElementById("result").innerHTML =
+        res.length ? res.map(r => `
             <b>Станція:</b> ${r.station}<br>
             <b>Матеріал:</b> ${r.material}<br>
             <b>Артикул:</b> ${r.article}
             <hr>
-        `).join("")
-        : "Не знайдено";
+        `).join("") : "Не знайдено";
 }
 
-// PANEL (ТАБЛИЦЯ)
+// 🔥 PANEL + SORT
+let sortState = { col: -1, asc: true };
+
 function showPanel(){
+
     const panel = document.getElementById("panel");
 
-    panel.innerHTML = `
-    <table style="width:100%; border-collapse: collapse;">
-        ${data2.map(row => `
-            <tr>
-                ${row.map(cell => `
-                    <td style="border:1px solid #ddd; padding:6px; font-size:14px;">
-                        ${cell}
-                    </td>
-                `).join("")}
-            </tr>
-        `).join("")}
-    </table>
-    `;
+    function render(arr){
 
+        panel.innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    ${arr[0].map((h,i)=>`
+                        <th onclick="sortBy(${i})">${h}</th>
+                    `).join("")}
+                </tr>
+            </thead>
+            <tbody>
+                ${arr.slice(1).map(r=>`
+                    <tr>
+                        ${r.map(c=>`<td>${c||""}</td>`).join("")}
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+        `;
+    }
+
+    window.sortBy = function(i){
+
+        if(sortState.col === i){
+            sortState.asc = !sortState.asc;
+        } else {
+            sortState.col = i;
+            sortState.asc = true;
+        }
+
+        let sorted = [...data2.slice(1)].sort((a,b)=>{
+            let A = a[i]||"";
+            let B = b[i]||"";
+            return sortState.asc
+                ? A.localeCompare(B,undefined,{numeric:true})
+                : B.localeCompare(A,undefined,{numeric:true});
+        });
+
+        render([data2[0], ...sorted]);
+    };
+
+    render(data2);
     panel.classList.add("show");
 }
 
@@ -267,43 +304,27 @@ function hidePanel(){
 }
 
 // SWIPE
-let startX = 0;
-let endX = 0;
-
-document.addEventListener("touchstart", e => {
-    startX = e.touches[0].clientX;
+let sx=0;
+document.addEventListener("touchstart",e=>sx=e.touches[0].clientX);
+document.addEventListener("touchend",e=>{
+    let dx = sx - e.changedTouches[0].clientX;
+    if(dx>80) showPanel();
+    if(dx<-80) hidePanel();
 });
 
-document.addEventListener("touchend", e => {
-    endX = e.changedTouches[0].clientX;
+// KEYBOARD SCROLL
+const k = document.getElementById("keyboard");
+let last=0, t=Date.now();
 
-    let diff = startX - endX;
+window.addEventListener("scroll",()=>{
+    let y=window.scrollY;
+    let now=Date.now();
+    let sp=Math.abs((y-last)/(now-t));
 
-    if (diff > 80) showPanel();
-    if (diff < -80) hidePanel();
-});
+    if(y-last>0) k.classList.add("hide");
+    if(y-last<0 && sp>0.8) k.classList.remove("hide");
 
-// SCROLL KEYBOARD
-const keyboard = document.getElementById("keyboard");
-
-let lastScroll = 0;
-let lastTime = Date.now();
-
-window.addEventListener("scroll", () => {
-
-    let current = window.scrollY;
-    let now = Date.now();
-
-    let deltaY = current - lastScroll;
-    let deltaT = now - lastTime;
-
-    let speed = Math.abs(deltaY / deltaT);
-
-    if (deltaY > 0) keyboard.classList.add("hide");
-    if (deltaY < 0 && speed > 0.8) keyboard.classList.remove("hide");
-
-    lastScroll = current;
-    lastTime = now;
+    last=y;t=now;
 });
 
 </script>
