@@ -174,7 +174,7 @@ hr {
 
 <script>
 
-// 🔥 Аркуш1
+// Аркуш1
 const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
 
 let data = [];
@@ -194,7 +194,7 @@ fetch(url)
     });
 });
 
-// 🔥 Аркуш3 (повністю)
+// Аркуш3
 const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + new Date().getTime();
 
 let data2 = [];
@@ -203,8 +203,6 @@ fetch(url2)
 .then(res => res.text())
 .then(text => {
     let rows = text.trim().split("\n");
-
-    // 👇 тепер зберігаємо ВСІ колонки
     data2 = rows.map(r => r.split(","));
 });
 
@@ -243,14 +241,23 @@ function search(){
         : "Не знайдено";
 }
 
-// 🔥 PANEL — показує ВСІ дані
+// PANEL (ТАБЛИЦЯ)
 function showPanel(){
     const panel = document.getElementById("panel");
 
-    panel.innerHTML = data2.map(row => `
-        ${row.map((cell, i) => `<b>${i+1}:</b> ${cell}`).join("<br>")}
-        <hr>
-    `).join("");
+    panel.innerHTML = `
+    <table style="width:100%; border-collapse: collapse;">
+        ${data2.map(row => `
+            <tr>
+                ${row.map(cell => `
+                    <td style="border:1px solid #ddd; padding:6px; font-size:14px;">
+                        ${cell}
+                    </td>
+                `).join("")}
+            </tr>
+        `).join("")}
+    </table>
+    `;
 
     panel.classList.add("show");
 }
@@ -259,7 +266,7 @@ function hidePanel(){
     document.getElementById("panel").classList.remove("show");
 }
 
-// 🔥 SWIPE
+// SWIPE
 let startX = 0;
 let endX = 0;
 
@@ -272,11 +279,11 @@ document.addEventListener("touchend", e => {
 
     let diff = startX - endX;
 
-    if (diff > 80) showPanel();     // вліво
-    if (diff < -80) hidePanel();    // вправо
+    if (diff > 80) showPanel();
+    if (diff < -80) hidePanel();
 });
 
-// 🔥 SCROLL KEYBOARD
+// SCROLL KEYBOARD
 const keyboard = document.getElementById("keyboard");
 
 let lastScroll = 0;
@@ -292,13 +299,8 @@ window.addEventListener("scroll", () => {
 
     let speed = Math.abs(deltaY / deltaT);
 
-    if (deltaY > 0) {
-        keyboard.classList.add("hide");
-    }
-
-    if (deltaY < 0 && speed > 0.8) {
-        keyboard.classList.remove("hide");
-    }
+    if (deltaY > 0) keyboard.classList.add("hide");
+    if (deltaY < 0 && speed > 0.8) keyboard.classList.remove("hide");
 
     lastScroll = current;
     lastTime = now;
