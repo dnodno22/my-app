@@ -74,7 +74,6 @@ input {
 
     background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
 
     border-top: 1px solid rgba(0,0,0,0.08);
     box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
@@ -85,7 +84,6 @@ input {
     transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
-/* HIDE STATE */
 .keyboard.hide {
     transform: translateX(-50%) translateY(120%);
     opacity: 0;
@@ -99,9 +97,7 @@ input {
   color: #222;
   font-size: 16px;
   font-weight: 600;
-
   padding: 14px 0;
-
   cursor: pointer;
   transition: transform .1s ease;
 }
@@ -117,6 +113,25 @@ hr {
     margin: 10px 0;
 }
 
+/* 🔥 SIDE PANEL */
+.side-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    max-width: 420px;
+    height: 100%;
+    background: #fff;
+    z-index: 20;
+    padding: 16px;
+    overflow-y: auto;
+    transition: right 0.3s ease;
+}
+
+.side-panel.show {
+    right: 0;
+}
+
 </style>
 </head>
 
@@ -129,6 +144,9 @@ hr {
 <div id="result" class="result"></div>
 
 </div>
+
+<!-- SIDE PANEL -->
+<div class="side-panel" id="panel"></div>
 
 <!-- KEYBOARD -->
 <div class="keyboard" id="keyboard">
@@ -156,6 +174,7 @@ hr {
 
 <script>
 
+// 🔥 Аркуш1
 const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
 
 let data = [];
@@ -163,7 +182,6 @@ let data = [];
 fetch(url)
 .then(res => res.text())
 .then(text => {
-
     let rows = text.trim().split("\n");
 
     data = rows.map(r => {
@@ -172,6 +190,26 @@ fetch(url)
             station: c[0] || "",
             material: c[1] || "",
             article: c[2] || ""
+        };
+    });
+});
+
+// 🔥 Аркуш3 (твій gid)
+const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + new Date().getTime();
+
+let data2 = [];
+
+fetch(url2)
+.then(res => res.text())
+.then(text => {
+    let rows = text.trim().split("\n");
+
+    data2 = rows.map(r => {
+        let c = r.split(",");
+        return {
+            col1: c[0] || "",
+            col2: c[1] || "",
+            col3: c[2] || ""
         };
     });
 });
@@ -211,7 +249,42 @@ function search(){
         : "Не знайдено";
 }
 
-/* 🔥 SMART SCROLL KEYBOARD */
+// 🔥 PANEL
+function showPanel(){
+    const panel = document.getElementById("panel");
+
+    panel.innerHTML = data2.map(r => `
+        <b>${r.col1}</b><br>
+        ${r.col2}<br>
+        ${r.col3}
+        <hr>
+    `).join("");
+
+    panel.classList.add("show");
+}
+
+function hidePanel(){
+    document.getElementById("panel").classList.remove("show");
+}
+
+// 🔥 SWIPE
+let startX = 0;
+let endX = 0;
+
+document.addEventListener("touchstart", e => {
+    startX = e.touches[0].clientX;
+});
+
+document.addEventListener("touchend", e => {
+    endX = e.changedTouches[0].clientX;
+
+    let diff = startX - endX;
+
+    if (diff > 80) showPanel();     // свайп вліво
+    if (diff < -80) hidePanel();    // свайп вправо
+});
+
+// 🔥 SCROLL KEYBOARD
 const keyboard = document.getElementById("keyboard");
 
 let lastScroll = 0;
@@ -227,12 +300,10 @@ window.addEventListener("scroll", () => {
 
     let speed = Math.abs(deltaY / deltaT);
 
-    // вниз → завжди ховаємо
     if (deltaY > 0) {
         keyboard.classList.add("hide");
     }
 
-    // вверх → тільки швидкий рух
     if (deltaY < 0 && speed > 0.8) {
         keyboard.classList.remove("hide");
     }
