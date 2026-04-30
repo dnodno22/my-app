@@ -113,7 +113,7 @@ hr {
     margin: 10px 0;
 }
 
-/* 🔥 SIDE PANEL */
+/* SIDE PANEL */
 .side-panel {
     position: fixed;
     top: 0;
@@ -194,7 +194,7 @@ fetch(url)
     });
 });
 
-// 🔥 Аркуш3 (твій gid)
+// 🔥 Аркуш3 (повністю)
 const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + new Date().getTime();
 
 let data2 = [];
@@ -204,14 +204,8 @@ fetch(url2)
 .then(text => {
     let rows = text.trim().split("\n");
 
-    data2 = rows.map(r => {
-        let c = r.split(",");
-        return {
-            col1: c[0] || "",
-            col2: c[1] || "",
-            col3: c[2] || ""
-        };
-    });
+    // 👇 тепер зберігаємо ВСІ колонки
+    data2 = rows.map(r => r.split(","));
 });
 
 function add(val){
@@ -249,14 +243,12 @@ function search(){
         : "Не знайдено";
 }
 
-// 🔥 PANEL
+// 🔥 PANEL — показує ВСІ дані
 function showPanel(){
     const panel = document.getElementById("panel");
 
-    panel.innerHTML = data2.map(r => `
-        <b>${r.col1}</b><br>
-        ${r.col2}<br>
-        ${r.col3}
+    panel.innerHTML = data2.map(row => `
+        ${row.map((cell, i) => `<b>${i+1}:</b> ${cell}`).join("<br>")}
         <hr>
     `).join("");
 
@@ -280,8 +272,8 @@ document.addEventListener("touchend", e => {
 
     let diff = startX - endX;
 
-    if (diff > 80) showPanel();     // свайп вліво
-    if (diff < -80) hidePanel();    // свайп вправо
+    if (diff > 80) showPanel();     // вліво
+    if (diff < -80) hidePanel();    // вправо
 });
 
 // 🔥 SCROLL KEYBOARD
