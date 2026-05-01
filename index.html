@@ -56,7 +56,7 @@ input {
     color: #333;
 }
 
-/* KEYBOARD (твоя стара) */
+/* KEYBOARD (твій дизайн) */
 .keyboard {
     position: fixed;
     left: 50%;
@@ -137,7 +137,7 @@ input {
 
 <div class="side-panel" id="panel"></div>
 
-<!-- KEYBOARD -->
+<!-- 🔥 ТВОЯ КЛАВІАТУРА (UI НЕ ЗМІНЕНИЙ) -->
 <div class="keyboard" id="keyboard">
 
 <button onclick="add('1')">1</button>
@@ -168,7 +168,10 @@ const result = document.getElementById("result");
 const keyboard = document.getElementById("keyboard");
 const panel = document.getElementById("panel");
 
-/* KEYBOARD */
+/* =========================
+   KEYBOARD LOGIC (НОВА)
+========================= */
+
 function add(v){
     input.value += v;
     search();
@@ -179,29 +182,32 @@ function clearAll(){
     result.innerHTML = "";
 }
 
-/* TOGGLE KEYBOARD */
-function toggleKeyboard(){
-    keyboard.classList.toggle("hide");
-}
+/* TAP toggle */
+let lastTap = 0;
 
-/* TAP LOGIC */
 document.addEventListener("touchend", (e) => {
 
-    const target = e.target;
+    const now = Date.now();
+    const isDouble = now - lastTap < 300;
+    lastTap = now;
 
-    if (keyboard.contains(target)) return;
+    if (keyboard.contains(e.target)) return;
 
-    if (target === input) return;
+    if (isDouble) return;
 
-    toggleKeyboard();
+    // toggle keyboard
+    keyboard.classList.toggle("hide");
 });
 
-/* SCROLL ALWAYS HIDE */
+/* scroll always hide */
 window.addEventListener("scroll", () => {
     keyboard.classList.add("hide");
 });
 
-/* SWIPE */
+/* =========================
+   SWIPE (АРКУШ3)
+========================= */
+
 let sx = 0;
 
 document.addEventListener("touchstart", e => {
@@ -215,16 +221,19 @@ document.addEventListener("touchend", e => {
     let dx = e.changedTouches[0].clientX - sx;
 
     if (dx > 80) {
-        panel.classList.add("show");   // swipe right
+        panel.classList.add("show");
         keyboard.classList.add("hide");
     }
 
     if (dx < -80) {
-        panel.classList.remove("show"); // swipe left
+        panel.classList.remove("show");
     }
 });
 
-/* DATA */
+/* =========================
+   SEARCH (твоя логіка)
+========================= */
+
 let data = [];
 
 fetch("https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t="+Date.now())
@@ -232,11 +241,14 @@ fetch("https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oioo
 .then(t=>{
     data = t.trim().split("\n").map(r=>{
         let c = r.split(",");
-        return {station:c[0],material:c[1],article:c[2]};
+        return {
+            station: c[0] || "",
+            material: c[1] || "",
+            article: c[2] || ""
+        };
     });
 });
 
-/* SEARCH */
 function search(){
 
     let v = input.value.toLowerCase();
