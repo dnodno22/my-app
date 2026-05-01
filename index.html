@@ -181,18 +181,12 @@ const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
 
 /* =======================
-   SHEETS (NEW)
+   SHEETS
 ======================= */
 
 const sheets = [
-  {
-    gid: "1679964111",
-    data: []
-  },
-  {
-    gid: "421001458",
-    data: []
-  }
+  { gid: "1679964111", data: [] },
+  { gid: "421001458", data: [] }
 ];
 
 let activeSheet = 0;
@@ -245,7 +239,7 @@ function clearAll(){
 }
 
 /* =======================
-   SEARCH (ACTIVE SHEET)
+   SEARCH
 ======================= */
 
 function search(){
@@ -254,8 +248,8 @@ function search(){
     if(!v) return resultBox.innerHTML = "";
 
     const data = sheets[activeSheet].data;
-
     const isNumber = /^\d+$/.test(v);
+
     const result = {};
 
     data.forEach(x => {
@@ -266,10 +260,8 @@ function search(){
             (x.article && (isNumber ? x.article.toLowerCase().endsWith(v) : x.article.toLowerCase().includes(v)));
 
         if (match) {
-
             if (!result[x.article]) result[x.article] = {};
             if (!result[x.article][x.material]) result[x.article][x.material] = new Set();
-
             result[x.article][x.material].add(x.station);
         }
     });
@@ -279,21 +271,19 @@ function search(){
     Object.keys(result).forEach(article => {
 
         html += `
-            <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
-                <div style="font-weight:bold; font-size:20px;">
-                    ${article}
-                </div>
+        <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
+            <div style="font-weight:bold; font-size:20px;">${article}</div>
         `;
 
         Object.keys(result[article]).forEach(material => {
 
             html += `
-                <div style="margin-left:8px;">
-                    <div>📦 ${material}</div>
-                    <div style="font-size:13px; color:#888; padding-left:10px;">
-                        ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
-                    </div>
+            <div style="margin-left:8px;">
+                <div>📦 ${material}</div>
+                <div style="font-size:13px; color:#888; padding-left:10px;">
+                    ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
                 </div>
+            </div>
             `;
         });
 
@@ -304,10 +294,11 @@ function search(){
 }
 
 /* =======================
-   PANEL TABLE (SECOND GID VIEW)
+   PANEL TABLE
 ======================= */
 
 function renderPanel(){
+
     const data = sheets[activeSheet].data;
 
     let html = `<table>
@@ -315,27 +306,21 @@ function renderPanel(){
             <th>Станція</th>
             <th>Матеріал</th>
             <th>Артикул</th>
-        </tr>
-    `;
+        </tr>`;
 
     data.forEach(r => {
         html += `
-            <tr>
-                <td>${r.station}</td>
-                <td>${r.material}</td>
-                <td>${r.article}</td>
-            </tr>
-        `;
+        <tr>
+            <td>${r.station}</td>
+            <td>${r.material}</td>
+            <td>${r.article}</td>
+        </tr>`;
     });
 
     html += "</table>";
 
     panel.innerHTML = html;
 }
-
-/* =======================
-   PANEL CONTROL
-======================= */
 
 function showPanel(){
     panel.classList.add("show");
@@ -348,12 +333,13 @@ function hidePanel(){
 }
 
 /* =======================
-   TAP + SWIPE
+   SWIPE FIXED
 ======================= */
 
 let startX = 0;
 let startY = 0;
 let startTime = 0;
+let startInsidePanel = false;
 
 const MAX_TIME = 250;
 const MAX_MOVE = 10;
@@ -361,7 +347,7 @@ const SWIPE_MIN = 80;
 
 document.addEventListener("pointerdown", (e) => {
 
-    if (k.contains(e.target) || panel.contains(e.target)) return;
+    startInsidePanel = panel.contains(e.target);
 
     startX = e.clientX;
     startY = e.clientY;
@@ -370,8 +356,6 @@ document.addEventListener("pointerdown", (e) => {
 
 document.addEventListener("pointerup", (e) => {
 
-    if (k.contains(e.target)) return;
-
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
     const dt = Date.now() - startTime;
@@ -379,14 +363,11 @@ document.addEventListener("pointerup", (e) => {
     const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
     const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
 
-    /* PANEL OPEN STATE SWIPE (NEW FEATURE) */
-    if (panel.classList.contains("show") && isSwipe) {
+    /* SWIPE INSIDE PANEL */
+    if (panel.classList.contains("show") && startInsidePanel && isSwipe) {
 
-        if (dx > 0) {
-            activeSheet = 0;
-        } else {
-            activeSheet = 1;
-        }
+        if (dx > 0) activeSheet = 0;
+        else activeSheet = 1;
 
         renderPanel();
         search();
@@ -396,9 +377,8 @@ document.addEventListener("pointerup", (e) => {
     /* GLOBAL SWIPE */
     if (isSwipe) {
 
-        if (dx > 0) {
-            showPanel();
-        } else {
+        if (dx > 0) showPanel();
+        else {
             hidePanel();
             showKeyboard();
         }
@@ -408,18 +388,10 @@ document.addEventListener("pointerup", (e) => {
 
     /* TAP */
     if (isTap) {
-
-        if (k.classList.contains("hide")) {
-            showKeyboard();
-        } else {
-            hideKeyboard();
-        }
+        if (k.classList.contains("hide")) showKeyboard();
+        else hideKeyboard();
     }
 });
-
-/* =======================
-   SCROLL
-======================= */
 
 window.addEventListener("scroll", () => {
     hideKeyboard();
