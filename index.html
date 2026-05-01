@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">   
+<meta name="theme-color" content="#f4f6f8">
 
 <title>Пошук</title>
 
@@ -41,6 +41,9 @@ input {
     margin-bottom: 12px;
     outline: none;
     background: #fafafa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .result {
@@ -83,19 +86,13 @@ input {
 }
 
 .button-23 {
-  background-color: #FFFFFF;
-  border: 1px solid #222222;
+  background-color: #fff;
+  border: 1px solid #222;
   border-radius: 8px;
   color: #222;
   font-size: 16px;
   font-weight: 600;
   padding: 14px 0;
-  cursor: pointer;
-}
-
-.button-23:active {
-  transform: scale(0.96);
-  background-color: #F7F7F7;
 }
 
 /* PANEL */
@@ -117,26 +114,6 @@ input {
     right: 0;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-th {
-    background: #f1f5f9;
-    border: 1px solid #ddd;
-    padding: 8px;
-    cursor: pointer;
-    position: sticky;
-    top: 0;
-}
-
-td {
-    border: 1px solid #ddd;
-    padding: 6px;
-}
-
 </style>
 </head>
 
@@ -153,52 +130,76 @@ td {
 
 <div class="keyboard" id="keyboard">
 
-<button class="button-23" onclick="add('1')">1</button>
-<button class="button-23" onclick="add('2')">2</button>
-<button class="button-23" onclick="add('3')">3</button>
+<button class="button-23" onclick="APP.add('1')">1</button>
+<button class="button-23" onclick="APP.add('2')">2</button>
+<button class="button-23" onclick="APP.add('3')">3</button>
 
-<button class="button-23" onclick="add('4')">4</button>
-<button class="button-23" onclick="add('5')">5</button>
-<button class="button-23" onclick="add('6')">6</button>
+<button class="button-23" onclick="APP.add('4')">4</button>
+<button class="button-23" onclick="APP.add('5')">5</button>
+<button class="button-23" onclick="APP.add('6')">6</button>
 
-<button class="button-23" onclick="add('7')">7</button>
-<button class="button-23" onclick="add('8')">8</button>
-<button class="button-23" onclick="add('9')">9</button>
+<button class="button-23" onclick="APP.add('7')">7</button>
+<button class="button-23" onclick="APP.add('8')">8</button>
+<button class="button-23" onclick="APP.add('9')">9</button>
 
-<button class="button-23" onclick="add('с')">с</button>
-<button class="button-23" onclick="add('0')">0</button>
-<button class="button-23" onclick="clearAll()">⌫</button>
+<button class="button-23" onclick="APP.add('с')">с</button>
+<button class="button-23" onclick="APP.add('0')">0</button>
+<button class="button-23" onclick="APP.clear()">⌫</button>
 
-<button class="button-23" onclick="add('sp')">sp</button>
-<button class="button-23" onclick="add('ts')">ts</button>
+<button class="button-23" onclick="APP.add('sp')">sp</button>
+<button class="button-23" onclick="APP.add('ts')">ts</button>
 
 </div>
 
 <script>
 
-const k = document.getElementById("keyboard");
-const input = document.getElementById("input");
-const resultBox = document.getElementById("result");
-const panel = document.getElementById("panel");
+/* =====================
+   APP CORE
+===================== */
 
-/* =======================
-   KEYBOARD CONTROL
-======================= */
+const APP = {
+    keyboard: document.getElementById("keyboard"),
+    panel: document.getElementById("panel"),
+    input: document.getElementById("input"),
+    result: document.getElementById("result"),
 
-function showKeyboard(){
-    if (panel.classList.contains("show")) return;
-    k.classList.remove("hide");
-}
+    showKeyboard() {
+        this.keyboard.classList.remove("hide");
+    },
 
-function hideKeyboard(){
-    k.classList.add("hide");
-}
+    hideKeyboard() {
+        this.keyboard.classList.add("hide");
+    },
 
-/* =======================
-   SEARCH
-======================= */
+    toggleKeyboard() {
+        this.keyboard.classList.toggle("hide");
+    },
 
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
+    showPanel() {
+        this.panel.classList.add("show");
+        this.hideKeyboard();
+    },
+
+    hidePanel() {
+        this.panel.classList.remove("show");
+    },
+
+    add(v) {
+        this.input.value += v;
+        search();
+    },
+
+    clear() {
+        this.input.value = "";
+        this.result.innerHTML = "";
+    }
+};
+
+/* =====================
+   DATA
+===================== */
+
+const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
 
 let data = [];
 
@@ -215,20 +216,14 @@ fetch(url)
     });
 });
 
-function add(v){
-    input.value += v;
-    search();
-}
-
-function clearAll(){
-    input.value = "";
-    resultBox.innerHTML = "";
-}
+/* =====================
+   SEARCH
+===================== */
 
 function search(){
 
-    let v = input.value.toLowerCase();
-    if(!v) return resultBox.innerHTML = "";
+    let v = APP.input.value.toLowerCase();
+    if(!v) return APP.result.innerHTML = "";
 
     const isNumber = /^\d+$/.test(v);
 
@@ -254,107 +249,82 @@ function search(){
 
     Object.keys(result).forEach(article => {
 
-        html += `
-            <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
-                <div style="font-weight:bold; font-size:20px;">
-                    ${article}
-                </div>
-        `;
+        html += `<div style="margin-bottom:15px;padding:12px;border:1px solid #ddd;border-radius:12px;background:#fafafa">
+        <b>${article}</b>`;
 
         Object.keys(result[article]).forEach(material => {
 
-            html += `
-                <div style="margin-left:8px;">
-                    <div>📦 ${material}</div>
-                    <div style="font-size:13px; color:#888; padding-left:10px;">
-                        ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
-                    </div>
+            html += `<div style="margin-left:8px">
+                📦 ${material}
+                <div style="font-size:13px;color:#777;padding-left:10px">
+                    ${[...result[article][material]].map(s => `<div>🏭 ${s}</div>`).join("")}
                 </div>
-            `;
+            </div>`;
         });
 
         html += `</div>`;
     });
 
-    resultBox.innerHTML = html || "Не знайдено";
+    APP.result.innerHTML = html || "Не знайдено";
 }
 
-/* =======================
-   TAP + SWIPE (FIXED)
-======================= */
+/* =====================
+   GESTURES
+===================== */
 
 let startX = 0;
 let startY = 0;
 let startTime = 0;
 
-const MAX_TIME = 250;
-const MAX_MOVE = 10;
-const SWIPE_MIN = 80;
+document.addEventListener("touchstart", (e) => {
 
-document.addEventListener("pointerdown", (e) => {
+    if (APP.keyboard.contains(e.target)) return;
 
-    if (k.contains(e.target) || panel.contains(e.target)) return;
-
-    startX = e.clientX;
-    startY = e.clientY;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
     startTime = Date.now();
-});
+}, {passive:true});
 
-document.addEventListener("pointerup", (e) => {
+document.addEventListener("touchend", (e) => {
 
-    if (k.contains(e.target) || panel.contains(e.target)) return;
+    if (APP.keyboard.contains(e.target)) return;
 
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
     const dt = Date.now() - startTime;
 
-    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
-    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
+    const isSwipe = Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy);
+    const isTap = dt < 250 && Math.abs(dx) < 10 && Math.abs(dy) < 10;
 
-    /* SWIPE FIRST */
     if (isSwipe) {
 
         if (dx > 0) {
-            showPanel();
+            APP.showPanel();
         } else {
-            hidePanel();
-            showKeyboard();
+            APP.hidePanel();
+            APP.showKeyboard();
         }
 
         return;
     }
 
-    /* TAP */
     if (isTap) {
-
-        if (k.classList.contains("hide")) {
-            showKeyboard();
+        if (APP.keyboard.classList.contains("hide")) {
+            APP.showKeyboard();
         } else {
-            hideKeyboard();
+            APP.hideKeyboard();
         }
     }
-});
 
-/* =======================
+}, {passive:true});
+
+/* =====================
    SCROLL
-======================= */
+===================== */
 
 window.addEventListener("scroll", () => {
-    hideKeyboard();
+    APP.hideKeyboard();
 });
-
-/* =======================
-   PANEL
-======================= */
-
-function showPanel(){
-    panel.classList.add("show");
-    hideKeyboard();
-}
-
-function hidePanel(){
-    panel.classList.remove("show");
-}
 
 </script>
 
