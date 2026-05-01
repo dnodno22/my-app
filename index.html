@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">   
+<meta name="theme-color" content="#f4f6f8">
 
 <title>Пошук</title>
 
@@ -49,67 +49,6 @@ input {
     color: #333;
 }
 
-/* BUTTON */
-.open-btn {
-    width:100%;
-    padding:12px;
-    font-size:16px;
-    border-radius:10px;
-    border:none;
-    background:#111;
-    color:#fff;
-    margin-bottom:10px;
-}
-
-/* KEYBOARD */
-.keyboard {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 0;
-
-    width: 100%;
-    max-width: 420px;
-
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-
-    padding: 14px;
-
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(12px);
-
-    border-top: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
-
-    border-top-left-radius: 18px;
-    border-top-right-radius: 18px;
-
-    transition: transform 0.25s ease, opacity 0.25s ease;
-}
-
-.keyboard.hide {
-    transform: translateX(-50%) translateY(120%);
-    opacity: 0;
-}
-
-.button-23 {
-  background-color: #FFFFFF;
-  border: 1px solid #222222;
-  border-radius: 8px;
-  color: #222;
-  font-size: 16px;
-  font-weight: 600;
-  padding: 14px 0;
-  cursor: pointer;
-}
-
-.button-23:active {
-  transform: scale(0.96);
-  background-color: #F7F7F7;
-}
-
 /* PANEL */
 .side-panel {
     position: fixed;
@@ -129,6 +68,7 @@ input {
     right: 0;
 }
 
+/* TABLE */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -149,6 +89,57 @@ td {
     padding: 6px;
 }
 
+/* KEYBOARD */
+.keyboard {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+
+    width: 100%;
+    max-width: 420px;
+
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-areas:
+        "tab2 tab2 tab2"
+        "b1 b2 b3"
+        "b4 b5 b6"
+        "b7 b8 b9"
+        "bC b0 bDel"
+        "bSp bTs .";
+
+    gap: 10px;
+
+    padding: 14px;
+
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+
+    border-top: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
+
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+}
+
+.button-23 {
+  background-color: #FFFFFF;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  color: #222;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 14px 0;
+  cursor: pointer;
+}
+
+.button-23:active {
+  transform: scale(0.96);
+  background-color: #F7F7F7;
+}
+
 </style>
 </head>
 
@@ -158,8 +149,6 @@ td {
 
 <input id="input" readonly>
 
-<button class="open-btn" onclick="openSheet2()">Таблиця 2</button>
-
 <div id="result" class="result"></div>
 
 </div>
@@ -168,52 +157,43 @@ td {
 
 <div class="keyboard" id="keyboard">
 
-<!-- КНОПКА -->
-<button class="button-23" style="grid-column: span 3; background:#111; color:#fff;" onclick="openSheet2()">
-Таблиця 2
+<!-- TAB 2 (завжди над 3) -->
+<button class="button-23" style="grid-area: tab2;" onclick="openSheet2()">
+Таб 2
 </button>
 
-<button class="button-23" onclick="add('1')">1</button>
-<button class="button-23" onclick="add('2')">2</button>
-<button class="button-23" onclick="add('3')">3</button>
+<button class="button-23" style="grid-area: b1;" onclick="add('1')">1</button>
+<button class="button-23" style="grid-area: b2;" onclick="add('2')">2</button>
+<button class="button-23" style="grid-area: b3;" onclick="add('3')">3</button>
 
-<button class="button-23" onclick="add('4')">4</button>
-<button class="button-23" onclick="add('5')">5</button>
-<button class="button-23" onclick="add('6')">6</button>
+<button class="button-23" style="grid-area: b4;" onclick="add('4')">4</button>
+<button class="button-23" style="grid-area: b5;" onclick="add('5')">5</button>
+<button class="button-23" style="grid-area: b6;" onclick="add('6')">6</button>
 
-<button class="button-23" onclick="add('7')">7</button>
-<button class="button-23" onclick="add('8')">8</button>
-<button class="button-23" onclick="add('9')">9</button>
+<button class="button-23" style="grid-area: b7;" onclick="add('7')">7</button>
+<button class="button-23" style="grid-area: b8;" onclick="add('8')">8</button>
+<button class="button-23" style="grid-area: b9;" onclick="add('9')">9</button>
 
-<button class="button-23" onclick="add('с')">с</button>
-<button class="button-23" onclick="add('0')">0</button>
-<button class="button-23" onclick="clearAll()">⌫</button>
+<button class="button-23" style="grid-area: bC;" onclick="add('с')">с</button>
+<button class="button-23" style="grid-area: b0;" onclick="add('0')">0</button>
+<button class="button-23" style="grid-area: bDel;" onclick="clearAll()">⌫</button>
 
-<button class="button-23" onclick="add('sp')">sp</button>
-<button class="button-23" onclick="add('ts')">ts</button>
+<button class="button-23" style="grid-area: bSp;" onclick="add('sp')">sp</button>
+<button class="button-23" style="grid-area: bTs;" onclick="add('ts')">ts</button>
 
 </div>
 
 <script>
 
-const k = document.getElementById("keyboard");
 const input = document.getElementById("input");
 const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
 
-/* KEYBOARD */
-function showKeyboard(){
-    if (panel.classList.contains("show")) return;
-    k.classList.remove("hide");
-}
-function hideKeyboard(){
-    k.classList.add("hide");
-}
-
-/* SEARCH */
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
+/* ================= SEARCH ================= */
 
 let data = [];
+
+const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
 
 fetch(url)
 .then(r => r.text())
@@ -268,22 +248,19 @@ function search(){
     Object.keys(result).forEach(article => {
 
         html += `
-            <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
-                <div style="font-weight:bold; font-size:20px;">
-                    ${article}
-                </div>
+        <div style="margin-bottom:15px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fafafa;">
+        <div style="font-weight:bold;font-size:20px;">${article}</div>
         `;
 
         Object.keys(result[article]).forEach(material => {
 
             html += `
-                <div style="margin-left:8px;">
-                    <div>📦 ${material}</div>
-                    <div style="font-size:13px; color:#888; padding-left:10px;">
-                        ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
-                    </div>
+            <div style="margin-left:8px;">
+                <div>📦 ${material}</div>
+                <div style="font-size:13px;color:#888;padding-left:10px;">
+                    ${[...result[article][material]].map(s=>`<div>${s}</div>`).join("")}
                 </div>
-            `;
+            </div>`;
         });
 
         html += `</div>`;
@@ -292,55 +269,21 @@ function search(){
     resultBox.innerHTML = html || "Не знайдено";
 }
 
-/* SWIPE + TAP */
-let startX = 0, startY = 0, startTime = 0;
+/* ================= PANEL ================= */
 
-document.addEventListener("pointerdown", (e) => {
-    if (k.contains(e.target) || panel.contains(e.target)) return;
-    startX = e.clientX;
-    startY = e.clientY;
-    startTime = Date.now();
-});
+function showPanel(){ panel.classList.add("show"); }
+function hidePanel(){ panel.classList.remove("show"); }
 
-document.addEventListener("pointerup", (e) => {
-    if (k.contains(e.target) || panel.contains(e.target)) return;
+/* ================= SHEET 2 ================= */
 
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    const dt = Date.now() - startTime;
-
-    const isSwipe = Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy);
-    const isTap = dt <= 250 && Math.abs(dx) <= 10 && Math.abs(dy) <= 10;
-
-    if (isSwipe) {
-        if (dx > 0) showPanel();
-        else {
-            hidePanel();
-            showKeyboard();
-        }
-        return;
-    }
-
-    if (isTap) {
-        k.classList.contains("hide") ? showKeyboard() : hideKeyboard();
-    }
-});
-
-/* PANEL */
-function showPanel(){
-    panel.classList.add("show");
-    hideKeyboard();
-}
-function hidePanel(){
-    panel.classList.remove("show");
-}
-
-/* SHEET 2 */
 let data2 = [];
 let sortDir = {};
 
-function loadSheet2(){
-    const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + new Date().getTime();
+function openSheet2(){
+    showPanel();
+    panel.innerHTML = "Завантаження...";
+
+    const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
 
     fetch(url2)
     .then(r => r.text())
@@ -377,17 +320,15 @@ function sortTable(col){
         let A = a[col] || "";
         let B = b[col] || "";
 
-        if (!isNaN(A) && !isNaN(B)) return sortDir[col] ? A-B : B-A;
-        return sortDir[col] ? A.localeCompare(B) : B.localeCompare(A);
+        if (!isNaN(A) && !isNaN(B))
+            return sortDir[col] ? A-B : B-A;
+
+        return sortDir[col]
+            ? A.localeCompare(B)
+            : B.localeCompare(A);
     });
 
     renderTable([data2[0], ...sorted]);
-}
-
-function openSheet2(){
-    showPanel();
-    panel.innerHTML = "Завантаження...";
-    loadSheet2();
 }
 
 </script>
