@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">
+<meta name="theme-color" content="#f4f6f8">   
 
 <title>Пошук</title>
 
@@ -39,29 +39,42 @@ input {
     border: 1px solid #e5e7eb;
     text-align: center;
     margin-bottom: 12px;
+    outline: none;
     background: #fafafa;
 }
 
 .result {
     font-size: 18px;
+    line-height: 1.6;
+    color: #333;
 }
 
-/* keyboard */
+/* KEYBOARD */
 .keyboard {
     position: fixed;
     left: 50%;
     transform: translateX(-50%);
     bottom: 0;
+
     width: 100%;
     max-width: 420px;
+
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
+
     padding: 14px;
+
     background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
+
     border-top: 1px solid rgba(0,0,0,0.08);
-    transition: 0.25s;
+    box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
+
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+
+    transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
 .keyboard.hide {
@@ -70,29 +83,38 @@ input {
 }
 
 .button-23 {
-  border: 1px solid #222;
-  border-radius: 10px;
-  font-size: 18px;
-  padding: 16px 0;
-  background: #fff;
+  background-color: #FFFFFF;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  color: #222;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 14px 0;
+  cursor: pointer;
 }
 
 .button-23:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
+  background-color: #F7F7F7;
 }
 
-/* panel */
+/* PANEL */
 .side-panel {
     position: fixed;
     top: 0;
-    right: 0;
+    right: -100%;
     width: 100%;
     max-width: 420px;
     height: 100%;
     background: #fff;
     z-index: 20;
+    padding: 10px;
     overflow: auto;
-    transform: translateX(100%);
+    transition: right 0.3s ease;
+}
+
+.side-panel.show {
+    right: 0;
 }
 
 table {
@@ -102,13 +124,15 @@ table {
 }
 
 th {
+    background: #f1f5f9;
+    border: 1px solid #ddd;
+    padding: 8px;
+    cursor: pointer;
     position: sticky;
     top: 0;
-    background: #f1f5f9;
-    cursor: pointer;
 }
 
-td, th {
+td {
     border: 1px solid #ddd;
     padding: 6px;
 }
@@ -119,8 +143,10 @@ td, th {
 <body>
 
 <div class="container">
+
 <input id="input" readonly>
 <div id="result" class="result"></div>
+
 </div>
 
 <div class="side-panel" id="panel"></div>
@@ -155,161 +181,180 @@ const input = document.getElementById("input");
 const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
 
-/* keyboard */
-function showKeyboard(){ if (!panel.classList.contains("show")) k.classList.remove("hide"); }
-function hideKeyboard(){ k.classList.add("hide"); }
+/* =======================
+   KEYBOARD CONTROL
+======================= */
 
-/* data */
+function showKeyboard(){
+    if (panel.classList.contains("show")) return;
+    k.classList.remove("hide");
+}
+
+function hideKeyboard(){
+    k.classList.add("hide");
+}
+
+/* =======================
+   SEARCH
+======================= */
+
+const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
+
 let data = [];
-let data2 = [];
 
-fetch("https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t="+Date.now())
-.then(r=>r.text()).then(t=>{
-    data = t.trim().split("\n").map(r=>{
-        let c=r.split(",");
-        return {station:c[0]||"",material:c[1]||"",article:c[2]||""};
+fetch(url)
+.then(r => r.text())
+.then(t => {
+    data = t.trim().split("\n").map(r => {
+        let c = r.split(",");
+        return {
+            station: c[0] || "",
+            material: c[1] || "",
+            article: c[2] || ""
+        };
     });
 });
 
-fetch("https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t="+Date.now())
-.then(r=>r.text()).then(t=>{
-    data2 = t.trim().split("\n").map(r=>r.split(","));
-});
+function add(v){
+    input.value += v;
+    search();
+}
 
-/* search */
-function add(v){ input.value+=v; search(); }
-function clearAll(){ input.value=""; resultBox.innerHTML=""; }
+function clearAll(){
+    input.value = "";
+    resultBox.innerHTML = "";
+}
 
 function search(){
-    let v=input.value.toLowerCase();
-    if(!v) return resultBox.innerHTML="";
 
-    const isNumber=/^\d+$/.test(v);
-    const result={};
+    let v = input.value.toLowerCase();
+    if(!v) return resultBox.innerHTML = "";
 
-    data.forEach(x=>{
+    const isNumber = /^\d+$/.test(v);
+
+    const result = {};
+
+    data.forEach(x => {
+
         const match =
-        (x.station && (isNumber ? x.station.endsWith(v) : x.station.includes(v))) ||
-        (x.material && (isNumber ? x.material.endsWith(v) : x.material.includes(v))) ||
-        (x.article && (isNumber ? x.article.endsWith(v) : x.article.includes(v)));
+            (x.station && (isNumber ? x.station.toLowerCase().endsWith(v) : x.station.toLowerCase().includes(v))) ||
+            (x.material && (isNumber ? x.material.toLowerCase().endsWith(v) : x.material.toLowerCase().includes(v))) ||
+            (x.article && (isNumber ? x.article.toLowerCase().endsWith(v) : x.article.toLowerCase().includes(v)));
 
-        if(match){
-            if(!result[x.article]) result[x.article]={};
-            if(!result[x.article][x.material]) result[x.article][x.material]=new Set();
+        if (match) {
+
+            if (!result[x.article]) result[x.article] = {};
+            if (!result[x.article][x.material]) result[x.article][x.material] = new Set();
+
             result[x.article][x.material].add(x.station);
         }
     });
 
-    let html="";
-    Object.keys(result).forEach(a=>{
-        html+=`<div><b>${a}</b>`;
-        Object.keys(result[a]).forEach(m=>{
-            html+=`<div>📦 ${m} ${[...result[a][m]].join(", ")}</div>`;
+    let html = "";
+
+    Object.keys(result).forEach(article => {
+
+        html += `
+            <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
+                <div style="font-weight:bold; font-size:20px;">
+                    ${article}
+                </div>
+        `;
+
+        Object.keys(result[article]).forEach(material => {
+
+            html += `
+                <div style="margin-left:8px;">
+                    <div>📦 ${material}</div>
+                    <div style="font-size:13px; color:#888; padding-left:10px;">
+                        ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
+                    </div>
+                </div>
+            `;
         });
-        html+="</div><br>";
+
+        html += `</div>`;
     });
 
     resultBox.innerHTML = html || "Не знайдено";
 }
 
-/* sort */
-let sortColumn=0, sortAsc=true;
+/* =======================
+   TAP + SWIPE (FIXED)
+======================= */
 
-function renderSheet3(){
+let startX = 0;
+let startY = 0;
+let startTime = 0;
 
-    if(!data2.length){
-        panel.innerHTML="Завантаження...";
+const MAX_TIME = 250;
+const MAX_MOVE = 10;
+const SWIPE_MIN = 80;
+
+document.addEventListener("pointerdown", (e) => {
+
+    if (k.contains(e.target) || panel.contains(e.target)) return;
+
+    startX = e.clientX;
+    startY = e.clientY;
+    startTime = Date.now();
+});
+
+document.addEventListener("pointerup", (e) => {
+
+    if (k.contains(e.target) || panel.contains(e.target)) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const dt = Date.now() - startTime;
+
+    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
+    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
+
+    /* SWIPE FIRST */
+    if (isSwipe) {
+
+        if (dx > 0) {
+            showPanel();
+        } else {
+            hidePanel();
+            showKeyboard();
+        }
+
         return;
     }
 
-    let rows=[...data2];
-    let header=rows[0];
-    let body=rows.slice(1);
+    /* TAP */
+    if (isTap) {
 
-    body.sort((a,b)=>{
-        let A=a[sortColumn]||"", B=b[sortColumn]||"";
-        if(!isNaN(A)&&!isNaN(B)) return sortAsc?A-B:B-A;
-        return sortAsc?A.localeCompare(B):B.localeCompare(A);
-    });
-
-    panel.innerHTML=`
-    <table>
-        <tr>
-            ${header.map((h,i)=>`<th onclick="sortBy(${i})">${h} ${sortColumn===i?(sortAsc?'↑':'↓'):''}</th>`).join("")}
-        </tr>
-        ${body.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}
-    </table>`;
-}
-
-function sortBy(i){
-    sortColumn===i ? sortAsc=!sortAsc : (sortColumn=i, sortAsc=true);
-    renderSheet3();
-}
-
-/* drag panel */
-let isDragging=false,startX=0,currentX=0,panelX=0;
-const EDGE=25, panelWidth=window.innerWidth;
-
-panel.style.transform=`translateX(${panelWidth}px)`;
-
-document.addEventListener("pointerdown",e=>{
-    if(k.contains(e.target)) return;
-
-    const open=panel.classList.contains("show");
-
-    if((!open && e.clientX < window.innerWidth-EDGE) && !panel.contains(e.target)) return;
-
-    isDragging=true;
-    startX=e.clientX;
-    panel.style.transition="none";
-});
-
-document.addEventListener("pointermove",e=>{
-    if(!isDragging) return;
-
-    currentX=e.clientX;
-    let dx=currentX-startX;
-    const open=panel.classList.contains("show");
-
-    if(!open){
-        if(dx<0) return;
-        panelX=panelWidth-dx;
-    } else {
-        panelX=-dx;
-    }
-
-    panelX=Math.max(0,Math.min(panelWidth,panelX));
-    panel.style.transform=`translateX(${panelX}px)`;
-});
-
-document.addEventListener("pointerup",()=>{
-    if(!isDragging) return;
-    isDragging=false;
-
-    panel.style.transition="0.25s";
-
-    if(panelX < panelWidth/2){
-        openPanel();
-    } else {
-        closePanel();
+        if (k.classList.contains("hide")) {
+            showKeyboard();
+        } else {
+            hideKeyboard();
+        }
     }
 });
 
-function openPanel(){
-    panel.classList.add("show");
-    panel.style.transform="translateX(0)";
+/* =======================
+   SCROLL
+======================= */
+
+window.addEventListener("scroll", () => {
     hideKeyboard();
-    renderSheet3();
+});
+
+/* =======================
+   PANEL
+======================= */
+
+function showPanel(){
+    panel.classList.add("show");
+    hideKeyboard();
 }
 
-function closePanel(){
+function hidePanel(){
     panel.classList.remove("show");
-    panel.style.transform=`translateX(${panelWidth}px)`;
 }
-
-panel.addEventListener("click", hideKeyboard);
-
-window.addEventListener("scroll", hideKeyboard);
 
 </script>
 
