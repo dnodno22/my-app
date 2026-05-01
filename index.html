@@ -43,10 +43,6 @@ input {
     margin-bottom: 12px;
     outline: none;
     background: #fafafa;
-
-    position: sticky;
-    top: 0;
-    z-index: 10;
 }
 
 /* RESULT */
@@ -152,33 +148,36 @@ const resultBox = document.getElementById("result");
 let lastScrollY = window.scrollY;
 
 /* =======================
-   👆 ТАП В БУДЬ-ЯКЕ МІСЦЕ → ПОКАЗАТИ
+   👆 TAP → TOGGLE
 ======================= */
 document.addEventListener("touchstart", (e) => {
 
     const t = e.target;
 
+    // ігноруємо клавіатуру
     if (k.contains(t)) return;
 
-    showKeyboard();
+    if (k.classList.contains("hide")) {
+        showKeyboard();
+    } else {
+        hideKeyboard();
+    }
 });
 
 /* =======================
-   📜 СКРОЛ → СХОВАТИ
+   📜 SCROLL → HIDE
 ======================= */
 window.addEventListener("scroll", () => {
 
-    let y = window.scrollY;
-
-    if (Math.abs(y - lastScrollY) > 5) {
+    if (Math.abs(window.scrollY - lastScrollY) > 5) {
         hideKeyboard();
     }
 
-    lastScrollY = y;
+    lastScrollY = window.scrollY;
 });
 
 /* =======================
-   ФУНКЦІЇ
+   FUNCTIONS
 ======================= */
 function showKeyboard(){
     k.classList.remove("hide");
@@ -189,7 +188,7 @@ function hideKeyboard(){
 }
 
 /* =======================
-   ПОШУК
+   SEARCH
 ======================= */
 
 const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
