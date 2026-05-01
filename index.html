@@ -18,6 +18,7 @@ body {
     margin: 0;
     font-family: -apple-system, Arial, sans-serif;
     background: #f4f6f8;
+    touch-action: pan-y;
 }
 
 .container {
@@ -63,6 +64,7 @@ input {
     gap: 10px;
 
     padding: 14px;
+
     background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
     border-top: 1px solid rgba(0,0,0,0.08);
@@ -164,14 +166,18 @@ td {
 
 <script>
 
-/* =======================
-   DATA SHEET 1
-======================= */
+/* =========================
+   DATA SHEETS
+========================= */
 
 const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
 
-let data = [];
+const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
 
+let data = [];
+let data2 = [];
+
+/* sheet1 */
 fetch(url1)
 .then(r => r.text())
 .then(t => {
@@ -185,23 +191,16 @@ fetch(url1)
     });
 });
 
-/* =======================
-   DATA SHEET 2
-======================= */
-
-const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
-
-let data2 = [];
-
+/* sheet2 */
 fetch(url2)
 .then(r => r.text())
 .then(t => {
     data2 = t.trim().split("\n").map(r => r.split(","));
 });
 
-/* =======================
+/* =========================
    UI
-======================= */
+========================= */
 
 const k = document.getElementById("keyboard");
 const input = document.getElementById("input");
@@ -218,9 +217,9 @@ function clearAll(){
     resultBox.innerHTML = "";
 }
 
-/* =======================
+/* =========================
    SEARCH SHEET 1
-======================= */
+========================= */
 
 function search(){
 
@@ -241,7 +240,6 @@ function search(){
         if(match){
             if(!result[x.article]) result[x.article] = {};
             if(!result[x.article][x.material]) result[x.article][x.material] = new Set();
-
             result[x.article][x.material].add(x.station);
         }
     });
@@ -251,7 +249,7 @@ function search(){
     Object.keys(result).forEach(article => {
 
         html += `<div style="margin-bottom:15px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fafafa;">
-        <b style="font-size:18px">${article}</b>`;
+        <b>${article}</b>`;
 
         Object.keys(result[article]).forEach(material => {
 
@@ -269,9 +267,9 @@ function search(){
     resultBox.innerHTML = html || "Не знайдено";
 }
 
-/* =======================
+/* =========================
    SHEET 2 VIEW
-======================= */
+========================= */
 
 function showSheet2(){
 
@@ -296,9 +294,9 @@ function hidePanel(){
     panel.classList.remove("show");
 }
 
-/* =======================
+/* =========================
    KEYBOARD
-======================= */
+========================= */
 
 function showKeyboard(){
     if(panel.classList.contains("show")) return;
@@ -309,47 +307,38 @@ function hideKeyboard(){
     k.classList.add("hide");
 }
 
-/* =======================
-   SWIPE
-======================= */
+/* =========================
+   STABLE SWIPE (FIXED)
+========================= */
 
-let startX = 0;
-let startY = 0;
+let sx = 0;
+let sy = 0;
 
-document.addEventListener("pointerdown", e => {
+document.addEventListener("touchstart", e => {
 
     if(k.contains(e.target) || panel.contains(e.target)) return;
 
-    startX = e.clientX;
-    startY = e.clientY;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
 });
 
-document.addEventListener("pointerup", e => {
+document.addEventListener("touchend", e => {
 
     if(k.contains(e.target) || panel.contains(e.target)) return;
 
-    let dx = e.clientX - startX;
-    let dy = Math.abs(e.clientY - startY);
+    let dx = e.changedTouches[0].clientX - sx;
+    let dy = e.changedTouches[0].clientY - sy;
 
-    if(dy < 50){
+    if(Math.abs(dy) > 50) return;
 
-        if(dx > 80){
-            showSheet2();   // 👉 свайп вправо
-        }
-
-        if(dx < -80){
-            hidePanel();
-            showKeyboard();
-        }
+    if(dx > 80){
+        showSheet2();
     }
-});
 
-/* =======================
-   SCROLL
-======================= */
-
-window.addEventListener("scroll", () => {
-    hideKeyboard();
+    if(dx < -80){
+        hidePanel();
+        showKeyboard();
+    }
 });
 
 </script>
