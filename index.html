@@ -2,130 +2,82 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Пошук</title>
 
 <style>
 
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
+* { box-sizing:border-box; }
 
 body {
-    margin: 0;
-    font-family: -apple-system, Arial, sans-serif;
-    background: #f4f6f8;
-    touch-action: pan-y;
+    margin:0;
+    font-family: -apple-system, Arial;
+    background:#f4f6f8;
 }
 
 .container {
-    max-width: 420px;
-    margin: 0 auto;
-    background: #fff;
-    min-height: 100vh;
-    padding: 16px;
-    padding-bottom: 220px;
+    max-width:420px;
+    margin:auto;
+    background:#fff;
+    min-height:100vh;
+    padding:16px;
+    padding-bottom:220px;
 }
 
 input {
-    width: 100%;
-    padding: 18px;
-    font-size: 24px;
-    border-radius: 14px;
-    border: 1px solid #e5e7eb;
-    text-align: center;
-    margin-bottom: 12px;
-    outline: none;
-    background: #fafafa;
+    width:100%;
+    padding:18px;
+    font-size:24px;
+    border-radius:14px;
+    border:1px solid #ddd;
+    text-align:center;
+    margin-bottom:12px;
 }
 
 .result {
-    font-size: 18px;
-    line-height: 1.6;
+    font-size:16px;
 }
 
-/* ================= KEYBOARD FIX ================= */
-
+/* KEYBOARD */
 .keyboard {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 0;
-
-    width: 100%;
-    max-width: 420px;
-
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-
-    padding: 14px;
-
-    background: rgba(255,255,255,0.98);
-    backdrop-filter: blur(10px);
-
-    border-top: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 -8px 20px rgba(0,0,0,0.08);
-
-    border-top-left-radius: 18px;
-    border-top-right-radius: 18px;
-
-    transition: transform 0.25s ease, opacity 0.25s ease;
-
-    z-index: 10;
+    position:fixed;
+    bottom:0;
+    left:50%;
+    transform:translateX(-50%);
+    width:100%;
+    max-width:420px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+    padding:12px;
+    background:#fff;
+    border-top:1px solid #ddd;
+    transition:.2s;
 }
 
 .keyboard.hide {
-    transform: translateX(-50%) translateY(120%);
-    opacity: 0;
+    transform:translateX(-50%) translateY(120%);
 }
 
-/* кнопки тепер однакові */
-button {
-  background: #fff;
-  border: 1px solid #222;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 600;
-  padding: 14px 0;
-}
-
-button:active {
-  transform: scale(0.96);
-}
-
-/* ================= PANEL ================= */
-
+/* PANEL */
 .side-panel {
-    position: fixed;
-    top: 0;
-    right: -100%;
-    width: 100%;
-    max-width: 420px;
-    height: 100%;
-    background: #fff;
-    z-index: 20;
-    overflow: auto;
-    transition: right 0.25s ease;
-    padding: 10px;
+    position:fixed;
+    top:0;
+    right:-100%;
+    width:100%;
+    max-width:420px;
+    height:100%;
+    background:#fff;
+    transition:.25s;
+    overflow:auto;
 }
 
-.side-panel.show {
-    right: 0;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
+.side-panel.show { right:0; }
 
 td {
-    border: 1px solid #ddd;
-    padding: 6px;
-    font-size: 13px;
+    border:1px solid #ddd;
+    padding:6px;
+    font-size:13px;
 }
 
 </style>
@@ -134,70 +86,79 @@ td {
 <body>
 
 <div class="container">
-
 <input id="input" readonly>
 <div id="result"></div>
-
 </div>
 
 <div class="side-panel" id="panel"></div>
 
 <div class="keyboard" id="keyboard">
-
 <button onclick="add('1')">1</button>
 <button onclick="add('2')">2</button>
 <button onclick="add('3')">3</button>
-
 <button onclick="add('4')">4</button>
 <button onclick="add('5')">5</button>
 <button onclick="add('6')">6</button>
-
 <button onclick="add('7')">7</button>
 <button onclick="add('8')">8</button>
 <button onclick="add('9')">9</button>
-
-<button onclick="add('с')">с</button>
 <button onclick="add('0')">0</button>
 <button onclick="clearAll()">⌫</button>
-
 <button onclick="add('sp')">sp</button>
-<button onclick="add('ts')">ts</button>
-
 </div>
 
 <script>
 
 /* ================= DATA ================= */
 
-const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
-const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
+const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t="+Date.now();
+const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t="+Date.now();
 
-let data = [];
-let data2 = [];
+let data=[];
 
 fetch(url1).then(r=>r.text()).then(t=>{
-    data = t.trim().split("\n").map(r=>{
-        let c = r.split(",");
-        return {station:c[0],material:c[1],article:c[2]};
+    data=t.trim().split("\n").map(r=>{
+        let c=r.split(",");
+        return {a:c[0],b:c[1],c:c[2]};
     });
-});
-
-fetch(url2).then(r=>r.text()).then(t=>{
-    data2 = t.trim().split("\n").map(r=>r.split(","));
 });
 
 /* ================= UI ================= */
 
-const k = document.getElementById("keyboard");
-const input = document.getElementById("input");
-const panel = document.getElementById("panel");
+const input=document.getElementById("input");
+const result=document.getElementById("result");
+const panel=document.getElementById("panel");
+const k=document.getElementById("keyboard");
 
 function add(v){
-    input.value += v;
+    input.value+=v;
+    search();
 }
 
 function clearAll(){
     input.value="";
+    result.innerHTML="";
+}
+
+/* ================= SEARCH ================= */
+
+function search(){
+
+    let v=input.value.toLowerCase();
+    if(!v) return result.innerHTML="";
+
+    let out="";
+
+    data.forEach(x=>{
+        if((x.a||"").toLowerCase().includes(v)||
+           (x.b||"").toLowerCase().includes(v)||
+           (x.c||"").toLowerCase().includes(v)){
+
+            out+=`<div>${x.a} | ${x.b} | ${x.c}</div>`;
+        }
+    });
+
+    result.innerHTML=out||"Не знайдено";
 }
 
 /* ================= KEYBOARD ================= */
@@ -213,16 +174,18 @@ function hideKeyboard(){
 
 /* ================= PANEL ================= */
 
+let sheet2=[];
+
+fetch(url2).then(r=>r.text()).then(t=>{
+    sheet2=t.trim().split("\n").map(r=>r.split(","));
+});
+
 function showSheet2(){
 
     let html="<table>";
 
-    data2.forEach(r=>{
-        html+="<tr>";
-        r.forEach(c=>{
-            html+=`<td>${c||""}</td>`;
-        });
-        html+="</tr>";
+    sheet2.forEach(r=>{
+        html+="<tr>"+r.map(c=>`<td>${c||""}</td>`).join("")+"</tr>";
     });
 
     html+="</table>";
@@ -238,35 +201,27 @@ function hidePanel(){
 
 /* ================= TAP ================= */
 
-let tapStart=0;
+let t0=0;
 
 document.addEventListener("touchstart",e=>{
     if(k.contains(e.target)||panel.contains(e.target)) return;
-    tapStart=Date.now();
+    t0=Date.now();
 });
 
-document.addEventListener("touchend",e=>{
-    let dt=Date.now()-tapStart;
-
+document.addEventListener("touchend",()=>{
+    let dt=Date.now()-t0;
     if(dt<180){
-        if(k.classList.contains("hide")){
-            showKeyboard();
-        } else {
-            hideKeyboard();
-        }
+        k.classList.contains("hide") ? showKeyboard() : hideKeyboard();
     }
 });
 
 /* ================= SCROLL ================= */
 
-window.addEventListener("scroll",()=>{
-    hideKeyboard();
-});
+window.addEventListener("scroll",hideKeyboard);
 
-/* ================= SWIPE FIXED ================= */
+/* ================= SWIPE (FIXED) ================= */
 
-let sx=0;
-let sy=0;
+let sx=0,sy=0;
 
 document.addEventListener("touchstart",e=>{
     if(k.contains(e.target)||panel.contains(e.target)) return;
@@ -283,11 +238,11 @@ document.addEventListener("touchend",e=>{
     if(dy>50) return;
 
     if(dx<-80){
-        showSheet2();   // 👈 вліво
+        showSheet2();   // ← вліво
     }
 
     if(dx>80){
-        hidePanel();    // 👉 вправо
+        hidePanel();    // → вправо (повернення)
         showKeyboard();
     }
 });
