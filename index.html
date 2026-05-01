@@ -5,25 +5,21 @@ const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
 const keyboard = document.getElementById("keyboard");
 
-/* ================= KEYBOARD ================= */
+/* ================= KEYBOARD STATE ================= */
 
 function showKeyboard(){
-    keyboard.style.display = "grid";
+    keyboard.classList.remove("hide");
 }
 
 function hideKeyboard(){
-    keyboard.style.display = "none";
+    keyboard.classList.add("hide");
 }
 
 function toggleKeyboard(){
-    if (keyboard.style.display === "none") {
-        showKeyboard();
-    } else {
-        hideKeyboard();
-    }
+    keyboard.classList.toggle("hide");
 }
 
-/* ================= SEARCH ================= */
+/* ================= DATA ================= */
 
 let data = [];
 
@@ -42,6 +38,8 @@ fetch(url)
     });
 });
 
+/* ================= INPUT ================= */
+
 function add(v){
     input.value += v;
     search();
@@ -51,6 +49,8 @@ function clearAll(){
     input.value = "";
     resultBox.innerHTML = "";
 }
+
+/* ================= SEARCH ================= */
 
 function search(){
 
@@ -169,15 +169,15 @@ function sortTable(col){
     renderTable([data2[0], ...sorted]);
 }
 
-/* ================= SWIPE + TAP ================= */
+/* ================= STABLE SWIPE SYSTEM 2.0 ================= */
 
 let startX = 0;
 let startY = 0;
 let startTime = 0;
 
-const MAX_TIME = 250;
-const MAX_MOVE = 10;
 const SWIPE_MIN = 80;
+const MAX_MOVE = 12;
+const MAX_TIME = 300;
 
 document.addEventListener("pointerdown", (e) => {
 
@@ -197,9 +197,9 @@ document.addEventListener("pointerup", (e) => {
     const dt = Date.now() - startTime;
 
     const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
-    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
+    const isTap = dt < MAX_TIME && Math.abs(dx) < MAX_MOVE && Math.abs(dy) < MAX_MOVE;
 
-    /* SWIPE */
+    /* ================= SWIPE ================= */
     if (isSwipe) {
 
         if (dx > 0) {
@@ -211,8 +211,14 @@ document.addEventListener("pointerup", (e) => {
         return;
     }
 
-    /* TAP */
+    /* ================= TAP ================= */
     if (isTap) {
+
+        if (panel.classList.contains("show")) {
+            hidePanel();
+            return;
+        }
+
         toggleKeyboard();
     }
 });
