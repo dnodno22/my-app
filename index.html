@@ -240,22 +240,22 @@ function search(){
             (x.material && x.material.toLowerCase().includes(v)) ||
             (x.article && x.article.toLowerCase().includes(v))
         ) {
+
             if (!result[x.article]) {
-                result[x.article] = {
-                    materials: new Set(),
-                    stations: new Set()
-                };
+                result[x.article] = {};
             }
 
-            result[x.article].materials.add(x.material);
-            result[x.article].stations.add(x.station);
+            if (!result[x.article][x.material]) {
+                result[x.article][x.material] = new Set();
+            }
+
+            result[x.article][x.material].add(x.station);
         }
     });
 
     let html = "";
 
     Object.keys(result).forEach(article => {
-        const item = result[article];
 
         html += `
             <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
@@ -263,26 +263,28 @@ function search(){
                 <div style="font-weight:bold; font-size:20px; margin-bottom:6px;">
                     ${article}
                 </div>
-
-                <div style="font-size:13px; color:#888;">Станції:</div>
-                <div style="margin-bottom:6px;">
-                    ${[...item.stations].map(s => `<div>🏭 ${s}</div>`).join("")}
-                </div>
-
-                <div style="font-size:13px; color:#888;">Матеріали:</div>
-                <div style="padding-left:5px;">
-                    ${[...item.materials].map(m => `<div>📦 ${m}</div>`).join("")}
-                </div>
-
-            </div>
         `;
+
+        Object.keys(result[article]).forEach(material => {
+
+            html += `
+                <div style="margin-left:8px; margin-bottom:6px;">
+                    <div style="color:#555;">📦 ${material}</div>
+                    <div style="font-size:13px; color:#888; padding-left:10px;">
+                        ${[...result[article][material]].map(s => `<div>🏭 ${s}</div>`).join("")}
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
     });
 
     document.getElementById("result").innerHTML =
         html || "Не знайдено";
 }
 
-// 🔥 PANEL + SORT
+// 🔥 PANEL + SORT (без змін)
 let sortState = { col: -1, asc: true };
 
 function showPanel(){
