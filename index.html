@@ -186,6 +186,28 @@ td {
 
 <script>
 
+const k = document.getElementById("keyboard");
+const input = document.getElementById("input");
+const resultBox = document.getElementById("result");
+
+function hideKeyboard(){
+    k.classList.add("hide");
+}
+
+function showKeyboard(){
+    k.classList.remove("hide");
+}
+
+input.addEventListener("click", showKeyboard);
+resultBox.addEventListener("click", hideKeyboard);
+
+document.addEventListener("touchstart", (e) => {
+    if (!k.contains(e.target) && e.target !== input) {
+        hideKeyboard();
+    }
+});
+
+// 🔥 Аркуш1
 const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
 
 let data = [];
@@ -204,19 +226,19 @@ fetch(url)
 });
 
 function add(v){
-    document.getElementById("input").value += v;
+    input.value += v;
     search();
 }
 
 function clearAll(){
-    document.getElementById("input").value = "";
-    document.getElementById("result").innerHTML = "";
+    input.value = "";
+    resultBox.innerHTML = "";
 }
 
 function search(){
 
-    let v = document.getElementById("input").value.toLowerCase();
-    if(!v) return document.getElementById("result").innerHTML = "";
+    let v = input.value.toLowerCase();
+    if(!v) return resultBox.innerHTML = "";
 
     const isNumber = /^\d+$/.test(v);
 
@@ -243,13 +265,8 @@ function search(){
 
         if (match) {
 
-            if (!result[x.article]) {
-                result[x.article] = {};
-            }
-
-            if (!result[x.article][x.material]) {
-                result[x.article][x.material] = new Set();
-            }
+            if (!result[x.article]) result[x.article] = {};
+            if (!result[x.article][x.material]) result[x.article][x.material] = new Set();
 
             result[x.article][x.material].add(x.station);
         }
@@ -272,7 +289,7 @@ function search(){
                 <div style="margin-left:8px; margin-bottom:6px;">
                     <div style="color:#555;">📦 ${material}</div>
                     <div style="font-size:13px; color:#888; padding-left:10px;">
-                        ${[...result[article][material]].map(s => `<div>🏭 ${s}</div>`).join("")}
+                        ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
                     </div>
                 </div>
             `;
@@ -281,8 +298,7 @@ function search(){
         html += `</div>`;
     });
 
-    document.getElementById("result").innerHTML =
-        html || "Не знайдено";
+    resultBox.innerHTML = html || "Не знайдено";
 }
 
 </script>
