@@ -330,7 +330,55 @@ function sortTable(col){
 
     renderTable([data2[0], ...sorted]);
 }
+let startX = 0;
+let startY = 0;
+let startTime = 0;
 
+const MAX_TIME = 250;
+const MAX_MOVE = 10;
+const SWIPE_MIN = 80;
+
+document.addEventListener("pointerdown", (e) => {
+
+    // не чіпаємо таблицю
+    if (panel.contains(e.target)) return;
+
+    startX = e.clientX;
+    startY = e.clientY;
+    startTime = Date.now();
+});
+
+document.addEventListener("pointerup", (e) => {
+
+    if (panel.contains(e.target)) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const dt = Date.now() - startTime;
+
+    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
+    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
+
+    /* ================= SWIPE ================= */
+    if (isSwipe) {
+
+        if (dx > 0) {
+            showPanel();   // свайп вправо → відкрити
+        } else {
+            hidePanel();   // свайп вліво → закрити
+        }
+
+        return;
+    }
+
+    /* ================= TAP ================= */
+    if (isTap) {
+
+        if (panel.classList.contains("show")) {
+            hidePanel(); // тап → закрити
+        }
+    }
+});
 </script>
 
 </body>
