@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">   
+<meta name="theme-color" content="#f4f6f8">
 
 <title>Пошук</title>
 
@@ -55,7 +55,6 @@ input {
     left: 50%;
     transform: translateX(-50%);
     bottom: 0;
-
     width: 100%;
     max-width: 420px;
 
@@ -64,10 +63,8 @@ input {
     gap: 10px;
 
     padding: 14px;
-
     background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
-
     border-top: 1px solid rgba(0,0,0,0.08);
     box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
 
@@ -83,8 +80,8 @@ input {
 }
 
 .button-23 {
-  background-color: #FFFFFF;
-  border: 1px solid #222222;
+  background-color: #fff;
+  border: 1px solid #222;
   border-radius: 8px;
   color: #222;
   font-size: 16px;
@@ -121,15 +118,6 @@ table {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
-}
-
-th {
-    background: #f1f5f9;
-    border: 1px solid #ddd;
-    padding: 8px;
-    cursor: pointer;
-    position: sticky;
-    top: 0;
 }
 
 td {
@@ -176,33 +164,15 @@ td {
 
 <script>
 
-const k = document.getElementById("keyboard");
-const input = document.getElementById("input");
-const resultBox = document.getElementById("result");
-const panel = document.getElementById("panel");
-
 /* =======================
-   KEYBOARD CONTROL
+   DATA SHEET 1
 ======================= */
 
-function showKeyboard(){
-    if (panel.classList.contains("show")) return;
-    k.classList.remove("hide");
-}
-
-function hideKeyboard(){
-    k.classList.add("hide");
-}
-
-/* =======================
-   SEARCH
-======================= */
-
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
+const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
 
 let data = [];
 
-fetch(url)
+fetch(url1)
 .then(r => r.text())
 .then(t => {
     data = t.trim().split("\n").map(r => {
@@ -215,6 +185,29 @@ fetch(url)
     });
 });
 
+/* =======================
+   DATA SHEET 2
+======================= */
+
+const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
+
+let data2 = [];
+
+fetch(url2)
+.then(r => r.text())
+.then(t => {
+    data2 = t.trim().split("\n").map(r => r.split(","));
+});
+
+/* =======================
+   UI
+======================= */
+
+const k = document.getElementById("keyboard");
+const input = document.getElementById("input");
+const resultBox = document.getElementById("result");
+const panel = document.getElementById("panel");
+
 function add(v){
     input.value += v;
     search();
@@ -224,6 +217,10 @@ function clearAll(){
     input.value = "";
     resultBox.innerHTML = "";
 }
+
+/* =======================
+   SEARCH SHEET 1
+======================= */
 
 function search(){
 
@@ -241,10 +238,9 @@ function search(){
             (x.material && (isNumber ? x.material.toLowerCase().endsWith(v) : x.material.toLowerCase().includes(v))) ||
             (x.article && (isNumber ? x.article.toLowerCase().endsWith(v) : x.article.toLowerCase().includes(v)));
 
-        if (match) {
-
-            if (!result[x.article]) result[x.article] = {};
-            if (!result[x.article][x.material]) result[x.article][x.material] = new Set();
+        if(match){
+            if(!result[x.article]) result[x.article] = {};
+            if(!result[x.article][x.material]) result[x.article][x.material] = new Set();
 
             result[x.article][x.material].add(x.station);
         }
@@ -254,23 +250,17 @@ function search(){
 
     Object.keys(result).forEach(article => {
 
-        html += `
-            <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
-                <div style="font-weight:bold; font-size:20px;">
-                    ${article}
-                </div>
-        `;
+        html += `<div style="margin-bottom:15px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fafafa;">
+        <b style="font-size:18px">${article}</b>`;
 
         Object.keys(result[article]).forEach(material => {
 
-            html += `
-                <div style="margin-left:8px;">
-                    <div>📦 ${material}</div>
-                    <div style="font-size:13px; color:#888; padding-left:10px;">
-                        ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
-                    </div>
+            html += `<div style="margin-left:8px">
+                📦 ${material}
+                <div style="font-size:13px;color:#888;padding-left:10px">
+                    ${[...result[article][material]].map(s=>`<div>${s}</div>`).join("")}
                 </div>
-            `;
+            </div>`;
         });
 
         html += `</div>`;
@@ -280,57 +270,76 @@ function search(){
 }
 
 /* =======================
-   TAP + SWIPE (FIXED)
+   SHEET 2 VIEW
+======================= */
+
+function showSheet2(){
+
+    let html = `<table>`;
+
+    data2.forEach(row => {
+        html += `<tr>`;
+        row.forEach(cell => {
+            html += `<td>${cell || ""}</td>`;
+        });
+        html += `</tr>`;
+    });
+
+    html += `</table>`;
+
+    panel.innerHTML = html;
+    panel.classList.add("show");
+    hideKeyboard();
+}
+
+function hidePanel(){
+    panel.classList.remove("show");
+}
+
+/* =======================
+   KEYBOARD
+======================= */
+
+function showKeyboard(){
+    if(panel.classList.contains("show")) return;
+    k.classList.remove("hide");
+}
+
+function hideKeyboard(){
+    k.classList.add("hide");
+}
+
+/* =======================
+   SWIPE
 ======================= */
 
 let startX = 0;
 let startY = 0;
-let startTime = 0;
 
-const MAX_TIME = 250;
-const MAX_MOVE = 10;
-const SWIPE_MIN = 80;
+document.addEventListener("pointerdown", e => {
 
-document.addEventListener("pointerdown", (e) => {
-
-    if (k.contains(e.target) || panel.contains(e.target)) return;
+    if(k.contains(e.target) || panel.contains(e.target)) return;
 
     startX = e.clientX;
     startY = e.clientY;
-    startTime = Date.now();
 });
 
-document.addEventListener("pointerup", (e) => {
+document.addEventListener("pointerup", e => {
 
-    if (k.contains(e.target) || panel.contains(e.target)) return;
+    if(k.contains(e.target) || panel.contains(e.target)) return;
 
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    const dt = Date.now() - startTime;
+    let dx = e.clientX - startX;
+    let dy = Math.abs(e.clientY - startY);
 
-    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
-    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
+    if(dy < 50){
 
-    /* SWIPE FIRST */
-    if (isSwipe) {
-
-        if (dx > 0) {
-            showPanel();
-        } else {
-            hidePanel();
-            showKeyboard();
+        if(dx > 80){
+            showSheet2();   // 👉 свайп вправо
         }
 
-        return;
-    }
-
-    /* TAP */
-    if (isTap) {
-
-        if (k.classList.contains("hide")) {
+        if(dx < -80){
+            hidePanel();
             showKeyboard();
-        } else {
-            hideKeyboard();
         }
     }
 });
@@ -342,19 +351,6 @@ document.addEventListener("pointerup", (e) => {
 window.addEventListener("scroll", () => {
     hideKeyboard();
 });
-
-/* =======================
-   PANEL
-======================= */
-
-function showPanel(){
-    panel.classList.add("show");
-    hideKeyboard();
-}
-
-function hidePanel(){
-    panel.classList.remove("show");
-}
 
 </script>
 
