@@ -98,7 +98,6 @@ input {
   background-color: #F7F7F7;
 }
 
-/* PANEL */
 .side-panel {
     position: fixed;
     top: 0;
@@ -161,10 +160,6 @@ const input = document.getElementById("input");
 const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
 
-/* =======================
-   SHEETS
-======================= */
-
 const baseURL = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=";
 
 const gidMain = "1679964111";
@@ -172,16 +167,10 @@ const gidSheet3 = "421001458";
 
 let data = [];
 
-/* =======================
-   LOAD SHEET
-======================= */
-
 function loadSheet(gid){
-
     fetch(baseURL + gid + "&t=" + new Date().getTime())
     .then(r => r.text())
     .then(t => {
-
         data = t.trim().split("\n").map(r => {
             let c = r.split(",");
             return {
@@ -198,10 +187,7 @@ function loadSheet(gid){
 
 loadSheet(gidMain);
 
-/* =======================
-   INPUT
-======================= */
-
+/* INPUT */
 function add(v){
     input.value += v;
     search();
@@ -212,10 +198,7 @@ function clearAll(){
     resultBox.innerHTML = "";
 }
 
-/* =======================
-   SEARCH
-======================= */
-
+/* SEARCH */
 function search(){
 
     let v = input.value.toLowerCase();
@@ -244,23 +227,17 @@ function search(){
 
     Object.keys(result).forEach(article => {
 
-        html += `
-            <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
-                <div style="font-weight:bold; font-size:20px;">
-                    ${article}
-                </div>
-        `;
+        html += `<div style="margin-bottom:15px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fafafa;">
+        <div style="font-weight:bold;font-size:20px;">${article}</div>`;
 
         Object.keys(result[article]).forEach(material => {
 
-            html += `
-                <div style="margin-left:8px;">
-                    <div>📦 ${material}</div>
-                    <div style="font-size:13px; color:#888; padding-left:10px;">
-                        ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
-                    </div>
+            html += `<div style="margin-left:8px;">
+                <div>📦 ${material}</div>
+                <div style="font-size:13px;color:#888;padding-left:10px;">
+                    ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
                 </div>
-            `;
+            </div>`;
         });
 
         html += `</div>`;
@@ -270,63 +247,49 @@ function search(){
 }
 
 /* =======================
-   SWIPE CONTROL
+   ✅ SWIPE FIX (WORKING)
 ======================= */
 
 let startX = 0;
 let startY = 0;
-let startTime = 0;
 
-const MAX_TIME = 250;
-const MAX_MOVE = 10;
-const SWIPE_MIN = 80;
+const SWIPE_MIN = 60;
 
-document.addEventListener("pointerdown", (e) => {
+document.addEventListener("touchstart", (e) => {
 
     if (k.contains(e.target)) return;
 
-    startX = e.clientX;
-    startY = e.clientY;
-    startTime = Date.now();
-});
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
 
-document.addEventListener("pointerup", (e) => {
+}, { passive: true });
+
+document.addEventListener("touchend", (e) => {
 
     if (k.contains(e.target)) return;
 
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    const dt = Date.now() - startTime;
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
 
-    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
-    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
+    const dx = endX - startX;
+    const dy = endY - startY;
 
-    if (isSwipe) {
+    if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < Math.abs(dy)) return;
 
-        // ➡️ вправо → головний
-        if (dx > 0) {
-            panel.classList.remove("show");
-            loadSheet(gidMain);
-            return;
-        }
-
-        // ⬅️ вліво → Аркуш3
-        if (dx < 0) {
-            panel.classList.add("show");
-            k.classList.add("hide");
-            loadSheet(gidSheet3);
-            return;
-        }
+    // ➡️ вправо
+    if (dx > 0) {
+        panel.classList.remove("show");
+        loadSheet(gidMain);
     }
 
-    if (isTap) {
-        if (k.classList.contains("hide")) {
-            k.classList.remove("hide");
-        } else {
-            k.classList.add("hide");
-        }
+    // ⬅️ вліво
+    if (dx < 0) {
+        panel.classList.add("show");
+        k.classList.add("hide");
+        loadSheet(gidSheet3);
     }
-});
+
+}, { passive: true });
 
 </script>
 
