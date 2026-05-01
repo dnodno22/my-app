@@ -49,6 +49,18 @@ input {
     color: #333;
 }
 
+/* BUTTON */
+.open-btn {
+    width:100%;
+    padding:12px;
+    font-size:16px;
+    border-radius:10px;
+    border:none;
+    background:#111;
+    color:#fff;
+    margin-bottom:10px;
+}
+
 /* KEYBOARD */
 .keyboard {
     position: fixed;
@@ -145,6 +157,9 @@ td {
 <div class="container">
 
 <input id="input" readonly>
+
+<button class="open-btn" onclick="openSheet2()">Таблиця 2</button>
+
 <div id="result" class="result"></div>
 
 </div>
@@ -181,23 +196,16 @@ const input = document.getElementById("input");
 const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
 
-/* =======================
-   KEYBOARD CONTROL
-======================= */
-
+/* KEYBOARD */
 function showKeyboard(){
     if (panel.classList.contains("show")) return;
     k.classList.remove("hide");
 }
-
 function hideKeyboard(){
     k.classList.add("hide");
 }
 
-/* =======================
-   SEARCH
-======================= */
-
+/* SEARCH */
 const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
 
 let data = [];
@@ -279,81 +287,102 @@ function search(){
     resultBox.innerHTML = html || "Не знайдено";
 }
 
-/* =======================
-   TAP + SWIPE (FIXED)
-======================= */
-
-let startX = 0;
-let startY = 0;
-let startTime = 0;
-
-const MAX_TIME = 250;
-const MAX_MOVE = 10;
-const SWIPE_MIN = 80;
+/* SWIPE + TAP */
+let startX = 0, startY = 0, startTime = 0;
 
 document.addEventListener("pointerdown", (e) => {
-
     if (k.contains(e.target) || panel.contains(e.target)) return;
-
     startX = e.clientX;
     startY = e.clientY;
     startTime = Date.now();
 });
 
 document.addEventListener("pointerup", (e) => {
-
     if (k.contains(e.target) || panel.contains(e.target)) return;
 
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
     const dt = Date.now() - startTime;
 
-    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
-    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
+    const isSwipe = Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy);
+    const isTap = dt <= 250 && Math.abs(dx) <= 10 && Math.abs(dy) <= 10;
 
-    /* SWIPE FIRST */
     if (isSwipe) {
-
-        if (dx > 0) {
-            showPanel();
-        } else {
+        if (dx > 0) showPanel();
+        else {
             hidePanel();
             showKeyboard();
         }
-
         return;
     }
 
-    /* TAP */
     if (isTap) {
-
-        if (k.classList.contains("hide")) {
-            showKeyboard();
-        } else {
-            hideKeyboard();
-        }
+        k.classList.contains("hide") ? showKeyboard() : hideKeyboard();
     }
 });
 
-/* =======================
-   SCROLL
-======================= */
-
-window.addEventListener("scroll", () => {
-    hideKeyboard();
-});
-
-/* =======================
-   PANEL
-======================= */
-
+/* PANEL */
 function showPanel(){
     panel.classList.add("show");
     hideKeyboard();
 }
-
 function hidePanel(){
     panel.classList.remove("show");
+}
+
+/* SHEET 2 */
+let data2 = [];
+let sortDir = {};
+
+function loadSheet2(){
+    const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + new Date().getTime();
+
+    fetch(url2)
+    .then(r => r.text())
+    .then(t => {
+        data2 = t.trim().split("\n").map(r => r.split(","));
+        renderTable(data2);
+    });
+}
+
+function renderTable(arr){
+
+    let html = `<table><thead><tr>`;
+
+    arr[0].forEach((h,i)=>{
+        html += `<th onclick="sortTable(${i})">${h}</th>`;
+    });
+
+    html += `</tr></thead><tbody>`;
+
+    arr.slice(1).forEach(r=>{
+        html += `<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`;
+    });
+
+    html += `</tbody></table>`;
+
+    panel.innerHTML = html;
+}
+
+function sortTable(col){
+
+    sortDir[col] = !sortDir[col];
+
+    const sorted = [...data2.slice(1)].sort((a,b)=>{
+        let A = a[col] || "";
+        let B = b[col] || "";
+
+        if (!isNaN(A) && !isNaN(B)) return sortDir[col] ? A-B : B-A;
+        return sortDir[col] ? A.localeCompare(B) : B.localeCompare(A);
+    });
+
+    renderTable([data2[0], ...sorted]);
+}
+
+function openSheet2(){
+    showPanel();
+    panel.innerHTML = "Завантаження...";
+    loadSheet2();
 }
 
 </script>
