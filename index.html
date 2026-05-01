@@ -107,45 +107,6 @@ input {
   background-color: #F7F7F7;
 }
 
-/* SIDE PANEL */
-.side-panel {
-    position: fixed;
-    top: 0;
-    right: -100%;
-    width: 100%;
-    max-width: 420px;
-    height: 100%;
-    background: #fff;
-    z-index: 20;
-    padding: 10px;
-    overflow: auto;
-    transition: right 0.3s ease;
-}
-
-.side-panel.show {
-    right: 0;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-th {
-    background: #f1f5f9;
-    border: 1px solid #ddd;
-    padding: 8px;
-    cursor: pointer;
-    position: sticky;
-    top: 0;
-}
-
-td {
-    border: 1px solid #ddd;
-    padding: 6px;
-}
-
 </style>
 </head>
 
@@ -158,8 +119,6 @@ td {
 <div id="result" class="result"></div>
 
 </div>
-
-<div class="side-panel" id="panel"></div>
 
 <div class="keyboard" id="keyboard">
 
@@ -193,10 +152,8 @@ const resultBox = document.getElementById("result");
 let lastScrollY = window.scrollY;
 
 /* =======================
-   КЛАВІАТУРА ЛОГІКА
+   👆 ТАП В БУДЬ-ЯКЕ МІСЦЕ → ПОКАЗАТИ
 ======================= */
-
-// 👆 тап → показати
 document.addEventListener("touchstart", (e) => {
 
     const t = e.target;
@@ -206,7 +163,9 @@ document.addEventListener("touchstart", (e) => {
     showKeyboard();
 });
 
-// 📜 скрол → сховати
+/* =======================
+   📜 СКРОЛ → СХОВАТИ
+======================= */
 window.addEventListener("scroll", () => {
 
     let y = window.scrollY;
@@ -218,6 +177,9 @@ window.addEventListener("scroll", () => {
     lastScrollY = y;
 });
 
+/* =======================
+   ФУНКЦІЇ
+======================= */
 function showKeyboard(){
     k.classList.remove("hide");
 }
