@@ -55,25 +55,18 @@ input {
     left: 50%;
     transform: translateX(-50%);
     bottom: 0;
-
     width: 100%;
     max-width: 420px;
-
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-
     padding: 14px;
-
     background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
-
     border-top: 1px solid rgba(0,0,0,0.08);
     box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
-
     border-top-left-radius: 18px;
     border-top-right-radius: 18px;
-
     transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
@@ -84,18 +77,18 @@ input {
 
 .button-23 {
   background-color: #FFFFFF;
-  border: 1px solid #222222;
-  border-radius: 8px;
+  border: 1px solid #222;
+  border-radius: 10px;
   color: #222;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  padding: 14px 0;
+  padding: 16px 0;
   cursor: pointer;
 }
 
 .button-23:active {
-  transform: scale(0.96);
-  background-color: #F7F7F7;
+  transform: scale(0.95);
+  background-color: #f1f1f1;
 }
 
 /* PANEL */
@@ -121,15 +114,6 @@ table {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
-}
-
-th {
-    background: #f1f5f9;
-    border: 1px solid #ddd;
-    padding: 8px;
-    cursor: pointer;
-    position: sticky;
-    top: 0;
 }
 
 td {
@@ -182,7 +166,7 @@ const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
 
 /* =======================
-   KEYBOARD CONTROL
+   KEYBOARD
 ======================= */
 
 function showKeyboard(){
@@ -195,14 +179,14 @@ function hideKeyboard(){
 }
 
 /* =======================
-   SEARCH
+   DATA (Sheet1)
 ======================= */
 
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
+const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
 
 let data = [];
 
-fetch(url)
+fetch(url1)
 .then(r => r.text())
 .then(t => {
     data = t.trim().split("\n").map(r => {
@@ -214,6 +198,24 @@ fetch(url)
         };
     });
 });
+
+/* =======================
+   DATA (Sheet3)
+======================= */
+
+const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
+
+let data2 = [];
+
+fetch(url2)
+.then(r => r.text())
+.then(t => {
+    data2 = t.trim().split("\n").map(r => r.split(","));
+});
+
+/* =======================
+   SEARCH
+======================= */
 
 function add(v){
     input.value += v;
@@ -231,7 +233,6 @@ function search(){
     if(!v) return resultBox.innerHTML = "";
 
     const isNumber = /^\d+$/.test(v);
-
     const result = {};
 
     data.forEach(x => {
@@ -242,10 +243,8 @@ function search(){
             (x.article && (isNumber ? x.article.toLowerCase().endsWith(v) : x.article.toLowerCase().includes(v)));
 
         if (match) {
-
             if (!result[x.article]) result[x.article] = {};
             if (!result[x.article][x.material]) result[x.article][x.material] = new Set();
-
             result[x.article][x.material].add(x.station);
         }
     });
@@ -255,21 +254,18 @@ function search(){
     Object.keys(result).forEach(article => {
 
         html += `
-            <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
-                <div style="font-weight:bold; font-size:20px;">
-                    ${article}
-                </div>
+        <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
+            <div style="font-weight:bold; font-size:20px;">${article}</div>
         `;
 
         Object.keys(result[article]).forEach(material => {
-
             html += `
-                <div style="margin-left:8px;">
-                    <div>📦 ${material}</div>
-                    <div style="font-size:13px; color:#888; padding-left:10px;">
-                        ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
-                    </div>
+            <div style="margin-left:8px;">
+                <div>📦 ${material}</div>
+                <div style="font-size:13px; color:#888; padding-left:10px;">
+                    ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
                 </div>
+            </div>
             `;
         });
 
@@ -280,15 +276,44 @@ function search(){
 }
 
 /* =======================
-   TAP + SWIPE (FIXED)
+   PANEL
+======================= */
+
+function renderSheet3(){
+
+    if (!data2.length) {
+        panel.innerHTML = "Завантаження...";
+        return;
+    }
+
+    panel.innerHTML = `
+    <table>
+        ${data2.map(row => `
+            <tr>
+                ${row.map(cell => `<td>${cell}</td>`).join("")}
+            </tr>
+        `).join("")}
+    </table>
+    `;
+}
+
+function showPanel(){
+    renderSheet3();
+    panel.classList.add("show");
+    hideKeyboard();
+}
+
+function hidePanel(){
+    panel.classList.remove("show");
+}
+
+/* =======================
+   SWIPE
 ======================= */
 
 let startX = 0;
 let startY = 0;
-let startTime = 0;
 
-const MAX_TIME = 250;
-const MAX_MOVE = 10;
 const SWIPE_MIN = 80;
 
 document.addEventListener("pointerdown", (e) => {
@@ -297,7 +322,6 @@ document.addEventListener("pointerdown", (e) => {
 
     startX = e.clientX;
     startY = e.clientY;
-    startTime = Date.now();
 });
 
 document.addEventListener("pointerup", (e) => {
@@ -306,32 +330,16 @@ document.addEventListener("pointerup", (e) => {
 
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
-    const dt = Date.now() - startTime;
 
     const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
-    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
 
-    /* SWIPE FIRST */
-    if (isSwipe) {
+    if (!isSwipe) return;
 
-        if (dx > 0) {
-            showPanel();
-        } else {
-            hidePanel();
-            showKeyboard();
-        }
-
-        return;
-    }
-
-    /* TAP */
-    if (isTap) {
-
-        if (k.classList.contains("hide")) {
-            showKeyboard();
-        } else {
-            hideKeyboard();
-        }
+    if (dx < 0) {
+        showPanel();     // вліво
+    } else {
+        hidePanel();     // вправо
+        showKeyboard();
     }
 });
 
@@ -339,22 +347,7 @@ document.addEventListener("pointerup", (e) => {
    SCROLL
 ======================= */
 
-window.addEventListener("scroll", () => {
-    hideKeyboard();
-});
-
-/* =======================
-   PANEL
-======================= */
-
-function showPanel(){
-    panel.classList.add("show");
-    hideKeyboard();
-}
-
-function hidePanel(){
-    panel.classList.remove("show");
-}
+window.addEventListener("scroll", hideKeyboard);
 
 </script>
 
