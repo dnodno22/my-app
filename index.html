@@ -49,6 +49,55 @@ input {
     color: #333;
 }
 
+/* KEYBOARD */
+.keyboard {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+
+    width: 100%;
+    max-width: 420px;
+
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+
+    padding: 14px;
+
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+
+    border-top: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
+
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.keyboard.hide {
+    transform: translateX(-50%) translateY(120%);
+    opacity: 0;
+}
+
+.button-23 {
+  background-color: #FFFFFF;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  color: #222;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 14px 0;
+  cursor: pointer;
+}
+
+.button-23:active {
+  transform: scale(0.96);
+  background-color: #F7F7F7;
+}
+
 /* PANEL */
 .side-panel {
     position: fixed;
@@ -68,6 +117,26 @@ input {
     right: 0;
 }
 
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+th {
+    background: #f1f5f9;
+    border: 1px solid #ddd;
+    padding: 8px;
+    cursor: pointer;
+    position: sticky;
+    top: 0;
+}
+
+td {
+    border: 1px solid #ddd;
+    padding: 6px;
+}
+
 </style>
 </head>
 
@@ -82,57 +151,79 @@ input {
 
 <div class="side-panel" id="panel"></div>
 
+<div class="keyboard" id="keyboard">
+
+<button class="button-23" onclick="add('1')">1</button>
+<button class="button-23" onclick="add('2')">2</button>
+<button class="button-23" onclick="add('3')">3</button>
+
+<button class="button-23" onclick="add('4')">4</button>
+<button class="button-23" onclick="add('5')">5</button>
+<button class="button-23" onclick="add('6')">6</button>
+
+<button class="button-23" onclick="add('7')">7</button>
+<button class="button-23" onclick="add('8')">8</button>
+<button class="button-23" onclick="add('9')">9</button>
+
+<button class="button-23" onclick="add('с')">с</button>
+<button class="button-23" onclick="add('0')">0</button>
+<button class="button-23" onclick="clearAll()">⌫</button>
+
+<button class="button-23" onclick="add('sp')">sp</button>
+<button class="button-23" onclick="add('ts')">ts</button>
+
+</div>
+
 <script>
 
+const k = document.getElementById("keyboard");
 const input = document.getElementById("input");
 const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
 
-const baseID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
-
-const gidMain = "1679964111";
-const gidAlt  = "421001458";
-
-let data = [];
-let currentGid = gidMain;
-
 /* =======================
-   LOAD SHEET (FIXED)
+   KEYBOARD CONTROL
 ======================= */
 
-function loadSheet(gid){
-
-    currentGid = gid;
-
-    const url = `https://docs.google.com/spreadsheets/d/${baseID}/gviz/tq?tqx=out:csv&gid=${gid}`;
-
-    fetch(url)
-    .then(r => r.text())
-    .then(t => {
-
-        const rows = t.split("\n").filter(r => r.trim());
-
-        data = rows.map(r => {
-            const c = r.split(",");
-
-            return {
-                station: (c[0] || "").replace(/"/g,'').trim(),
-                material: (c[1] || "").replace(/"/g,'').trim(),
-                article: (c[2] || "").replace(/"/g,'').trim()
-            };
-        });
-
-        input.value = "";
-        resultBox.innerHTML = "";
-    });
+function showKeyboard(){
+    if (panel.classList.contains("show")) return;
+    k.classList.remove("hide");
 }
 
-/* старт */
-loadSheet(gidMain);
+function hideKeyboard(){
+    k.classList.add("hide");
+}
 
 /* =======================
    SEARCH
 ======================= */
+
+const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
+
+let data = [];
+
+fetch(url)
+.then(r => r.text())
+.then(t => {
+    data = t.trim().split("\n").map(r => {
+        let c = r.split(",");
+        return {
+            station: c[0] || "",
+            material: c[1] || "",
+            article: c[2] || ""
+        };
+    });
+});
+
+function add(v){
+    input.value += v;
+    search();
+}
+
+function clearAll(){
+    input.value = "";
+    resultBox.innerHTML = "";
+}
 
 function search(){
 
@@ -140,6 +231,7 @@ function search(){
     if(!v) return resultBox.innerHTML = "";
 
     const isNumber = /^\d+$/.test(v);
+
     const result = {};
 
     data.forEach(x => {
@@ -188,64 +280,81 @@ function search(){
 }
 
 /* =======================
-   INPUT
-======================= */
-
-function add(v){
-    input.value += v;
-    search();
-}
-
-function clearAll(){
-    input.value = "";
-    resultBox.innerHTML = "";
-}
-
-/* =======================
-   SWIPE (FIXED)
+   TAP + SWIPE (FIXED)
 ======================= */
 
 let startX = 0;
 let startY = 0;
+let startTime = 0;
 
-const SWIPE_MIN = 70;
+const MAX_TIME = 250;
+const MAX_MOVE = 10;
+const SWIPE_MIN = 80;
 
-document.addEventListener("touchstart", (e) => {
+document.addEventListener("pointerdown", (e) => {
 
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
+    if (k.contains(e.target) || panel.contains(e.target)) return;
 
-}, { passive: true });
+    startX = e.clientX;
+    startY = e.clientY;
+    startTime = Date.now();
+});
 
-document.addEventListener("touchend", (e) => {
+document.addEventListener("pointerup", (e) => {
 
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
+    if (k.contains(e.target) || panel.contains(e.target)) return;
 
-    const dx = endX - startX;
-    const dy = endY - startY;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const dt = Date.now() - startTime;
 
-    if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < Math.abs(dy)) return;
+    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
+    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
 
-    // ⬅️ вліво → Аркуш3
-    if (dx < 0) {
-        loadSheet(gidAlt);
+    /* SWIPE FIRST */
+    if (isSwipe) {
+
+        if (dx > 0) {
+            showPanel();
+        } else {
+            hidePanel();
+            showKeyboard();
+        }
+
+        return;
     }
 
-    // ➡️ вправо → головний
-    if (dx > 0) {
-        loadSheet(gidMain);
-    }
+    /* TAP */
+    if (isTap) {
 
-}, { passive: true });
+        if (k.classList.contains("hide")) {
+            showKeyboard();
+        } else {
+            hideKeyboard();
+        }
+    }
+});
 
 /* =======================
    SCROLL
 ======================= */
 
 window.addEventListener("scroll", () => {
-    // нічого не ламаємо
+    hideKeyboard();
 });
+
+/* =======================
+   PANEL
+======================= */
+
+function showPanel(){
+    panel.classList.add("show");
+    hideKeyboard();
+}
+
+function hidePanel(){
+    panel.classList.remove("show");
+}
 
 </script>
 
