@@ -1,193 +1,27 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">
-
-<title>Пошук</title>
-
-<style>
-
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
-
-body {
-    margin: 0;
-    font-family: -apple-system, Arial, sans-serif;
-    background: #f4f6f8;
-}
-
-.container {
-    max-width: 420px;
-    margin: 0 auto;
-    background: #fff;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding: 16px;
-    padding-bottom: 220px;
-}
-
-input {
-    width: 100%;
-    padding: 18px;
-    font-size: 24px;
-    border-radius: 14px;
-    border: 1px solid #e5e7eb;
-    text-align: center;
-    margin-bottom: 12px;
-    outline: none;
-    background: #fafafa;
-}
-
-.result {
-    font-size: 18px;
-    line-height: 1.6;
-    color: #333;
-}
-
-/* PANEL */
-.side-panel {
-    position: fixed;
-    top: 0;
-    right: -100%;
-    width: 100%;
-    max-width: 420px;
-    height: 100%;
-    background: #fff;
-    z-index: 20;
-    padding: 10px;
-    overflow: auto;
-    transition: right 0.3s ease;
-}
-
-.side-panel.show {
-    right: 0;
-}
-
-/* TABLE */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-th {
-    background: #f1f5f9;
-    border: 1px solid #ddd;
-    padding: 8px;
-    cursor: pointer;
-    position: sticky;
-    top: 0;
-}
-
-td {
-    border: 1px solid #ddd;
-    padding: 6px;
-}
-
-/* KEYBOARD */
-.keyboard {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 0;
-
-    width: 100%;
-    max-width: 420px;
-
-    display: grid;
-
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-areas:
-        ". . tab2"
-        "b1 b2 b3"
-        "b4 b5 b6"
-        "b7 b8 b9"
-        "bC b0 bDel"
-        "bSp bTs .";
-
-    gap: 10px;
-
-    padding: 14px;
-
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(12px);
-
-    border-top: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
-
-    border-top-left-radius: 18px;
-    border-top-right-radius: 18px;
-}
-
-.button-23 {
-  background-color: #FFFFFF;
-  border: 1px solid #222222;
-  border-radius: 8px;
-  color: #222;
-  font-size: 16px;
-  font-weight: 600;
-  padding: 14px 0;
-  cursor: pointer;
-}
-
-.button-23:active {
-  transform: scale(0.96);
-  background-color: #F7F7F7;
-}
-
-</style>
-</head>
-
-<body>
-
-<div class="container">
-
-<input id="input" readonly>
-
-<div id="result" class="result"></div>
-
-</div>
-
-<div class="side-panel" id="panel"></div>
-
-<div class="keyboard" id="keyboard">
-
-<!-- TAB 2 (завжди над 3) -->
-<button class="button-23" style="grid-area: tab2;" onclick="openSheet2()">
-Таб 2
-</button>
-
-<button class="button-23" style="grid-area: b1;" onclick="add('1')">1</button>
-<button class="button-23" style="grid-area: b2;" onclick="add('2')">2</button>
-<button class="button-23" style="grid-area: b3;" onclick="add('3')">3</button>
-
-<button class="button-23" style="grid-area: b4;" onclick="add('4')">4</button>
-<button class="button-23" style="grid-area: b5;" onclick="add('5')">5</button>
-<button class="button-23" style="grid-area: b6;" onclick="add('6')">6</button>
-
-<button class="button-23" style="grid-area: b7;" onclick="add('7')">7</button>
-<button class="button-23" style="grid-area: b8;" onclick="add('8')">8</button>
-<button class="button-23" style="grid-area: b9;" onclick="add('9')">9</button>
-
-<button class="button-23" style="grid-area: bC;" onclick="add('с')">с</button>
-<button class="button-23" style="grid-area: b0;" onclick="add('0')">0</button>
-<button class="button-23" style="grid-area: bDel;" onclick="clearAll()">⌫</button>
-
-<button class="button-23" style="grid-area: bSp;" onclick="add('sp')">sp</button>
-<button class="button-23" style="grid-area: bTs;" onclick="add('ts')">ts</button>
-
-</div>
-
 <script>
 
 const input = document.getElementById("input");
 const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
+const keyboard = document.getElementById("keyboard");
+
+/* ================= KEYBOARD ================= */
+
+function showKeyboard(){
+    keyboard.style.display = "grid";
+}
+
+function hideKeyboard(){
+    keyboard.style.display = "none";
+}
+
+function toggleKeyboard(){
+    if (keyboard.style.display === "none") {
+        showKeyboard();
+    } else {
+        hideKeyboard();
+    }
+}
 
 /* ================= SEARCH ================= */
 
@@ -247,15 +81,12 @@ function search(){
 
     Object.keys(result).forEach(article => {
 
-        html += `
-        <div style="margin-bottom:15px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fafafa;">
-        <div style="font-weight:bold;font-size:20px;">${article}</div>
-        `;
+        html += `<div style="margin-bottom:15px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fafafa;">
+        <div style="font-weight:bold;font-size:20px;">${article}</div>`;
 
         Object.keys(result[article]).forEach(material => {
 
-            html += `
-            <div style="margin-left:8px;">
+            html += `<div style="margin-left:8px;">
                 <div>📦 ${material}</div>
                 <div style="font-size:13px;color:#888;padding-left:10px;">
                     ${[...result[article][material]].map(s=>`<div>${s}</div>`).join("")}
@@ -271,8 +102,15 @@ function search(){
 
 /* ================= PANEL ================= */
 
-function showPanel(){ panel.classList.add("show"); }
-function hidePanel(){ panel.classList.remove("show"); }
+function showPanel(){
+    panel.classList.add("show");
+    hideKeyboard();
+}
+
+function hidePanel(){
+    panel.classList.remove("show");
+    showKeyboard();
+}
 
 /* ================= SHEET 2 ================= */
 
@@ -330,6 +168,9 @@ function sortTable(col){
 
     renderTable([data2[0], ...sorted]);
 }
+
+/* ================= SWIPE + TAP ================= */
+
 let startX = 0;
 let startY = 0;
 let startTime = 0;
@@ -340,8 +181,7 @@ const SWIPE_MIN = 80;
 
 document.addEventListener("pointerdown", (e) => {
 
-    // не чіпаємо таблицю
-    if (panel.contains(e.target)) return;
+    if (panel.contains(e.target) || keyboard.contains(e.target)) return;
 
     startX = e.clientX;
     startY = e.clientY;
@@ -350,7 +190,7 @@ document.addEventListener("pointerdown", (e) => {
 
 document.addEventListener("pointerup", (e) => {
 
-    if (panel.contains(e.target)) return;
+    if (panel.contains(e.target) || keyboard.contains(e.target)) return;
 
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
@@ -359,27 +199,22 @@ document.addEventListener("pointerup", (e) => {
     const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
     const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
 
-    /* ================= SWIPE ================= */
+    /* SWIPE */
     if (isSwipe) {
 
         if (dx > 0) {
-            showPanel();   // свайп вправо → відкрити
+            showPanel();
         } else {
-            hidePanel();   // свайп вліво → закрити
+            hidePanel();
         }
 
         return;
     }
 
-    /* ================= TAP ================= */
+    /* TAP */
     if (isTap) {
-
-        if (panel.classList.contains("show")) {
-            hidePanel(); // тап → закрити
-        }
+        toggleKeyboard();
     }
 });
-</script>
 
-</body>
-</html>
+</script>
