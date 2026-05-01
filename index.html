@@ -45,10 +45,10 @@ input {
 .result {
     font-size: 18px;
     line-height: 1.6;
-    color: #333;
 }
 
-/* KEYBOARD */
+/* ================= KEYBOARD FIX ================= */
+
 .keyboard {
     position: fixed;
     left: 50%;
@@ -64,16 +64,18 @@ input {
 
     padding: 14px;
 
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(12px);
+    background: rgba(255,255,255,0.98);
+    backdrop-filter: blur(10px);
 
     border-top: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
+    box-shadow: 0 -8px 20px rgba(0,0,0,0.08);
 
     border-top-left-radius: 18px;
     border-top-right-radius: 18px;
 
     transition: transform 0.25s ease, opacity 0.25s ease;
+
+    z-index: 10;
 }
 
 .keyboard.hide {
@@ -81,17 +83,22 @@ input {
     opacity: 0;
 }
 
-.button-23 {
-  background-color: #fff;
+/* кнопки тепер однакові */
+button {
+  background: #fff;
   border: 1px solid #222;
-  border-radius: 8px;
-  color: #222;
+  border-radius: 10px;
   font-size: 16px;
   font-weight: 600;
   padding: 14px 0;
 }
 
-/* PANEL */
+button:active {
+  transform: scale(0.96);
+}
+
+/* ================= PANEL ================= */
+
 .side-panel {
     position: fixed;
     top: 0;
@@ -102,7 +109,7 @@ input {
     background: #fff;
     z-index: 20;
     overflow: auto;
-    transition: right 0.3s ease;
+    transition: right 0.25s ease;
     padding: 10px;
 }
 
@@ -113,12 +120,12 @@ input {
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
 }
 
 td {
     border: 1px solid #ddd;
     padding: 6px;
+    font-size: 13px;
 }
 
 </style>
@@ -129,7 +136,7 @@ td {
 <div class="container">
 
 <input id="input" readonly>
-<div id="result" class="result"></div>
+<div id="result"></div>
 
 </div>
 
@@ -160,9 +167,7 @@ td {
 
 <script>
 
-/* =========================
-   DATA
-========================= */
+/* ================= DATA ================= */
 
 const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
 const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
@@ -181,9 +186,7 @@ fetch(url2).then(r=>r.text()).then(t=>{
     data2 = t.trim().split("\n").map(r=>r.split(","));
 });
 
-/* =========================
-   UI
-========================= */
+/* ================= UI ================= */
 
 const k = document.getElementById("keyboard");
 const input = document.getElementById("input");
@@ -197,9 +200,7 @@ function clearAll(){
     input.value="";
 }
 
-/* =========================
-   KEYBOARD
-========================= */
+/* ================= KEYBOARD ================= */
 
 function showKeyboard(){
     if(panel.classList.contains("show")) return;
@@ -210,9 +211,7 @@ function hideKeyboard(){
     k.classList.add("hide");
 }
 
-/* =========================
-   SHEET 2
-========================= */
+/* ================= PANEL ================= */
 
 function showSheet2(){
 
@@ -237,21 +236,19 @@ function hidePanel(){
     panel.classList.remove("show");
 }
 
-/* =========================
-   TAP + SCROLL
-========================= */
+/* ================= TAP ================= */
 
-let tapTime=0;
+let tapStart=0;
 
 document.addEventListener("touchstart",e=>{
     if(k.contains(e.target)||panel.contains(e.target)) return;
-    tapTime=Date.now();
+    tapStart=Date.now();
 });
 
-document.addEventListener("touchend",()=>{
-    let dt=Date.now()-tapTime;
+document.addEventListener("touchend",e=>{
+    let dt=Date.now()-tapStart;
 
-    if(dt<200){
+    if(dt<180){
         if(k.classList.contains("hide")){
             showKeyboard();
         } else {
@@ -260,13 +257,13 @@ document.addEventListener("touchend",()=>{
     }
 });
 
+/* ================= SCROLL ================= */
+
 window.addEventListener("scroll",()=>{
     hideKeyboard();
 });
 
-/* =========================
-   SWIPE
-========================= */
+/* ================= SWIPE FIXED ================= */
 
 let sx=0;
 let sy=0;
@@ -285,14 +282,12 @@ document.addEventListener("touchend",e=>{
 
     if(dy>50) return;
 
-    // 👈 swipe left
     if(dx<-80){
-        showSheet2();
+        showSheet2();   // 👈 вліво
     }
 
-    // 👉 swipe right
     if(dx>80){
-        hidePanel();
+        hidePanel();    // 👉 вправо
         showKeyboard();
     }
 });
