@@ -1,191 +1,3 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">
-
-<title>Пошук</title>
-
-<style>
-
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
-
-body {
-    margin: 0;
-    font-family: -apple-system, Arial, sans-serif;
-    background: #f4f6f8;
-}
-
-/* КОНТЕЙНЕР */
-.container {
-    max-width: 420px;
-    margin: 0 auto;
-    background: #fff;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding: 16px;
-    padding-bottom: 220px;
-}
-
-/* INPUT */
-input {
-    width: 100%;
-    padding: 18px;
-    font-size: 24px;
-    border-radius: 14px;
-    border: 1px solid #e5e7eb;
-    text-align: center;
-    margin-bottom: 12px;
-    outline: none;
-    background: #fafafa;
-
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-/* RESULT */
-.result {
-    font-size: 18px;
-    line-height: 1.6;
-    color: #333;
-}
-
-/* KEYBOARD */
-.keyboard {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 0;
-
-    width: 100%;
-    max-width: 420px;
-
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-
-    padding: 14px;
-
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(12px);
-
-    border-top: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
-
-    border-top-left-radius: 18px;
-    border-top-right-radius: 18px;
-
-    transition: transform 0.25s ease, opacity 0.25s ease;
-}
-
-.keyboard.hide {
-    transform: translateX(-50%) translateY(120%);
-    opacity: 0;
-}
-
-/* BUTTON */
-.button-23 {
-  background-color: #FFFFFF;
-  border: 1px solid #222222;
-  border-radius: 8px;
-  color: #222;
-  font-size: 16px;
-  font-weight: 600;
-  padding: 14px 0;
-  cursor: pointer;
-  transition: transform .1s ease;
-}
-
-.button-23:active {
-  transform: scale(0.96);
-  background-color: #F7F7F7;
-}
-
-/* SIDE PANEL */
-.side-panel {
-    position: fixed;
-    top: 0;
-    right: -100%;
-    width: 100%;
-    max-width: 420px;
-    height: 100%;
-    background: #fff;
-    z-index: 20;
-    padding: 10px;
-    overflow: auto;
-    transition: right 0.3s ease;
-}
-
-.side-panel.show {
-    right: 0;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-th {
-    background: #f1f5f9;
-    border: 1px solid #ddd;
-    padding: 8px;
-    cursor: pointer;
-    position: sticky;
-    top: 0;
-}
-
-td {
-    border: 1px solid #ddd;
-    padding: 6px;
-}
-
-</style>
-</head>
-
-<body>
-
-<div class="container">
-
-<input id="input" readonly>
-
-<div id="result" class="result"></div>
-
-</div>
-
-<!-- PANEL -->
-<div class="side-panel" id="panel"></div>
-
-<!-- KEYBOARD -->
-<div class="keyboard" id="keyboard">
-
-<button class="button-23" onclick="add('1')">1</button>
-<button class="button-23" onclick="add('2')">2</button>
-<button class="button-23" onclick="add('3')">3</button>
-
-<button class="button-23" onclick="add('4')">4</button>
-<button class="button-23" onclick="add('5')">5</button>
-<button class="button-23" onclick="add('6')">6</button>
-
-<button class="button-23" onclick="add('7')">7</button>
-<button class="button-23" onclick="add('8')">8</button>
-<button class="button-23" onclick="add('9')">9</button>
-
-<button class="button-23" onclick="add('с')">с</button>
-<button class="button-23" onclick="add('0')">0</button>
-<button class="button-23" onclick="clearAll()">⌫</button>
-
-<button class="button-23" onclick="add('sp')">sp</button>
-<button class="button-23" onclick="add('ts')">ts</button>
-
-</div>
-
 <script>
 
 // 🔥 Аркуш1
@@ -246,56 +58,54 @@ function search(){
         `).join("") : "Не знайдено";
 }
 
-// 🔥 PANEL + SORT
-let sortState = { col: -1, asc: true };
 
+// 🔥 PANEL (НОВА ЛОГІКА ГРУПУВАННЯ)
 function showPanel(){
 
     const panel = document.getElementById("panel");
 
-    function render(arr){
+    // будуємо структуру: article -> material -> stations
+    let grouped = {};
 
-        panel.innerHTML = `
-        <table>
-            <thead>
-                <tr>
-                    ${arr[0].map((h,i)=>`
-                        <th onclick="sortBy(${i})">${h}</th>
-                    `).join("")}
-                </tr>
-            </thead>
-            <tbody>
-                ${arr.slice(1).map(r=>`
-                    <tr>
-                        ${r.map(c=>`<td>${c||""}</td>`).join("")}
-                    </tr>
-                `).join("")}
-            </tbody>
-        </table>
-        `;
+    for(let i=1;i<data2.length;i++){
+        let row = data2[i];
+        let station = row[0] || "";
+        let material = row[1] || "";
+        let article = row[2] || "";
+
+        if(!grouped[article]) grouped[article] = {};
+        if(!grouped[article][material]) grouped[article][material] = [];
+        grouped[article][material].push(station);
     }
 
-    window.sortBy = function(i){
+    let html = "";
 
-        if(sortState.col === i){
-            sortState.asc = !sortState.asc;
-        } else {
-            sortState.col = i;
-            sortState.asc = true;
+    let articles = Object.keys(grouped).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+
+    for(let art of articles){
+
+        html += `<div style="background:#f1f5f9;padding:8px;margin-top:10px;font-weight:bold;">
+                    Артикул: ${art}
+                 </div>`;
+
+        let materials = Object.keys(grouped[art]).sort();
+
+        for(let mat of materials){
+
+            html += `<div style="padding:6px 8px;font-weight:600;">
+                        Матеріал: ${mat}
+                     </div>`;
+
+            for(let st of grouped[art][mat]){
+
+                html += `<div style="padding-left:14px;border-bottom:1px solid #eee;padding-bottom:4px;">
+                            Станція: ${st}
+                         </div>`;
+            }
         }
+    }
 
-        let sorted = [...data2.slice(1)].sort((a,b)=>{
-            let A = a[i]||"";
-            let B = b[i]||"";
-            return sortState.asc
-                ? A.localeCompare(B,undefined,{numeric:true})
-                : B.localeCompare(A,undefined,{numeric:true});
-        });
-
-        render([data2[0], ...sorted]);
-    };
-
-    render(data2);
+    panel.innerHTML = html;
     panel.classList.add("show");
 }
 
@@ -328,6 +138,3 @@ window.addEventListener("scroll",()=>{
 });
 
 </script>
-
-</body>
-</html>
