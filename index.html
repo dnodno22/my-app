@@ -26,8 +26,6 @@ body {
     margin: 0 auto;
     background: #fff;
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
     padding: 16px;
     padding-bottom: 220px;
 }
@@ -56,6 +54,7 @@ input {
     left: 50%;
     transform: translateX(-50%);
     bottom: 0;
+
     width: 100%;
     max-width: 420px;
 
@@ -67,6 +66,7 @@ input {
 
     background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
+
     border-top: 1px solid rgba(0,0,0,0.08);
     box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
 
@@ -89,12 +89,6 @@ input {
   font-size: 16px;
   font-weight: 600;
   padding: 14px 0;
-  cursor: pointer;
-}
-
-.button-23:active {
-  transform: scale(0.96);
-  background-color: #F7F7F7;
 }
 
 /* PANEL */
@@ -107,9 +101,9 @@ input {
     height: 100%;
     background: #fff;
     z-index: 20;
-    padding: 10px;
     overflow: auto;
     transition: right 0.3s ease;
+    padding: 10px;
 }
 
 .side-panel.show {
@@ -143,59 +137,48 @@ td {
 
 <div class="keyboard" id="keyboard">
 
-<button class="button-23" onclick="add('1')">1</button>
-<button class="button-23" onclick="add('2')">2</button>
-<button class="button-23" onclick="add('3')">3</button>
+<button onclick="add('1')">1</button>
+<button onclick="add('2')">2</button>
+<button onclick="add('3')">3</button>
 
-<button class="button-23" onclick="add('4')">4</button>
-<button class="button-23" onclick="add('5')">5</button>
-<button class="button-23" onclick="add('6')">6</button>
+<button onclick="add('4')">4</button>
+<button onclick="add('5')">5</button>
+<button onclick="add('6')">6</button>
 
-<button class="button-23" onclick="add('7')">7</button>
-<button class="button-23" onclick="add('8')">8</button>
-<button class="button-23" onclick="add('9')">9</button>
+<button onclick="add('7')">7</button>
+<button onclick="add('8')">8</button>
+<button onclick="add('9')">9</button>
 
-<button class="button-23" onclick="add('с')">с</button>
-<button class="button-23" onclick="add('0')">0</button>
-<button class="button-23" onclick="clearAll()">⌫</button>
+<button onclick="add('с')">с</button>
+<button onclick="add('0')">0</button>
+<button onclick="clearAll()">⌫</button>
 
-<button class="button-23" onclick="add('sp')">sp</button>
-<button class="button-23" onclick="add('ts')">ts</button>
+<button onclick="add('sp')">sp</button>
+<button onclick="add('ts')">ts</button>
 
 </div>
 
 <script>
 
 /* =========================
-   DATA SHEETS
+   DATA
 ========================= */
 
 const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
-
 const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
 
 let data = [];
 let data2 = [];
 
-/* sheet1 */
-fetch(url1)
-.then(r => r.text())
-.then(t => {
-    data = t.trim().split("\n").map(r => {
+fetch(url1).then(r=>r.text()).then(t=>{
+    data = t.trim().split("\n").map(r=>{
         let c = r.split(",");
-        return {
-            station: c[0] || "",
-            material: c[1] || "",
-            article: c[2] || ""
-        };
+        return {station:c[0],material:c[1],article:c[2]};
     });
 });
 
-/* sheet2 */
-fetch(url2)
-.then(r => r.text())
-.then(t => {
-    data2 = t.trim().split("\n").map(r => r.split(","));
+fetch(url2).then(r=>r.text()).then(t=>{
+    data2 = t.trim().split("\n").map(r=>r.split(","));
 });
 
 /* =========================
@@ -204,94 +187,14 @@ fetch(url2)
 
 const k = document.getElementById("keyboard");
 const input = document.getElementById("input");
-const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
 
 function add(v){
     input.value += v;
-    search();
 }
 
 function clearAll(){
-    input.value = "";
-    resultBox.innerHTML = "";
-}
-
-/* =========================
-   SEARCH SHEET 1
-========================= */
-
-function search(){
-
-    let v = input.value.toLowerCase();
-    if(!v) return resultBox.innerHTML = "";
-
-    const isNumber = /^\d+$/.test(v);
-
-    const result = {};
-
-    data.forEach(x => {
-
-        const match =
-            (x.station && (isNumber ? x.station.toLowerCase().endsWith(v) : x.station.toLowerCase().includes(v))) ||
-            (x.material && (isNumber ? x.material.toLowerCase().endsWith(v) : x.material.toLowerCase().includes(v))) ||
-            (x.article && (isNumber ? x.article.toLowerCase().endsWith(v) : x.article.toLowerCase().includes(v)));
-
-        if(match){
-            if(!result[x.article]) result[x.article] = {};
-            if(!result[x.article][x.material]) result[x.article][x.material] = new Set();
-            result[x.article][x.material].add(x.station);
-        }
-    });
-
-    let html = "";
-
-    Object.keys(result).forEach(article => {
-
-        html += `<div style="margin-bottom:15px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fafafa;">
-        <b>${article}</b>`;
-
-        Object.keys(result[article]).forEach(material => {
-
-            html += `<div style="margin-left:8px">
-                📦 ${material}
-                <div style="font-size:13px;color:#888;padding-left:10px">
-                    ${[...result[article][material]].map(s=>`<div>${s}</div>`).join("")}
-                </div>
-            </div>`;
-        });
-
-        html += `</div>`;
-    });
-
-    resultBox.innerHTML = html || "Не знайдено";
-}
-
-/* =========================
-   SHEET 2 VIEW
-========================= */
-
-function showSheet2(){
-
-    let html = `<table>`;
-
-    data2.forEach(row => {
-        html += `<tr>`;
-        row.forEach(cell => {
-            html += `<td>${cell || ""}</td>`;
-        });
-        html += `</tr>`;
-    });
-
-    html += `</table>`;
-
-    panel.innerHTML = html;
-    panel.classList.add("show");
-    hideKeyboard();
-}
-
-function hidePanel(){
-    panel.classList.remove("show");
+    input.value="";
 }
 
 /* =========================
@@ -308,34 +211,87 @@ function hideKeyboard(){
 }
 
 /* =========================
-   STABLE SWIPE (FIXED)
+   SHEET 2
 ========================= */
 
-let sx = 0;
-let sy = 0;
+function showSheet2(){
 
-document.addEventListener("touchstart", e => {
+    let html="<table>";
 
-    if(k.contains(e.target) || panel.contains(e.target)) return;
+    data2.forEach(r=>{
+        html+="<tr>";
+        r.forEach(c=>{
+            html+=`<td>${c||""}</td>`;
+        });
+        html+="</tr>";
+    });
 
-    sx = e.touches[0].clientX;
-    sy = e.touches[0].clientY;
+    html+="</table>";
+
+    panel.innerHTML=html;
+    panel.classList.add("show");
+    hideKeyboard();
+}
+
+function hidePanel(){
+    panel.classList.remove("show");
+}
+
+/* =========================
+   TAP + SCROLL
+========================= */
+
+let tapTime=0;
+
+document.addEventListener("touchstart",e=>{
+    if(k.contains(e.target)||panel.contains(e.target)) return;
+    tapTime=Date.now();
 });
 
-document.addEventListener("touchend", e => {
+document.addEventListener("touchend",()=>{
+    let dt=Date.now()-tapTime;
 
-    if(k.contains(e.target) || panel.contains(e.target)) return;
+    if(dt<200){
+        if(k.classList.contains("hide")){
+            showKeyboard();
+        } else {
+            hideKeyboard();
+        }
+    }
+});
 
-    let dx = e.changedTouches[0].clientX - sx;
-    let dy = e.changedTouches[0].clientY - sy;
+window.addEventListener("scroll",()=>{
+    hideKeyboard();
+});
 
-    if(Math.abs(dy) > 50) return;
+/* =========================
+   SWIPE
+========================= */
 
-    if(dx > 80){
+let sx=0;
+let sy=0;
+
+document.addEventListener("touchstart",e=>{
+    if(k.contains(e.target)||panel.contains(e.target)) return;
+    sx=e.touches[0].clientX;
+    sy=e.touches[0].clientY;
+});
+
+document.addEventListener("touchend",e=>{
+    if(k.contains(e.target)||panel.contains(e.target)) return;
+
+    let dx=e.changedTouches[0].clientX-sx;
+    let dy=Math.abs(e.changedTouches[0].clientY-sy);
+
+    if(dy>50) return;
+
+    // 👈 swipe left
+    if(dx<-80){
         showSheet2();
     }
 
-    if(dx < -80){
+    // 👉 swipe right
+    if(dx>80){
         hidePanel();
         showKeyboard();
     }
