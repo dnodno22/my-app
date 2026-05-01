@@ -145,18 +145,38 @@ const k = document.getElementById("keyboard");
 const input = document.getElementById("input");
 const resultBox = document.getElementById("result");
 
-let lastScrollY = window.scrollY;
-
 /* =======================
-   👆 TAP → TOGGLE
+   TAP → TOGGLE (stable)
 ======================= */
+
+let startX = 0;
+let startY = 0;
+let startTime = 0;
+
+const MAX_TIME = 250;
+const MAX_MOVE = 10;
+
 document.addEventListener("touchstart", (e) => {
 
-    const t = e.target;
+    if (k.contains(e.target)) return;
 
-    // ігноруємо клавіатуру
-    if (k.contains(t)) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startTime = Date.now();
+});
 
+document.addEventListener("touchend", (e) => {
+
+    if (k.contains(e.target)) return;
+
+    const dx = Math.abs(e.changedTouches[0].clientX - startX);
+    const dy = Math.abs(e.changedTouches[0].clientY - startY);
+    const dt = Date.now() - startTime;
+
+    // не tap
+    if (dt > MAX_TIME || dx > MAX_MOVE || dy > MAX_MOVE) return;
+
+    // TOGGLE
     if (k.classList.contains("hide")) {
         showKeyboard();
     } else {
@@ -165,8 +185,11 @@ document.addEventListener("touchstart", (e) => {
 });
 
 /* =======================
-   📜 SCROLL → HIDE
+   SCROLL → HIDE
 ======================= */
+
+let lastScrollY = window.scrollY;
+
 window.addEventListener("scroll", () => {
 
     if (Math.abs(window.scrollY - lastScrollY) > 5) {
@@ -179,6 +202,7 @@ window.addEventListener("scroll", () => {
 /* =======================
    FUNCTIONS
 ======================= */
+
 function showKeyboard(){
     k.classList.remove("hide");
 }
