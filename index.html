@@ -20,7 +20,7 @@ body {
     background: #f4f6f8;
 }
 
-/* CONTAINER */
+/* КОНТЕЙНЕР */
 .container {
     max-width: 420px;
     margin: 0 auto;
@@ -43,6 +43,7 @@ input {
     margin-bottom: 12px;
     outline: none;
     background: #fafafa;
+
     position: sticky;
     top: 0;
     z-index: 10;
@@ -55,7 +56,7 @@ input {
     color: #333;
 }
 
-/* KEYBOARD (ОРИГІНАЛЬНИЙ СТИЛЬ ПОВЕРНУТО) */
+/* KEYBOARD (твоя стара) */
 .keyboard {
     position: fixed;
     left: 50%;
@@ -98,7 +99,6 @@ input {
   font-weight: 600;
   padding: 14px 0;
   cursor: pointer;
-  transition: transform .1s ease;
 }
 
 .button-23:active {
@@ -125,23 +125,6 @@ input {
     right: 0;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-th {
-    background: #f1f5f9;
-    border: 1px solid #ddd;
-    padding: 8px;
-}
-
-td {
-    border: 1px solid #ddd;
-    padding: 6px;
-}
-
 </style>
 </head>
 
@@ -154,90 +137,112 @@ td {
 
 <div class="side-panel" id="panel"></div>
 
+<!-- KEYBOARD -->
 <div class="keyboard" id="keyboard">
 
-<button onclick="APP.add('1')">1</button>
-<button onclick="APP.add('2')">2</button>
-<button onclick="APP.add('3')">3</button>
+<button onclick="add('1')">1</button>
+<button onclick="add('2')">2</button>
+<button onclick="add('3')">3</button>
 
-<button onclick="APP.add('4')">4</button>
-<button onclick="APP.add('5')">5</button>
-<button onclick="APP.add('6')">6</button>
+<button onclick="add('4')">4</button>
+<button onclick="add('5')">5</button>
+<button onclick="add('6')">6</button>
 
-<button onclick="APP.add('7')">7</button>
-<button onclick="APP.add('8')">8</button>
-<button onclick="APP.add('9')">9</button>
+<button onclick="add('7')">7</button>
+<button onclick="add('8')">8</button>
+<button onclick="add('9')">9</button>
 
-<button onclick="APP.add('с')">с</button>
-<button onclick="APP.add('0')">0</button>
-<button onclick="APP.clear()">⌫</button>
+<button onclick="add('с')">с</button>
+<button onclick="add('0')">0</button>
+<button onclick="clearAll()">⌫</button>
 
-<button onclick="APP.add('sp')">sp</button>
-<button onclick="APP.add('ts')">ts</button>
+<button onclick="add('sp')">sp</button>
+<button onclick="add('ts')">ts</button>
 
 </div>
 
 <script>
 
-const APP = {
-    keyboard: document.getElementById("keyboard"),
-    panel: document.getElementById("panel"),
-    input: document.getElementById("input"),
-    result: document.getElementById("result"),
+const input = document.getElementById("input");
+const result = document.getElementById("result");
+const keyboard = document.getElementById("keyboard");
+const panel = document.getElementById("panel");
 
-    showKeyboard(){
-        this.keyboard.classList.remove("hide");
-    },
+/* KEYBOARD */
+function add(v){
+    input.value += v;
+    search();
+}
 
-    hideKeyboard(){
-        this.keyboard.classList.add("hide");
-    },
+function clearAll(){
+    input.value = "";
+    result.innerHTML = "";
+}
 
-    showPanel(){
-        this.panel.classList.add("show");
-        this.hideKeyboard();
-        renderSheet3();
-    },
+/* TOGGLE KEYBOARD */
+function toggleKeyboard(){
+    keyboard.classList.toggle("hide");
+}
 
-    hidePanel(){
-        this.panel.classList.remove("show");
-    },
+/* TAP LOGIC */
+document.addEventListener("touchend", (e) => {
 
-    add(v){
-        this.input.value += v;
-        search();
-    },
+    const target = e.target;
 
-    clear(){
-        this.input.value = "";
-        this.result.innerHTML = "";
+    if (keyboard.contains(target)) return;
+
+    if (target === input) return;
+
+    toggleKeyboard();
+});
+
+/* SCROLL ALWAYS HIDE */
+window.addEventListener("scroll", () => {
+    keyboard.classList.add("hide");
+});
+
+/* SWIPE */
+let sx = 0;
+
+document.addEventListener("touchstart", e => {
+    sx = e.touches[0].clientX;
+}, {passive:true});
+
+document.addEventListener("touchend", e => {
+
+    if (keyboard.contains(e.target)) return;
+
+    let dx = e.changedTouches[0].clientX - sx;
+
+    if (dx > 80) {
+        panel.classList.add("show");   // swipe right
+        keyboard.classList.add("hide");
     }
-};
+
+    if (dx < -80) {
+        panel.classList.remove("show"); // swipe left
+    }
+});
 
 /* DATA */
 let data = [];
-let data2 = [];
 
 fetch("https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t="+Date.now())
-.then(r=>r.text()).then(t=>{
-    data=t.trim().split("\n").map(r=>{
-        let c=r.split(",");
+.then(r=>r.text())
+.then(t=>{
+    data = t.trim().split("\n").map(r=>{
+        let c = r.split(",");
         return {station:c[0],material:c[1],article:c[2]};
     });
-});
-
-fetch("https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t="+Date.now())
-.then(r=>r.text()).then(t=>{
-    data2=t.trim().split("\n").map(r=>r.split(","));
 });
 
 /* SEARCH */
 function search(){
 
-    let v=APP.input.value.toLowerCase();
-    if(!v)return APP.result.innerHTML="";
+    let v = input.value.toLowerCase();
+    if(!v) return result.innerHTML = "";
 
-    let res={};
+    const res = {};
 
     data.forEach(x=>{
         if(
@@ -245,91 +250,30 @@ function search(){
             x.material?.toLowerCase().includes(v) ||
             x.article?.toLowerCase().includes(v)
         ){
-            if(!res[x.article])res[x.article]={};
-            if(!res[x.article][x.material])res[x.article][x.material]=new Set();
+            if(!res[x.article]) res[x.article]={};
+            if(!res[x.article][x.material]) res[x.article][x.material]=new Set();
             res[x.article][x.material].add(x.station);
         }
     });
 
-    let html="";
+    let html = "";
 
     Object.keys(res).forEach(a=>{
-        html+=`<div style="margin:10px;padding:10px;border:1px solid #ddd;border-radius:10px">
+        html += `<div style="margin:10px;padding:10px;border:1px solid #ddd;border-radius:10px">
         <b>${a}</b>`;
 
         Object.keys(res[a]).forEach(m=>{
-            html+=`<div>📦 ${m}
+            html += `<div>📦 ${m}
             <div style="font-size:12px;color:#777">
             ${[...res[a][m]].map(s=>`<div>🏭 ${s}</div>`).join("")}
             </div></div>`;
         });
 
-        html+="</div>";
+        html += `</div>`;
     });
 
-    APP.result.innerHTML=html||"Не знайдено";
+    result.innerHTML = html || "Не знайдено";
 }
-
-/* ARKUSH 3 */
-function renderSheet3(){
-
-    APP.panel.innerHTML=`
-    <table>
-        <thead>
-            <tr>${data2[0].map(h=>`<th>${h}</th>`).join("")}</tr>
-        </thead>
-        <tbody>
-            ${data2.slice(1).map(r=>`
-                <tr>${r.map(c=>`<td>${c||""}</td>`).join("")}</tr>
-            `).join("")}
-        </tbody>
-    </table>`;
-}
-
-/* SWIPE (ВІДЗЕРКАЛЕНО) */
-let sx=0,sy=0,st=0;
-
-document.addEventListener("touchstart",e=>{
-    sx=e.touches[0].clientX;
-    sy=e.touches[0].clientY;
-    st=Date.now();
-},{passive:true});
-
-document.addEventListener("touchend",e=>{
-
-    if(APP.keyboard.contains(e.target))return;
-
-    let dx=e.changedTouches[0].clientX-sx;
-    let dy=e.changedTouches[0].clientY-sy;
-    let dt=Date.now()-st;
-
-    let swipe=Math.abs(dx)>80&&Math.abs(dx)>Math.abs(dy);
-    let tap=dt<250&&Math.abs(dx)<10&&Math.abs(dy)<10;
-
-    if(swipe){
-
-        /* 🔄 ВІДЗЕРКАЛЕНО */
-        if(dx>0){
-            APP.showPanel();   // 👈 тепер вправо = Аркуш3
-        }else{
-            APP.hidePanel();   // 👉 вліво = назад
-            APP.showKeyboard();
-        }
-
-        return;
-    }
-
-    if(tap){
-        if(APP.keyboard.classList.contains("hide"))
-            APP.showKeyboard();
-        else
-            APP.hideKeyboard();
-    }
-
-},{passive:true});
-
-/* SCROLL */
-window.addEventListener("scroll",()=>APP.hideKeyboard());
 
 </script>
 
