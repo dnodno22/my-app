@@ -1,3 +1,154 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f4f6f8">
+
+<title>Пошук</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, Arial, sans-serif;
+    background: #f4f6f8;
+}
+
+.container {
+    max-width: 420px;
+    margin: 0 auto;
+    background: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    padding-bottom: 220px;
+}
+
+input {
+    width: 100%;
+    padding: 18px;
+    font-size: 24px;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+    margin-bottom: 12px;
+    outline: none;
+    background: #fafafa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.result {
+    font-size: 18px;
+    line-height: 1.6;
+    color: #333;
+}
+
+.keyboard {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    width: 100%;
+    max-width: 420px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 14px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.keyboard.hide {
+    transform: translateX(-50%) translateY(120%);
+    opacity: 0;
+}
+
+.button-23 {
+  background-color: #FFFFFF;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  color: #222;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 14px 0;
+  cursor: pointer;
+}
+
+.button-23:active {
+  transform: scale(0.96);
+  background-color: #F7F7F7;
+}
+
+.side-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    max-width: 420px;
+    height: 100%;
+    background: #fff;
+    z-index: 20;
+    padding: 10px;
+    overflow: auto;
+    transition: right 0.3s ease;
+}
+
+.side-panel.show {
+    right: 0;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<input id="input" readonly>
+
+<div id="result" class="result"></div>
+
+</div>
+
+<div class="side-panel" id="panel"></div>
+
+<div class="keyboard" id="keyboard">
+
+<button class="button-23" onclick="add('1')">1</button>
+<button class="button-23" onclick="add('2')">2</button>
+<button class="button-23" onclick="add('3')">3</button>
+
+<button class="button-23" onclick="add('4')">4</button>
+<button class="button-23" onclick="add('5')">5</button>
+<button class="button-23" onclick="add('6')">6</button>
+
+<button class="button-23" onclick="add('7')">7</button>
+<button class="button-23" onclick="add('8')">8</button>
+<button class="button-23" onclick="add('9')">9</button>
+
+<button class="button-23" onclick="add('с')">с</button>
+<button class="button-23" onclick="add('0')">0</button>
+<button class="button-23" onclick="clearAll()">⌫</button>
+
+<button class="button-23" onclick="add('sp')">sp</button>
+<button class="button-23" onclick="add('ts')">ts</button>
+
+</div>
+
 <script>
 
 // 🔥 Аркуш1
@@ -18,15 +169,23 @@ fetch(url)
     });
 });
 
-// 🔥 Аркуш3
+// 🔥 Аркуш3 (ФІКС)
 const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + new Date().getTime();
 
 let data2 = [];
+let data2Ready = false;
 
 fetch(url2)
 .then(r => r.text())
 .then(t => {
-    data2 = t.trim().split("\n").map(r => r.split(","));
+
+    data2 = t
+        .trim()
+        .split("\n")
+        .map(r => r.split(","))
+        .filter(r => r.length >= 3);
+
+    data2Ready = true;
 });
 
 function add(v){
@@ -58,54 +217,66 @@ function search(){
         `).join("") : "Не знайдено";
 }
 
-
-// 🔥 PANEL (НОВА ЛОГІКА ГРУПУВАННЯ)
+// 🔥 PANEL (ПРАВИЛЬНА ГРУПА)
 function showPanel(){
 
     const panel = document.getElementById("panel");
 
-    // будуємо структуру: article -> material -> stations
+    if(!data2Ready){
+        panel.innerHTML = "Завантаження...";
+        panel.classList.add("show");
+        return;
+    }
+
     let grouped = {};
 
-    for(let i=1;i<data2.length;i++){
+    for(let i = 1; i < data2.length; i++){
+
         let row = data2[i];
-        let station = row[0] || "";
-        let material = row[1] || "";
-        let article = row[2] || "";
+        if(!row) continue;
+
+        let station = (row[0] || "").trim();
+        let material = (row[1] || "").trim();
+        let article = (row[2] || "").trim();
+
+        if(!article) continue;
 
         if(!grouped[article]) grouped[article] = {};
         if(!grouped[article][material]) grouped[article][material] = [];
+
         grouped[article][material].push(station);
     }
 
     let html = "";
 
-    let articles = Object.keys(grouped).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+    let articles = Object.keys(grouped)
+        .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
 
     for(let art of articles){
 
-        html += `<div style="background:#f1f5f9;padding:8px;margin-top:10px;font-weight:bold;">
+        html += `<div style="background:#f1f5f9;padding:10px;margin-top:12px;font-weight:700;">
                     Артикул: ${art}
                  </div>`;
 
-        let materials = Object.keys(grouped[art]).sort();
+        let materials = Object.keys(grouped[art])
+            .sort();
 
         for(let mat of materials){
 
-            html += `<div style="padding:6px 8px;font-weight:600;">
+            html += `<div style="padding:6px 10px;font-weight:600;">
                         Матеріал: ${mat}
                      </div>`;
 
             for(let st of grouped[art][mat]){
 
-                html += `<div style="padding-left:14px;border-bottom:1px solid #eee;padding-bottom:4px;">
+                html += `<div style="padding-left:16px;border-bottom:1px solid #eee;">
                             Станція: ${st}
                          </div>`;
             }
         }
     }
 
-    panel.innerHTML = html;
+    panel.innerHTML = html || "Немає даних";
     panel.classList.add("show");
 }
 
@@ -122,7 +293,7 @@ document.addEventListener("touchend",e=>{
     if(dx<-80) hidePanel();
 });
 
-// KEYBOARD SCROLL
+// KEYBOARD HIDE
 const k = document.getElementById("keyboard");
 let last=0, t=Date.now();
 
@@ -138,3 +309,6 @@ window.addEventListener("scroll",()=>{
 });
 
 </script>
+
+</body>
+</html>
