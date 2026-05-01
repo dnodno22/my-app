@@ -93,6 +93,11 @@ input {
   cursor: pointer;
 }
 
+.button-23:active {
+  transform: scale(0.96);
+  background-color: #F7F7F7;
+}
+
 /* PANEL */
 .side-panel {
     position: fixed;
@@ -122,6 +127,7 @@ th {
     background: #f1f5f9;
     border: 1px solid #ddd;
     padding: 8px;
+    cursor: pointer;
     position: sticky;
     top: 0;
 }
@@ -137,27 +143,35 @@ td {
 <body>
 
 <div class="container">
+
 <input id="input" readonly>
 <div id="result" class="result"></div>
+
 </div>
 
 <div class="side-panel" id="panel"></div>
 
 <div class="keyboard" id="keyboard">
-<button onclick="add('1')">1</button>
-<button onclick="add('2')">2</button>
-<button onclick="add('3')">3</button>
-<button onclick="add('4')">4</button>
-<button onclick="add('5')">5</button>
-<button onclick="add('6')">6</button>
-<button onclick="add('7')">7</button>
-<button onclick="add('8')">8</button>
-<button onclick="add('9')">9</button>
-<button onclick="add('с')">с</button>
-<button onclick="add('0')">0</button>
-<button onclick="clearAll()">⌫</button>
-<button onclick="add('sp')">sp</button>
-<button onclick="add('ts')">ts</button>
+
+<button class="button-23" onclick="add('1')">1</button>
+<button class="button-23" onclick="add('2')">2</button>
+<button class="button-23" onclick="add('3')">3</button>
+
+<button class="button-23" onclick="add('4')">4</button>
+<button class="button-23" onclick="add('5')">5</button>
+<button class="button-23" onclick="add('6')">6</button>
+
+<button class="button-23" onclick="add('7')">7</button>
+<button class="button-23" onclick="add('8')">8</button>
+<button class="button-23" onclick="add('9')">9</button>
+
+<button class="button-23" onclick="add('с')">с</button>
+<button class="button-23" onclick="add('0')">0</button>
+<button class="button-23" onclick="clearAll()">⌫</button>
+
+<button class="button-23" onclick="add('sp')">sp</button>
+<button class="button-23" onclick="add('ts')">ts</button>
+
 </div>
 
 <script>
@@ -168,40 +182,38 @@ const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
 
 /* =======================
-   SHEETS (2 GIDS)
+   KEYBOARD CONTROL
 ======================= */
 
-const sheets = [
-    { gid: "1679964111", data: [] },
-    { gid: "421001458", data: [] }
-];
-
-let activeSheet = 0;
-
-/* LOAD */
-function loadSheet(i){
-    const url = `https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=${sheets[i].gid}&t=${Date.now()}`;
-
-    fetch(url)
-    .then(r => r.text())
-    .then(t => {
-        sheets[i].data = t.trim().split("\n").map(r => {
-            let c = r.split(",");
-            return {
-                station: c[0] || "",
-                material: c[1] || "",
-                article: c[2] || ""
-            };
-        });
-    });
+function showKeyboard(){
+    if (panel.classList.contains("show")) return;
+    k.classList.remove("hide");
 }
 
-loadSheet(0);
-loadSheet(1);
+function hideKeyboard(){
+    k.classList.add("hide");
+}
 
 /* =======================
    SEARCH
 ======================= */
+
+const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
+
+let data = [];
+
+fetch(url)
+.then(r => r.text())
+.then(t => {
+    data = t.trim().split("\n").map(r => {
+        let c = r.split(",");
+        return {
+            station: c[0] || "",
+            material: c[1] || "",
+            article: c[2] || ""
+        };
+    });
+});
 
 function add(v){
     input.value += v;
@@ -218,7 +230,6 @@ function search(){
     let v = input.value.toLowerCase();
     if(!v) return resultBox.innerHTML = "";
 
-    const data = sheets[activeSheet].data;
     const isNumber = /^\d+$/.test(v);
 
     const result = {};
@@ -230,9 +241,11 @@ function search(){
             (x.material && (isNumber ? x.material.toLowerCase().endsWith(v) : x.material.toLowerCase().includes(v))) ||
             (x.article && (isNumber ? x.article.toLowerCase().endsWith(v) : x.article.toLowerCase().includes(v)));
 
-        if(match){
-            if(!result[x.article]) result[x.article] = {};
-            if(!result[x.article][x.material]) result[x.article][x.material] = new Set();
+        if (match) {
+
+            if (!result[x.article]) result[x.article] = {};
+            if (!result[x.article][x.material]) result[x.article][x.material] = new Set();
+
             result[x.article][x.material].add(x.station);
         }
     });
@@ -241,16 +254,23 @@ function search(){
 
     Object.keys(result).forEach(article => {
 
-        html += `<div style="margin-bottom:15px;padding:12px;border:1px solid #ddd;border-radius:12px;">
-            <b>${article}</b>`;
+        html += `
+            <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
+                <div style="font-weight:bold; font-size:20px;">
+                    ${article}
+                </div>
+        `;
 
         Object.keys(result[article]).forEach(material => {
-            html += `<div style="margin-left:10px;">
-                📦 ${material}
-                <div style="font-size:12px;color:#888">
-                    ${[...result[article][material]].map(s=>`<div>${s}</div>`).join("")}
+
+            html += `
+                <div style="margin-left:8px;">
+                    <div>📦 ${material}</div>
+                    <div style="font-size:13px; color:#888; padding-left:10px;">
+                        ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
+                    </div>
                 </div>
-            </div>`;
+            `;
         });
 
         html += `</div>`;
@@ -260,59 +280,81 @@ function search(){
 }
 
 /* =======================
+   TAP + SWIPE (FIXED)
+======================= */
+
+let startX = 0;
+let startY = 0;
+let startTime = 0;
+
+const MAX_TIME = 250;
+const MAX_MOVE = 10;
+const SWIPE_MIN = 80;
+
+document.addEventListener("pointerdown", (e) => {
+
+    if (k.contains(e.target) || panel.contains(e.target)) return;
+
+    startX = e.clientX;
+    startY = e.clientY;
+    startTime = Date.now();
+});
+
+document.addEventListener("pointerup", (e) => {
+
+    if (k.contains(e.target) || panel.contains(e.target)) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const dt = Date.now() - startTime;
+
+    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
+    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
+
+    /* SWIPE FIRST */
+    if (isSwipe) {
+
+        if (dx > 0) {
+            showPanel();
+        } else {
+            hidePanel();
+            showKeyboard();
+        }
+
+        return;
+    }
+
+    /* TAP */
+    if (isTap) {
+
+        if (k.classList.contains("hide")) {
+            showKeyboard();
+        } else {
+            hideKeyboard();
+        }
+    }
+});
+
+/* =======================
+   SCROLL
+======================= */
+
+window.addEventListener("scroll", () => {
+    hideKeyboard();
+});
+
+/* =======================
    PANEL
 ======================= */
 
 function showPanel(){
     panel.classList.add("show");
+    hideKeyboard();
 }
 
 function hidePanel(){
     panel.classList.remove("show");
 }
-
-/* =======================
-   SWIPE CONTROL (FIX)
-======================= */
-
-let startX=0, startY=0, startTime=0;
-
-document.addEventListener("pointerdown",(e)=>{
-    startX=e.clientX;
-    startY=e.clientY;
-    startTime=Date.now();
-});
-
-document.addEventListener("pointerup",(e)=>{
-
-    const dx=e.clientX-startX;
-    const dy=e.clientY-startY;
-    const dt=Date.now()-startTime;
-
-    const isSwipe = Math.abs(dx)>80 && Math.abs(dx)>Math.abs(dy);
-    const isTap = dt<250;
-
-    if(isSwipe){
-
-        /* LEFT → SWITCH SHEET */
-        if(dx<0){
-            activeSheet = activeSheet===0 ? 1 : 0;
-            search();
-            return;
-        }
-
-        /* RIGHT → OPEN PANEL */
-        if(dx>0){
-            showPanel();
-            return;
-        }
-    }
-
-    if(isTap){
-        if(k.classList.contains("hide")) k.classList.remove("hide");
-        else k.classList.add("hide");
-    }
-});
 
 </script>
 
