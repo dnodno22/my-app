@@ -127,7 +127,6 @@ th {
     background: #f1f5f9;
     border: 1px solid #ddd;
     padding: 8px;
-    cursor: pointer;
     position: sticky;
     top: 0;
 }
@@ -182,7 +181,48 @@ const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
 
 /* =======================
-   KEYBOARD CONTROL
+   SHEETS (NEW)
+======================= */
+
+const sheets = [
+  {
+    gid: "1679964111",
+    data: []
+  },
+  {
+    gid: "421001458",
+    data: []
+  }
+];
+
+let activeSheet = 0;
+
+/* =======================
+   LOAD SHEETS
+======================= */
+
+function loadSheet(i){
+    const url = `https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=${sheets[i].gid}&t=${Date.now()}`;
+
+    fetch(url)
+    .then(r => r.text())
+    .then(t => {
+        sheets[i].data = t.trim().split("\n").map(r => {
+            let c = r.split(",");
+            return {
+                station: c[0] || "",
+                material: c[1] || "",
+                article: c[2] || ""
+            };
+        });
+    });
+}
+
+loadSheet(0);
+loadSheet(1);
+
+/* =======================
+   KEYBOARD
 ======================= */
 
 function showKeyboard(){
@@ -194,27 +234,6 @@ function hideKeyboard(){
     k.classList.add("hide");
 }
 
-/* =======================
-   SEARCH
-======================= */
-
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
-
-let data = [];
-
-fetch(url)
-.then(r => r.text())
-.then(t => {
-    data = t.trim().split("\n").map(r => {
-        let c = r.split(",");
-        return {
-            station: c[0] || "",
-            material: c[1] || "",
-            article: c[2] || ""
-        };
-    });
-});
-
 function add(v){
     input.value += v;
     search();
@@ -225,13 +244,18 @@ function clearAll(){
     resultBox.innerHTML = "";
 }
 
+/* =======================
+   SEARCH (ACTIVE SHEET)
+======================= */
+
 function search(){
 
     let v = input.value.toLowerCase();
     if(!v) return resultBox.innerHTML = "";
 
-    const isNumber = /^\d+$/.test(v);
+    const data = sheets[activeSheet].data;
 
+    const isNumber = /^\d+$/.test(v);
     const result = {};
 
     data.forEach(x => {
@@ -280,7 +304,51 @@ function search(){
 }
 
 /* =======================
-   TAP + SWIPE (FIXED)
+   PANEL TABLE (SECOND GID VIEW)
+======================= */
+
+function renderPanel(){
+    const data = sheets[activeSheet].data;
+
+    let html = `<table>
+        <tr>
+            <th>Станція</th>
+            <th>Матеріал</th>
+            <th>Артикул</th>
+        </tr>
+    `;
+
+    data.forEach(r => {
+        html += `
+            <tr>
+                <td>${r.station}</td>
+                <td>${r.material}</td>
+                <td>${r.article}</td>
+            </tr>
+        `;
+    });
+
+    html += "</table>";
+
+    panel.innerHTML = html;
+}
+
+/* =======================
+   PANEL CONTROL
+======================= */
+
+function showPanel(){
+    panel.classList.add("show");
+    hideKeyboard();
+    renderPanel();
+}
+
+function hidePanel(){
+    panel.classList.remove("show");
+}
+
+/* =======================
+   TAP + SWIPE
 ======================= */
 
 let startX = 0;
@@ -302,7 +370,7 @@ document.addEventListener("pointerdown", (e) => {
 
 document.addEventListener("pointerup", (e) => {
 
-    if (k.contains(e.target) || panel.contains(e.target)) return;
+    if (k.contains(e.target)) return;
 
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
@@ -311,7 +379,21 @@ document.addEventListener("pointerup", (e) => {
     const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
     const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
 
-    /* SWIPE FIRST */
+    /* PANEL OPEN STATE SWIPE (NEW FEATURE) */
+    if (panel.classList.contains("show") && isSwipe) {
+
+        if (dx > 0) {
+            activeSheet = 0;
+        } else {
+            activeSheet = 1;
+        }
+
+        renderPanel();
+        search();
+        return;
+    }
+
+    /* GLOBAL SWIPE */
     if (isSwipe) {
 
         if (dx > 0) {
@@ -342,19 +424,6 @@ document.addEventListener("pointerup", (e) => {
 window.addEventListener("scroll", () => {
     hideKeyboard();
 });
-
-/* =======================
-   PANEL
-======================= */
-
-function showPanel(){
-    panel.classList.add("show");
-    hideKeyboard();
-}
-
-function hidePanel(){
-    panel.classList.remove("show");
-}
 
 </script>
 
