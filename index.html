@@ -2,82 +2,106 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Пошук</title>
 
 <style>
 
-* { box-sizing:border-box; }
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
 
 body {
-    margin:0;
+    margin: 0;
     font-family: -apple-system, Arial;
-    background:#f4f6f8;
+    background: #f4f6f8;
 }
 
+/* CONTAINER */
 .container {
-    max-width:420px;
-    margin:auto;
-    background:#fff;
-    min-height:100vh;
-    padding:16px;
-    padding-bottom:220px;
+    max-width: 420px;
+    margin: 0 auto;
+    background: #fff;
+    min-height: 100vh;
+    padding: 16px;
+    padding-bottom: 220px;
 }
 
+/* INPUT */
 input {
-    width:100%;
-    padding:18px;
-    font-size:24px;
-    border-radius:14px;
-    border:1px solid #ddd;
-    text-align:center;
-    margin-bottom:12px;
+    width: 100%;
+    padding: 18px;
+    font-size: 22px;
+    border-radius: 14px;
+    border: 1px solid #ddd;
+    text-align: center;
+    margin-bottom: 12px;
 }
 
+/* RESULT */
 .result {
-    font-size:16px;
+    font-size: 16px;
+    line-height: 1.5;
 }
 
-/* KEYBOARD */
+/* KEYBOARD (FIXED) */
 .keyboard {
-    position:fixed;
-    bottom:0;
-    left:50%;
-    transform:translateX(-50%);
-    width:100%;
-    max-width:420px;
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:8px;
-    padding:12px;
-    background:#fff;
-    border-top:1px solid #ddd;
-    transition:.2s;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+
+    width: 100%;
+    max-width: 420px;
+
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+
+    padding: 12px;
+    background: #fff;
+    border-top: 1px solid #ddd;
+
+    transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
 .keyboard.hide {
-    transform:translateX(-50%) translateY(120%);
+    transform: translateX(-50%) translateY(120%);
+    opacity: 0;
+}
+
+button {
+    padding: 14px 0;
+    border: 1px solid #222;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 16px;
+    font-weight: 600;
 }
 
 /* PANEL */
 .side-panel {
-    position:fixed;
-    top:0;
-    right:-100%;
-    width:100%;
-    max-width:420px;
-    height:100%;
-    background:#fff;
-    transition:.25s;
-    overflow:auto;
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    max-width: 420px;
+    height: 100%;
+    background: #fff;
+    transition: right 0.25s ease;
+    overflow: auto;
+    z-index: 10;
 }
 
-.side-panel.show { right:0; }
+.side-panel.show {
+    right: 0;
+}
 
 td {
-    border:1px solid #ddd;
-    padding:6px;
-    font-size:13px;
+    border: 1px solid #ddd;
+    padding: 6px;
+    font-size: 13px;
 }
 
 </style>
@@ -86,83 +110,73 @@ td {
 <body>
 
 <div class="container">
-<input id="input" readonly>
-<div id="result"></div>
+    <input id="input" readonly>
+    <div id="result"></div>
 </div>
 
 <div class="side-panel" id="panel"></div>
 
 <div class="keyboard" id="keyboard">
+
 <button onclick="add('1')">1</button>
 <button onclick="add('2')">2</button>
 <button onclick="add('3')">3</button>
+
 <button onclick="add('4')">4</button>
 <button onclick="add('5')">5</button>
 <button onclick="add('6')">6</button>
+
 <button onclick="add('7')">7</button>
 <button onclick="add('8')">8</button>
 <button onclick="add('9')">9</button>
+
 <button onclick="add('0')">0</button>
 <button onclick="clearAll()">⌫</button>
 <button onclick="add('sp')">sp</button>
+
 </div>
 
 <script>
 
 /* ================= DATA ================= */
 
-const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t="+Date.now();
-const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t="+Date.now();
+const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
+const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
 
-let data=[];
+let data = [];
+let sheet2 = [];
 
 fetch(url1).then(r=>r.text()).then(t=>{
-    data=t.trim().split("\n").map(r=>{
-        let c=r.split(",");
+    data = t.trim().split("\n").map(r=>{
+        let c = r.split(",");
         return {a:c[0],b:c[1],c:c[2]};
     });
 });
 
+fetch(url2).then(r=>r.text()).then(t=>{
+    sheet2 = t.trim().split("\n").map(r=>r.split(","));
+});
+
 /* ================= UI ================= */
 
-const input=document.getElementById("input");
-const result=document.getElementById("result");
-const panel=document.getElementById("panel");
-const k=document.getElementById("keyboard");
+const input = document.getElementById("input");
+const result = document.getElementById("result");
+const panel = document.getElementById("panel");
+const k = document.getElementById("keyboard");
+
+/* ================= KEYBOARD ================= */
 
 function add(v){
-    input.value+=v;
+    input.value += v;
     search();
 }
 
 function clearAll(){
-    input.value="";
-    result.innerHTML="";
+    input.value = "";
+    result.innerHTML = "";
 }
 
-/* ================= SEARCH ================= */
-
-function search(){
-
-    let v=input.value.toLowerCase();
-    if(!v) return result.innerHTML="";
-
-    let out="";
-
-    data.forEach(x=>{
-        if((x.a||"").toLowerCase().includes(v)||
-           (x.b||"").toLowerCase().includes(v)||
-           (x.c||"").toLowerCase().includes(v)){
-
-            out+=`<div>${x.a} | ${x.b} | ${x.c}</div>`;
-        }
-    });
-
-    result.innerHTML=out||"Не знайдено";
-}
-
-/* ================= KEYBOARD ================= */
-
+/* FIX: keyboard control */
 function showKeyboard(){
     if(panel.classList.contains("show")) return;
     k.classList.remove("hide");
@@ -172,26 +186,46 @@ function hideKeyboard(){
     k.classList.add("hide");
 }
 
+/* ================= SEARCH ================= */
+
+function search(){
+
+    let v = input.value.toLowerCase();
+    if(!v){
+        result.innerHTML = "";
+        return;
+    }
+
+    let out = "";
+
+    data.forEach(x=>{
+        if(
+            (x.a||"").toLowerCase().includes(v) ||
+            (x.b||"").toLowerCase().includes(v) ||
+            (x.c||"").toLowerCase().includes(v)
+        ){
+            out += `<div>${x.a} | ${x.b} | ${x.c}</div>`;
+        }
+    });
+
+    result.innerHTML = out || "Не знайдено";
+}
+
 /* ================= PANEL ================= */
-
-let sheet2=[];
-
-fetch(url2).then(r=>r.text()).then(t=>{
-    sheet2=t.trim().split("\n").map(r=>r.split(","));
-});
 
 function showSheet2(){
 
-    let html="<table>";
+    let html = "<table>";
 
     sheet2.forEach(r=>{
-        html+="<tr>"+r.map(c=>`<td>${c||""}</td>`).join("")+"</tr>";
+        html += "<tr>" + r.map(c=>`<td>${c||""}</td>`).join("") + "</tr>";
     });
 
-    html+="</table>";
+    html += "</table>";
 
-    panel.innerHTML=html;
+    panel.innerHTML = html;
     panel.classList.add("show");
+
     hideKeyboard();
 }
 
@@ -201,48 +235,53 @@ function hidePanel(){
 
 /* ================= TAP ================= */
 
-let t0=0;
+let t0 = 0;
 
-document.addEventListener("touchstart",e=>{
-    if(k.contains(e.target)||panel.contains(e.target)) return;
-    t0=Date.now();
+document.addEventListener("touchstart", e=>{
+    if(k.contains(e.target) || panel.contains(e.target)) return;
+    t0 = Date.now();
 });
 
-document.addEventListener("touchend",()=>{
-    let dt=Date.now()-t0;
-    if(dt<180){
-        k.classList.contains("hide") ? showKeyboard() : hideKeyboard();
+document.addEventListener("touchend", ()=>{
+    let dt = Date.now() - t0;
+
+    if(dt < 180){
+        if(k.classList.contains("hide")) showKeyboard();
+        else hideKeyboard();
     }
 });
 
 /* ================= SCROLL ================= */
 
-window.addEventListener("scroll",hideKeyboard);
+window.addEventListener("scroll", hideKeyboard);
 
-/* ================= SWIPE (FIXED) ================= */
+/* ================= SWIPE (CLEAN FIX) ================= */
 
-let sx=0,sy=0;
+let sx = 0;
+let sy = 0;
 
-document.addEventListener("touchstart",e=>{
-    if(k.contains(e.target)||panel.contains(e.target)) return;
-    sx=e.touches[0].clientX;
-    sy=e.touches[0].clientY;
+document.addEventListener("touchstart", e=>{
+    if(k.contains(e.target) || panel.contains(e.target)) return;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
 });
 
-document.addEventListener("touchend",e=>{
-    if(k.contains(e.target)||panel.contains(e.target)) return;
+document.addEventListener("touchend", e=>{
+    if(k.contains(e.target) || panel.contains(e.target)) return;
 
-    let dx=e.changedTouches[0].clientX-sx;
-    let dy=Math.abs(e.changedTouches[0].clientY-sy);
+    let dx = e.changedTouches[0].clientX - sx;
+    let dy = Math.abs(e.changedTouches[0].clientY - sy);
 
-    if(dy>50) return;
+    if(dy > 50) return;
 
-    if(dx<-80){
-        showSheet2();   // ← вліво
+    // 👈 LEFT
+    if(dx < -80){
+        showSheet2();
     }
 
-    if(dx>80){
-        hidePanel();    // → вправо (повернення)
+    // 👉 RIGHT
+    if(dx > 80){
+        hidePanel();
         showKeyboard();
     }
 });
