@@ -49,6 +49,7 @@ input {
     color: #333;
 }
 
+/* KEYBOARD */
 .keyboard {
     position: fixed;
     left: 50%;
@@ -90,12 +91,50 @@ input {
   font-weight: 600;
   padding: 14px 0;
   cursor: pointer;
-  transition: transform .1s ease;
 }
 
 .button-23:active {
   transform: scale(0.96);
   background-color: #F7F7F7;
+}
+
+/* PANEL (АРКУШ3) */
+.side-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    max-width: 420px;
+    height: 100%;
+    background: #fff;
+    z-index: 20;
+    padding: 10px;
+    overflow: auto;
+    transition: right 0.3s ease;
+}
+
+.side-panel.show {
+    right: 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+th {
+    background: #f1f5f9;
+    border: 1px solid #ddd;
+    padding: 8px;
+    cursor: pointer;
+    position: sticky;
+    top: 0;
+}
+
+td {
+    border: 1px solid #ddd;
+    padding: 6px;
 }
 
 </style>
@@ -109,6 +148,8 @@ input {
 <div id="result" class="result"></div>
 
 </div>
+
+<div class="side-panel" id="panel"></div>
 
 <div class="keyboard" id="keyboard">
 
@@ -138,9 +179,23 @@ input {
 const k = document.getElementById("keyboard");
 const input = document.getElementById("input");
 const resultBox = document.getElementById("result");
+const panel = document.getElementById("panel");
 
 /* =======================
-   POINTER TAP (FIXED)
+   KEYBOARD CONTROL
+======================= */
+
+function showKeyboard(){
+    if (panel.classList.contains("show")) return;
+    k.classList.remove("hide");
+}
+
+function hideKeyboard(){
+    k.classList.add("hide");
+}
+
+/* =======================
+   TAP LOGIC (toggle)
 ======================= */
 
 let startX = 0;
@@ -149,10 +204,11 @@ let startTime = 0;
 
 const MAX_TIME = 250;
 const MAX_MOVE = 10;
+const SWIPE_MIN = 80;
 
 document.addEventListener("pointerdown", (e) => {
 
-    if (k.contains(e.target)) return;
+    if (k.contains(e.target) || panel.contains(e.target)) return;
 
     startX = e.clientX;
     startY = e.clientY;
@@ -161,46 +217,55 @@ document.addEventListener("pointerdown", (e) => {
 
 document.addEventListener("pointerup", (e) => {
 
-    if (k.contains(e.target)) return;
+    if (k.contains(e.target) || panel.contains(e.target)) return;
 
-    const dx = Math.abs(e.clientX - startX);
-    const dy = Math.abs(e.clientY - startY);
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
     const dt = Date.now() - startTime;
 
-    // не tap
-    if (dt > MAX_TIME || dx > MAX_MOVE || dy > MAX_MOVE) return;
+    /* TAP */
+    if (dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE) {
 
-    // toggle
-    if (k.classList.contains("hide")) {
-        showKeyboard();
-    } else {
-        hideKeyboard();
+        if (k.classList.contains("hide")) {
+            showKeyboard();
+        } else {
+            hideKeyboard();
+        }
+    }
+
+    /* SWIPE */
+    if (Math.abs(dy) < Math.abs(dx)) {
+
+        if (dx > SWIPE_MIN) {
+            showPanel();
+        }
+
+        if (dx < -SWIPE_MIN) {
+            hidePanel();
+            showKeyboard();
+        }
     }
 });
 
 /* =======================
-   SCROLL → HIDE
+   SCROLL → hide keyboard
 ======================= */
-
-let lastScrollY = window.scrollY;
 
 window.addEventListener("scroll", () => {
-    if (Math.abs(window.scrollY - lastScrollY) > 5) {
-        hideKeyboard();
-    }
-    lastScrollY = window.scrollY;
+    hideKeyboard();
 });
 
 /* =======================
-   FUNCTIONS
+   PANEL (АРКУШ3)
 ======================= */
 
-function showKeyboard(){
-    k.classList.remove("hide");
+function showPanel(){
+    panel.classList.add("show");
+    hideKeyboard();
 }
 
-function hideKeyboard(){
-    k.classList.add("hide");
+function hidePanel(){
+    panel.classList.remove("show");
 }
 
 /* =======================
@@ -246,21 +311,9 @@ function search(){
     data.forEach(x => {
 
         const match =
-            (x.station && (
-                isNumber
-                    ? x.station.toString().toLowerCase().endsWith(v)
-                    : x.station.toString().toLowerCase().includes(v)
-            )) ||
-            (x.material && (
-                isNumber
-                    ? x.material.toString().toLowerCase().endsWith(v)
-                    : x.material.toString().toLowerCase().includes(v)
-            )) ||
-            (x.article && (
-                isNumber
-                    ? x.article.toString().toLowerCase().endsWith(v)
-                    : x.article.toString().toLowerCase().includes(v)
-            ));
+            (x.station && (isNumber ? x.station.toLowerCase().endsWith(v) : x.station.toLowerCase().includes(v))) ||
+            (x.material && (isNumber ? x.material.toLowerCase().endsWith(v) : x.material.toLowerCase().includes(v))) ||
+            (x.article && (isNumber ? x.article.toLowerCase().endsWith(v) : x.article.toLowerCase().includes(v)));
 
         if (match) {
 
@@ -277,7 +330,7 @@ function search(){
 
         html += `
             <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
-                <div style="font-weight:bold; font-size:20px; margin-bottom:6px;">
+                <div style="font-weight:bold; font-size:20px;">
                     ${article}
                 </div>
         `;
@@ -285,8 +338,8 @@ function search(){
         Object.keys(result[article]).forEach(material => {
 
             html += `
-                <div style="margin-left:8px; margin-bottom:6px;">
-                    <div style="color:#555;">📦 ${material}</div>
+                <div style="margin-left:8px;">
+                    <div>📦 ${material}</div>
                     <div style="font-size:13px; color:#888; padding-left:10px;">
                         ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
                     </div>
