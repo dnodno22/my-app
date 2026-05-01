@@ -43,7 +43,6 @@ input {
     margin-bottom: 12px;
     outline: none;
     background: #fafafa;
-
     position: sticky;
     top: 0;
     z-index: 10;
@@ -56,7 +55,7 @@ input {
     color: #333;
 }
 
-/* KEYBOARD (твій дизайн) */
+/* KEYBOARD */
 .keyboard {
     position: fixed;
     left: 50%;
@@ -90,20 +89,28 @@ input {
 }
 
 /* BUTTON */
-.button-23 {
-  background-color: #FFFFFF;
-  border: 1px solid #222222;
-  border-radius: 8px;
+.button-80 {
+  background: #fff;
+  border: 2px solid #222;
+  border-radius: 10px;
   color: #222;
+
   font-size: 16px;
   font-weight: 600;
+
   padding: 14px 0;
+
   cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
 }
 
-.button-23:active {
+.button-80:active {
   transform: scale(0.96);
-  background-color: #F7F7F7;
+  background: #f5f5f5;
 }
 
 /* PANEL */
@@ -131,33 +138,35 @@ input {
 <body>
 
 <div class="container">
-    <input id="input" readonly>
-    <div id="result" class="result"></div>
+
+<input id="input" readonly>
+<div id="result" class="result"></div>
+
 </div>
 
 <div class="side-panel" id="panel"></div>
 
-<!-- 🔥 ТВОЯ КЛАВІАТУРА (UI НЕ ЗМІНЕНИЙ) -->
+<!-- KEYBOARD -->
 <div class="keyboard" id="keyboard">
 
-<button onclick="add('1')">1</button>
-<button onclick="add('2')">2</button>
-<button onclick="add('3')">3</button>
+<button class="button-80" onclick="add('1')">1</button>
+<button class="button-80" onclick="add('2')">2</button>
+<button class="button-80" onclick="add('3')">3</button>
 
-<button onclick="add('4')">4</button>
-<button onclick="add('5')">5</button>
-<button onclick="add('6')">6</button>
+<button class="button-80" onclick="add('4')">4</button>
+<button class="button-80" onclick="add('5')">5</button>
+<button class="button-80" onclick="add('6')">6</button>
 
-<button onclick="add('7')">7</button>
-<button onclick="add('8')">8</button>
-<button onclick="add('9')">9</button>
+<button class="button-80" onclick="add('7')">7</button>
+<button class="button-80" onclick="add('8')">8</button>
+<button class="button-80" onclick="add('9')">9</button>
 
-<button onclick="add('с')">с</button>
-<button onclick="add('0')">0</button>
-<button onclick="clearAll()">⌫</button>
+<button class="button-80" onclick="add('с')">с</button>
+<button class="button-80" onclick="add('0')">0</button>
+<button class="button-80" onclick="clearAll()">⌫</button>
 
-<button onclick="add('sp')">sp</button>
-<button onclick="add('ts')">ts</button>
+<button class="button-80" onclick="add('sp')">sp</button>
+<button class="button-80" onclick="add('ts')">ts</button>
 
 </div>
 
@@ -168,10 +177,23 @@ const result = document.getElementById("result");
 const keyboard = document.getElementById("keyboard");
 const panel = document.getElementById("panel");
 
-/* =========================
-   KEYBOARD LOGIC (НОВА)
-========================= */
+/* DATA */
+let data = [];
 
+fetch("https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t="+Date.now())
+.then(r=>r.text())
+.then(t=>{
+    data = t.trim().split("\n").map(r=>{
+        let c = r.split(",");
+        return {
+            station: c[0]||"",
+            material: c[1]||"",
+            article: c[2]||""
+        };
+    });
+});
+
+/* INPUT */
 function add(v){
     input.value += v;
     search();
@@ -182,73 +204,7 @@ function clearAll(){
     result.innerHTML = "";
 }
 
-/* TAP toggle */
-let lastTap = 0;
-
-document.addEventListener("touchend", (e) => {
-
-    const now = Date.now();
-    const isDouble = now - lastTap < 300;
-    lastTap = now;
-
-    if (keyboard.contains(e.target)) return;
-
-    if (isDouble) return;
-
-    // toggle keyboard
-    keyboard.classList.toggle("hide");
-});
-
-/* scroll always hide */
-window.addEventListener("scroll", () => {
-    keyboard.classList.add("hide");
-});
-
-/* =========================
-   SWIPE (АРКУШ3)
-========================= */
-
-let sx = 0;
-
-document.addEventListener("touchstart", e => {
-    sx = e.touches[0].clientX;
-}, {passive:true});
-
-document.addEventListener("touchend", e => {
-
-    if (keyboard.contains(e.target)) return;
-
-    let dx = e.changedTouches[0].clientX - sx;
-
-    if (dx > 80) {
-        panel.classList.add("show");
-        keyboard.classList.add("hide");
-    }
-
-    if (dx < -80) {
-        panel.classList.remove("show");
-    }
-});
-
-/* =========================
-   SEARCH (твоя логіка)
-========================= */
-
-let data = [];
-
-fetch("https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t="+Date.now())
-.then(r=>r.text())
-.then(t=>{
-    data = t.trim().split("\n").map(r=>{
-        let c = r.split(",");
-        return {
-            station: c[0] || "",
-            material: c[1] || "",
-            article: c[2] || ""
-        };
-    });
-});
-
+/* SEARCH */
 function search(){
 
     let v = input.value.toLowerCase();
@@ -286,6 +242,47 @@ function search(){
 
     result.innerHTML = html || "Не знайдено";
 }
+
+/* KEYBOARD CONTROL */
+
+/* tap toggle */
+let lastTap = 0;
+
+document.addEventListener("touchend",(e)=>{
+    if(keyboard.contains(e.target)) return;
+
+    let now = Date.now();
+    let isTap = now - lastTap < 300;
+    lastTap = now;
+
+    if(isTap){
+        keyboard.classList.toggle("hide");
+    }
+});
+
+/* scroll hides */
+window.addEventListener("scroll",()=>{
+    keyboard.classList.add("hide");
+});
+
+/* SWIPE */
+let sx = 0;
+
+document.addEventListener("touchstart",e=>{
+    sx = e.touches[0].clientX;
+});
+
+document.addEventListener("touchend",e=>{
+    let dx = e.changedTouches[0].clientX - sx;
+
+    if(dx > 80){
+        panel.classList.add("show");
+    }
+
+    if(dx < -80){
+        panel.classList.remove("show");
+    }
+});
 
 </script>
 
