@@ -58,7 +58,7 @@ input#input {
 }
 
 .scroll-area {
-    flex: 1;
+    flex: 1; /* Займає весь вільний простір */
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -102,15 +102,13 @@ input#input {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    transform: translateY(0);
-    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
 }
 
 #keyboard.hidden {
-    transform: translateY(110%);
+    display: none; /* Прибираємо з потоку документа */
 }
 
-/* BUTTON-23 STYLE */
+/* BUTTON STYLE */
 .btn {
     background-color: #FFFFFF;
     border: 1px solid #222222;
@@ -118,7 +116,7 @@ input#input {
     color: #222222;
     cursor: pointer;
     display: block;
-    font-family: Circular, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+    font-family: Circular, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
     font-size: 18px;
     font-weight: 600;
     line-height: 20px;
@@ -132,13 +130,8 @@ input#input {
     width: 100%;
 }
 
-.btn:focus-visible {
-    box-shadow: #222222 0 0 0 2px, rgba(255,255,255,0.8) 0 0 0 4px;
-}
-
 .btn:active {
     background-color: #F7F7F7;
-    border-color: #000000;
     transform: scale(.96);
 }
 
@@ -176,19 +169,11 @@ th {
     border: 1px solid #e2e8f0;
     padding: 10px 8px;
     text-align: left;
-    white-space: nowrap;
     position: sticky;
     top: 0;
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    font-size: 13px;
     font-weight: 600;
     color: #374151;
 }
-
-th.sorted { background: #dbeafe; color: #1e40af; }
-th:active { background: #e2e8f0; }
 
 td {
     border: 1px solid #e2e8f0;
@@ -203,7 +188,6 @@ tr:nth-child(even) td { background: #f9fafb; }
     text-align: center;
     padding: 60px 20px;
     color: #9ca3af;
-    font-size: 15px;
 }
 
 /* Page dots */
@@ -223,7 +207,6 @@ tr:nth-child(even) td { background: #f9fafb; }
     height: 6px;
     border-radius: 50%;
     background: #d1d5db;
-    transition: background 0.2s, transform 0.2s;
 }
 
 .dot.active {
@@ -235,11 +218,10 @@ tr:nth-child(even) td { background: #f9fafb; }
 <body>
 
 <div id="pages">
-
     <!-- PAGE 1: SEARCH -->
     <div class="page" id="page1">
         <div class="search-header">
-            <input id="input" readonly autocomplete="off" spellcheck="false">
+            <input id="input" readonly placeholder="Пошук...">
         </div>
         <div class="scroll-area" id="scroll-area">
             <div id="result"></div>
@@ -271,7 +253,6 @@ tr:nth-child(even) td { background: #f9fafb; }
             <div class="table-loading" id="table-loading">⏳ Завантаження...</div>
         </div>
     </div>
-
 </div>
 
 <div class="page-dots">
@@ -310,7 +291,8 @@ function hideKeyboard() {
 }
 
 document.querySelectorAll('.btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (btn.dataset.del) {
             input.value = input.value.slice(0, -1);
         } else {
@@ -405,7 +387,7 @@ function renderTable() {
     let html = '<table><thead><tr>';
     tableHeaders.forEach((h, i) => {
         const s = sortCol === i;
-        html += `<th class="${s?'sorted':''}" onclick="doSort(${i})">${h}${s?(sortAsc?' ↑':' ↓'):''}</th>`;
+        html += `<th onclick="doSort(${i})">${h}${s?(sortAsc?' ↑':' ↓'):''}</th>`;
     });
     html += '</tr></thead><tbody>';
     rows.forEach(r => {
@@ -439,7 +421,8 @@ document.addEventListener('touchmove', e => {
         else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) isScrolling = true;
     }
     moved = true;
-    if (isScrolling === true && kbVisible) hideKeyboard();
+    // Приховуємо клавіатуру під час скролу результатів
+    if (isScrolling === true && kbVisible && scrollArea.contains(e.target)) hideKeyboard();
 }, { passive: true });
 
 document.addEventListener('touchend', e => {
@@ -449,21 +432,22 @@ document.addEventListener('touchend', e => {
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
 
+    // Тап по екрану (не свайп)
     if (!moved || (absDx < 8 && absDy < 8)) {
         if (keyboard.contains(e.target)) return;
-        if (currentPage === 0) kbVisible ? hideKeyboard() : showKeyboard();
+        if (currentPage === 0) {
+            kbVisible ? hideKeyboard() : showKeyboard();
+        }
         return;
     }
 
+    // Горизонтальний свайп для перемикання сторінок
     if (isScrolling === false && absDx > 50 && absDx > absDy * 1.5) {
         if (dx < 0 && currentPage === 0) goToPage(1);
         if (dx > 0 && currentPage === 1) goToPage(0);
     }
 }, { passive: true });
 
-document.addEventListener('touchstart', e => {
-    if (e.touches.length > 1) e.preventDefault();
-}, { passive: false });
 </script>
 </body>
 </html>
