@@ -9,23 +9,30 @@
 
 <style>
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
 
 body {
     margin: 0;
-    font-family: -apple-system, Arial;
+    font-family: -apple-system, Arial, sans-serif;
     background: #f4f6f8;
 }
 
+/* CONTAINER */
 .container {
     max-width: 420px;
     margin: 0 auto;
     background: #fff;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     padding: 16px;
     padding-bottom: 220px;
 }
 
+/* INPUT */
 input {
     width: 100%;
     padding: 18px;
@@ -34,24 +41,27 @@ input {
     border: 1px solid #e5e7eb;
     text-align: center;
     margin-bottom: 12px;
+    outline: none;
     background: #fafafa;
     position: sticky;
     top: 0;
     z-index: 10;
 }
 
+/* RESULT */
 .result {
     font-size: 18px;
     line-height: 1.6;
     color: #333;
 }
 
-/* KEYBOARD */
+/* KEYBOARD (ОРИГІНАЛЬНИЙ СТИЛЬ ПОВЕРНУТО) */
 .keyboard {
     position: fixed;
     left: 50%;
     transform: translateX(-50%);
     bottom: 0;
+
     width: 100%;
     max-width: 420px;
 
@@ -60,15 +70,17 @@ input {
     gap: 10px;
 
     padding: 14px;
+
     background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
+
     border-top: 1px solid rgba(0,0,0,0.08);
     box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
 
     border-top-left-radius: 18px;
     border-top-right-radius: 18px;
 
-    transition: transform .25s ease, opacity .25s ease;
+    transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
 .keyboard.hide {
@@ -76,16 +88,25 @@ input {
     opacity: 0;
 }
 
+/* BUTTON */
 .button-23 {
-    background: #fff;
-    border: 1px solid #222;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    padding: 14px 0;
+  background-color: #FFFFFF;
+  border: 1px solid #222222;
+  border-radius: 8px;
+  color: #222;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 14px 0;
+  cursor: pointer;
+  transition: transform .1s ease;
 }
 
-/* PANEL (АРКУШ3) */
+.button-23:active {
+  transform: scale(0.96);
+  background-color: #F7F7F7;
+}
+
+/* PANEL */
 .side-panel {
     position: fixed;
     top: 0;
@@ -97,7 +118,7 @@ input {
     z-index: 20;
     padding: 10px;
     overflow: auto;
-    transition: right .3s ease;
+    transition: right 0.3s ease;
 }
 
 .side-panel.show {
@@ -110,13 +131,15 @@ table {
     font-size: 13px;
 }
 
-th, td {
-    border: 1px solid #ddd;
-    padding: 6px;
-}
-
 th {
     background: #f1f5f9;
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+td {
+    border: 1px solid #ddd;
+    padding: 6px;
 }
 
 </style>
@@ -156,8 +179,6 @@ th {
 
 <script>
 
-/* ================= APP ================= */
-
 const APP = {
     keyboard: document.getElementById("keyboard"),
     panel: document.getElementById("panel"),
@@ -175,7 +196,7 @@ const APP = {
     showPanel(){
         this.panel.classList.add("show");
         this.hideKeyboard();
-        renderSheet3(); // 🔥 ВАЖНО
+        renderSheet3();
     },
 
     hidePanel(){
@@ -193,44 +214,39 @@ const APP = {
     }
 };
 
-/* ================= DATA ================= */
-
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t="+Date.now();
-
+/* DATA */
 let data = [];
 let data2 = [];
 
-fetch(url).then(r=>r.text()).then(t=>{
-    data = t.trim().split("\n").map(r=>{
-        let c = r.split(",");
+fetch("https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t="+Date.now())
+.then(r=>r.text()).then(t=>{
+    data=t.trim().split("\n").map(r=>{
+        let c=r.split(",");
         return {station:c[0],material:c[1],article:c[2]};
     });
 });
 
-/* sheet3 */
 fetch("https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t="+Date.now())
 .then(r=>r.text()).then(t=>{
-    data2 = t.trim().split("\n").map(r=>r.split(","));
+    data2=t.trim().split("\n").map(r=>r.split(","));
 });
 
-/* ================= SEARCH ================= */
-
+/* SEARCH */
 function search(){
 
-    let v = APP.input.value.toLowerCase();
-    if(!v) return APP.result.innerHTML = "";
+    let v=APP.input.value.toLowerCase();
+    if(!v)return APP.result.innerHTML="";
 
-    const res = {};
+    let res={};
 
     data.forEach(x=>{
-
         if(
-            (x.station && x.station.toLowerCase().includes(v)) ||
-            (x.material && x.material.toLowerCase().includes(v)) ||
-            (x.article && x.article.toLowerCase().includes(v))
+            x.station?.toLowerCase().includes(v) ||
+            x.material?.toLowerCase().includes(v) ||
+            x.article?.toLowerCase().includes(v)
         ){
-            if(!res[x.article]) res[x.article]={};
-            if(!res[x.article][x.material]) res[x.article][x.material]=new Set();
+            if(!res[x.article])res[x.article]={};
+            if(!res[x.article][x.material])res[x.article][x.material]=new Set();
             res[x.article][x.material].add(x.station);
         }
     });
@@ -238,7 +254,7 @@ function search(){
     let html="";
 
     Object.keys(res).forEach(a=>{
-        html+=`<div style="margin-bottom:10px;padding:10px;border:1px solid #ddd;border-radius:10px">
+        html+=`<div style="margin:10px;padding:10px;border:1px solid #ddd;border-radius:10px">
         <b>${a}</b>`;
 
         Object.keys(res[a]).forEach(m=>{
@@ -251,17 +267,11 @@ function search(){
         html+="</div>";
     });
 
-    APP.result.innerHTML = html || "Не знайдено";
+    APP.result.innerHTML=html||"Не знайдено";
 }
 
-/* ================= SHEET 3 ================= */
-
+/* ARKUSH 3 */
 function renderSheet3(){
-
-    if(!data2.length){
-        APP.panel.innerHTML="Завантаження...";
-        return;
-    }
 
     APP.panel.innerHTML=`
     <table>
@@ -276,41 +286,49 @@ function renderSheet3(){
     </table>`;
 }
 
-/* ================= GESTURES ================= */
+/* SWIPE (ВІДЗЕРКАЛЕНО) */
+let sx=0,sy=0,st=0;
 
-let sx=0, sy=0, st=0;
-
-document.addEventListener("touchstart",(e)=>{
+document.addEventListener("touchstart",e=>{
     sx=e.touches[0].clientX;
     sy=e.touches[0].clientY;
     st=Date.now();
 },{passive:true});
 
-document.addEventListener("touchend",(e)=>{
+document.addEventListener("touchend",e=>{
 
-    if(APP.keyboard.contains(e.target)) return;
+    if(APP.keyboard.contains(e.target))return;
 
     let dx=e.changedTouches[0].clientX-sx;
     let dy=e.changedTouches[0].clientY-sy;
     let dt=Date.now()-st;
 
-    let swipe=Math.abs(dx)>80 && Math.abs(dx)>Math.abs(dy);
-    let tap=dt<250 && Math.abs(dx)<10 && Math.abs(dy)<10;
+    let swipe=Math.abs(dx)>80&&Math.abs(dx)>Math.abs(dy);
+    let tap=dt<250&&Math.abs(dx)<10&&Math.abs(dy)<10;
 
     if(swipe){
-        if(dx>0) APP.showPanel();
-        else {APP.hidePanel();APP.showKeyboard();}
+
+        /* 🔄 ВІДЗЕРКАЛЕНО */
+        if(dx>0){
+            APP.showPanel();   // 👈 тепер вправо = Аркуш3
+        }else{
+            APP.hidePanel();   // 👉 вліво = назад
+            APP.showKeyboard();
+        }
+
         return;
     }
 
     if(tap){
-        if(APP.keyboard.classList.contains("hide")) APP.showKeyboard();
-        else APP.hideKeyboard();
+        if(APP.keyboard.classList.contains("hide"))
+            APP.showKeyboard();
+        else
+            APP.hideKeyboard();
     }
 
 },{passive:true});
 
-/* scroll */
+/* SCROLL */
 window.addEventListener("scroll",()=>APP.hideKeyboard());
 
 </script>
