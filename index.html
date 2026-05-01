@@ -55,25 +55,18 @@ input {
     left: 50%;
     transform: translateX(-50%);
     bottom: 0;
-
     width: 100%;
     max-width: 420px;
-
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-
     padding: 14px;
-
     background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
-
     border-top: 1px solid rgba(0,0,0,0.08);
     box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
-
     border-top-left-radius: 18px;
     border-top-right-radius: 18px;
-
     transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
@@ -108,13 +101,52 @@ input {
     height: 100%;
     background: #fff;
     z-index: 20;
-    padding: 10px;
     overflow: auto;
     transition: right 0.3s ease;
 }
 
 .side-panel.show {
     right: 0;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 10px;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    z-index: 1;
+}
+
+.panel-close {
+    background: #f1f5f9;
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
+    padding: 6px 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.panel-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: #333;
+}
+
+.panel-loading {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+    font-size: 15px;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    padding: 8px;
 }
 
 table {
@@ -126,16 +158,25 @@ table {
 th {
     background: #f1f5f9;
     border: 1px solid #ddd;
-    padding: 8px;
+    padding: 8px 6px;
     cursor: pointer;
     position: sticky;
-    top: 0;
+    top: 53px;
+    text-align: left;
+    white-space: nowrap;
+    user-select: none;
 }
+
+th:hover { background: #e2e8f0; }
+th.sorted { background: #dbeafe; }
 
 td {
     border: 1px solid #ddd;
     padding: 6px;
+    white-space: nowrap;
 }
+
+tr:nth-child(even) td { background: #fafafa; }
 
 </style>
 </head>
@@ -143,35 +184,37 @@ td {
 <body>
 
 <div class="container">
-
-<input id="input" readonly>
-<div id="result" class="result"></div>
-
+    <input id="input" readonly>
+    <div id="result" class="result"></div>
 </div>
 
-<div class="side-panel" id="panel"></div>
+<div class="side-panel" id="panel">
+    <div class="panel-header">
+        <button class="panel-close" onclick="hidePanel()">✕</button>
+        <span class="panel-title">Таблиця</span>
+    </div>
+    <div id="panel-content"><div class="panel-loading">Завантаження...</div></div>
+</div>
 
 <div class="keyboard" id="keyboard">
+    <button class="button-23" onclick="add('1')">1</button>
+    <button class="button-23" onclick="add('2')">2</button>
+    <button class="button-23" onclick="add('3')">3</button>
 
-<button class="button-23" onclick="add('1')">1</button>
-<button class="button-23" onclick="add('2')">2</button>
-<button class="button-23" onclick="add('3')">3</button>
+    <button class="button-23" onclick="add('4')">4</button>
+    <button class="button-23" onclick="add('5')">5</button>
+    <button class="button-23" onclick="add('6')">6</button>
 
-<button class="button-23" onclick="add('4')">4</button>
-<button class="button-23" onclick="add('5')">5</button>
-<button class="button-23" onclick="add('6')">6</button>
+    <button class="button-23" onclick="add('7')">7</button>
+    <button class="button-23" onclick="add('8')">8</button>
+    <button class="button-23" onclick="add('9')">9</button>
 
-<button class="button-23" onclick="add('7')">7</button>
-<button class="button-23" onclick="add('8')">8</button>
-<button class="button-23" onclick="add('9')">9</button>
+    <button class="button-23" onclick="add('с')">с</button>
+    <button class="button-23" onclick="add('0')">0</button>
+    <button class="button-23" onclick="clearAll()">⌫</button>
 
-<button class="button-23" onclick="add('с')">с</button>
-<button class="button-23" onclick="add('0')">0</button>
-<button class="button-23" onclick="clearAll()">⌫</button>
-
-<button class="button-23" onclick="add('sp')">sp</button>
-<button class="button-23" onclick="add('ts')">ts</button>
-
+    <button class="button-23" onclick="add('sp')">sp</button>
+    <button class="button-23" onclick="add('ts')">ts</button>
 </div>
 
 <script>
@@ -180,6 +223,7 @@ const k = document.getElementById("keyboard");
 const input = document.getElementById("input");
 const resultBox = document.getElementById("result");
 const panel = document.getElementById("panel");
+const panelContent = document.getElementById("panel-content");
 
 /* =======================
    KEYBOARD CONTROL
@@ -195,84 +239,57 @@ function hideKeyboard(){
 }
 
 /* =======================
-   SEARCH
+   SEARCH (аркуш 1)
 ======================= */
 
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
+const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
 
 let data = [];
 
-fetch(url)
+fetch(url1)
 .then(r => r.text())
 .then(t => {
     data = t.trim().split("\n").map(r => {
         let c = r.split(",");
-        return {
-            station: c[0] || "",
-            material: c[1] || "",
-            article: c[2] || ""
-        };
+        return { station: c[0]||"", material: c[1]||"", article: c[2]||"" };
     });
 });
 
-function add(v){
-    input.value += v;
-    search();
-}
+function add(v){ input.value += v; search(); }
 
-function clearAll(){
-    input.value = "";
-    resultBox.innerHTML = "";
-}
+function clearAll(){ input.value = ""; resultBox.innerHTML = ""; }
 
 function search(){
-
     let v = input.value.toLowerCase();
     if(!v) return resultBox.innerHTML = "";
 
     const isNumber = /^\d+$/.test(v);
-
     const result = {};
 
     data.forEach(x => {
-
         const match =
-            (x.station && (isNumber ? x.station.toLowerCase().endsWith(v) : x.station.toLowerCase().includes(v))) ||
+            (x.station  && (isNumber ? x.station.toLowerCase().endsWith(v)  : x.station.toLowerCase().includes(v)))  ||
             (x.material && (isNumber ? x.material.toLowerCase().endsWith(v) : x.material.toLowerCase().includes(v))) ||
-            (x.article && (isNumber ? x.article.toLowerCase().endsWith(v) : x.article.toLowerCase().includes(v)));
+            (x.article  && (isNumber ? x.article.toLowerCase().endsWith(v)  : x.article.toLowerCase().includes(v)));
 
         if (match) {
-
             if (!result[x.article]) result[x.article] = {};
             if (!result[x.article][x.material]) result[x.article][x.material] = new Set();
-
             result[x.article][x.material].add(x.station);
         }
     });
 
     let html = "";
-
     Object.keys(result).forEach(article => {
-
-        html += `
-            <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
-                <div style="font-weight:bold; font-size:20px;">
-                    ${article}
-                </div>
-        `;
-
+        html += `<div style="margin-bottom:15px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fafafa;">
+            <div style="font-weight:bold;font-size:20px;">${article}</div>`;
         Object.keys(result[article]).forEach(material => {
-
-            html += `
-                <div style="margin-left:8px;">
-                    <div>📦 ${material}</div>
-                    <div style="font-size:13px; color:#888; padding-left:10px;">
-                        ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
-                    </div>
-                </div>
-            `;
+            html += `<div style="margin-left:8px;">
+                <div>📦 ${material}</div>
+                <div style="font-size:13px;color:#888;padding-left:10px;">
+                    ${[...result[article][material]].map(s=>`<div>${s}</div>`).join("")}
+                </div></div>`;
         });
-
         html += `</div>`;
     });
 
@@ -280,28 +297,97 @@ function search(){
 }
 
 /* =======================
-   TAP + SWIPE (FIXED)
+   PANEL TABLE (аркуш 2)
 ======================= */
 
-let startX = 0;
-let startY = 0;
-let startTime = 0;
+const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
 
-const MAX_TIME = 250;
-const MAX_MOVE = 10;
-const SWIPE_MIN = 80;
+let tableRows = [];
+let tableHeaders = [];
+let sortCol = -1;
+let sortAsc = true;
+let tableLoaded = false;
+
+function parseCSVRow(row) {
+    const result = [];
+    let cur = "", inQuote = false;
+    for (let i = 0; i < row.length; i++) {
+        const ch = row[i];
+        if (ch === '"') { inQuote = !inQuote; }
+        else if (ch === ',' && !inQuote) { result.push(cur.trim()); cur = ""; }
+        else { cur += ch; }
+    }
+    result.push(cur.trim());
+    return result;
+}
+
+function loadPanelTable(){
+    if (tableLoaded) { renderTable(); return; }
+    panelContent.innerHTML = '<div class="panel-loading">⏳ Завантаження...</div>';
+
+    fetch(url2)
+    .then(r => r.text())
+    .then(t => {
+        const lines = t.trim().split("\n");
+        tableHeaders = parseCSVRow(lines[0]);
+        tableRows = lines.slice(1).map(l => parseCSVRow(l));
+        tableLoaded = true;
+        renderTable();
+    })
+    .catch(() => {
+        panelContent.innerHTML = '<div class="panel-loading">❌ Помилка завантаження</div>';
+    });
+}
+
+function renderTable(){
+    let rows = [...tableRows];
+
+    if (sortCol >= 0) {
+        rows.sort((a, b) => {
+            const av = a[sortCol] || "", bv = b[sortCol] || "";
+            const an = parseFloat(av), bn = parseFloat(bv);
+            if (!isNaN(an) && !isNaN(bn)) return sortAsc ? an - bn : bn - an;
+            return sortAsc ? av.localeCompare(bv, 'uk') : bv.localeCompare(av, 'uk');
+        });
+    }
+
+    let html = '<div class="table-wrap"><table><thead><tr>';
+    tableHeaders.forEach((h, i) => {
+        const isSorted = sortCol === i;
+        const arrow = isSorted ? (sortAsc ? ' ↑' : ' ↓') : '';
+        html += `<th class="${isSorted?'sorted':''}" onclick="sortTable(${i})">${h}${arrow}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    rows.forEach(r => {
+        html += '<tr>';
+        tableHeaders.forEach((_, i) => { html += `<td>${r[i]||''}</td>`; });
+        html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    panelContent.innerHTML = html;
+}
+
+function sortTable(col){
+    sortAsc = (sortCol === col) ? !sortAsc : true;
+    sortCol = col;
+    renderTable();
+}
+
+/* =======================
+   TAP + SWIPE
+======================= */
+
+let startX = 0, startY = 0, startTime = 0;
+const MAX_TIME = 250, MAX_MOVE = 10, SWIPE_MIN = 80;
 
 document.addEventListener("pointerdown", (e) => {
-
     if (k.contains(e.target) || panel.contains(e.target)) return;
-
-    startX = e.clientX;
-    startY = e.clientY;
-    startTime = Date.now();
+    startX = e.clientX; startY = e.clientY; startTime = Date.now();
 });
 
 document.addEventListener("pointerup", (e) => {
-
     if (k.contains(e.target) || panel.contains(e.target)) return;
 
     const dx = e.clientX - startX;
@@ -309,39 +395,19 @@ document.addEventListener("pointerup", (e) => {
     const dt = Date.now() - startTime;
 
     const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
-    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
+    const isTap   = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
 
-    /* SWIPE FIRST */
     if (isSwipe) {
-
-        if (dx > 0) {
-            showPanel();
-        } else {
-            hidePanel();
-            showKeyboard();
-        }
-
+        if (dx > 0) { showPanel(); } else { hidePanel(); showKeyboard(); }
         return;
     }
 
-    /* TAP */
     if (isTap) {
-
-        if (k.classList.contains("hide")) {
-            showKeyboard();
-        } else {
-            hideKeyboard();
-        }
+        k.classList.contains("hide") ? showKeyboard() : hideKeyboard();
     }
 });
 
-/* =======================
-   SCROLL
-======================= */
-
-window.addEventListener("scroll", () => {
-    hideKeyboard();
-});
+window.addEventListener("scroll", hideKeyboard);
 
 /* =======================
    PANEL
@@ -350,6 +416,7 @@ window.addEventListener("scroll", () => {
 function showPanel(){
     panel.classList.add("show");
     hideKeyboard();
+    loadPanelTable();
 }
 
 function hidePanel(){
@@ -357,6 +424,5 @@ function hidePanel(){
 }
 
 </script>
-
 </body>
 </html>
