@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">
+<meta name="theme-color" content="#f4f6f8">   
 
 <title>Пошук</title>
 
@@ -190,24 +190,46 @@ const k = document.getElementById("keyboard");
 const input = document.getElementById("input");
 const resultBox = document.getElementById("result");
 
-function hideKeyboard(){
-    k.classList.add("hide");
-}
+let lastScrollY = window.scrollY;
+
+/* =======================
+   КЛАВІАТУРА ЛОГІКА
+======================= */
+
+// 👆 тап → показати
+document.addEventListener("touchstart", (e) => {
+
+    const t = e.target;
+
+    if (k.contains(t)) return;
+
+    showKeyboard();
+});
+
+// 📜 скрол → сховати
+window.addEventListener("scroll", () => {
+
+    let y = window.scrollY;
+
+    if (Math.abs(y - lastScrollY) > 5) {
+        hideKeyboard();
+    }
+
+    lastScrollY = y;
+});
 
 function showKeyboard(){
     k.classList.remove("hide");
 }
 
-input.addEventListener("click", showKeyboard);
-resultBox.addEventListener("click", hideKeyboard);
+function hideKeyboard(){
+    k.classList.add("hide");
+}
 
-document.addEventListener("touchstart", (e) => {
-    if (!k.contains(e.target) && e.target !== input) {
-        hideKeyboard();
-    }
-});
+/* =======================
+   ПОШУК
+======================= */
 
-// 🔥 Аркуш1
 const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
 
 let data = [];
