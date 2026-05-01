@@ -98,7 +98,7 @@ input {
   background-color: #F7F7F7;
 }
 
-/* PANEL (АРКУШ3) */
+/* PANEL */
 .side-panel {
     position: fixed;
     top: 0;
@@ -195,80 +195,6 @@ function hideKeyboard(){
 }
 
 /* =======================
-   TAP LOGIC (toggle)
-======================= */
-
-let startX = 0;
-let startY = 0;
-let startTime = 0;
-
-const MAX_TIME = 250;
-const MAX_MOVE = 10;
-const SWIPE_MIN = 80;
-
-document.addEventListener("pointerdown", (e) => {
-
-    if (k.contains(e.target) || panel.contains(e.target)) return;
-
-    startX = e.clientX;
-    startY = e.clientY;
-    startTime = Date.now();
-});
-
-document.addEventListener("pointerup", (e) => {
-
-    if (k.contains(e.target) || panel.contains(e.target)) return;
-
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    const dt = Date.now() - startTime;
-
-    /* TAP */
-    if (dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE) {
-
-        if (k.classList.contains("hide")) {
-            showKeyboard();
-        } else {
-            hideKeyboard();
-        }
-    }
-
-    /* SWIPE */
-    if (Math.abs(dy) < Math.abs(dx)) {
-
-        if (dx > SWIPE_MIN) {
-            showPanel();
-        }
-
-        if (dx < -SWIPE_MIN) {
-            hidePanel();
-            showKeyboard();
-        }
-    }
-});
-
-/* =======================
-   SCROLL → hide keyboard
-======================= */
-
-window.addEventListener("scroll", () => {
-    hideKeyboard();
-});
-
-/* =======================
-   PANEL (АРКУШ3)
-======================= */
-
-function showPanel(){
-    panel.classList.add("show");
-    hideKeyboard();
-}
-
-function hidePanel(){
-    panel.classList.remove("show");
-}
-
-/* =======================
    SEARCH
 ======================= */
 
@@ -351,6 +277,83 @@ function search(){
     });
 
     resultBox.innerHTML = html || "Не знайдено";
+}
+
+/* =======================
+   TAP + SWIPE (FIXED)
+======================= */
+
+let startX = 0;
+let startY = 0;
+let startTime = 0;
+
+const MAX_TIME = 250;
+const MAX_MOVE = 10;
+const SWIPE_MIN = 80;
+
+document.addEventListener("pointerdown", (e) => {
+
+    if (k.contains(e.target) || panel.contains(e.target)) return;
+
+    startX = e.clientX;
+    startY = e.clientY;
+    startTime = Date.now();
+});
+
+document.addEventListener("pointerup", (e) => {
+
+    if (k.contains(e.target) || panel.contains(e.target)) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const dt = Date.now() - startTime;
+
+    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
+    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
+
+    /* SWIPE FIRST */
+    if (isSwipe) {
+
+        if (dx > 0) {
+            showPanel();
+        } else {
+            hidePanel();
+            showKeyboard();
+        }
+
+        return;
+    }
+
+    /* TAP */
+    if (isTap) {
+
+        if (k.classList.contains("hide")) {
+            showKeyboard();
+        } else {
+            hideKeyboard();
+        }
+    }
+});
+
+/* =======================
+   SCROLL
+======================= */
+
+window.addEventListener("scroll", () => {
+    hideKeyboard();
+});
+
+/* =======================
+   PANEL
+======================= */
+
+function showPanel(){
+    panel.classList.add("show");
+    hideKeyboard();
+}
+
+function hidePanel(){
+    panel.classList.remove("show");
 }
 
 </script>
