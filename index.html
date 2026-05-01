@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">
+<meta name="theme-color" content="#f4f6f8">   
 
 <title>Пошук</title>
 
@@ -41,9 +41,6 @@ input {
     margin-bottom: 12px;
     outline: none;
     background: #fafafa;
-    position: sticky;
-    top: 0;
-    z-index: 10;
 }
 
 .result {
@@ -52,23 +49,31 @@ input {
     color: #333;
 }
 
+/* KEYBOARD */
 .keyboard {
     position: fixed;
     left: 50%;
     transform: translateX(-50%);
     bottom: 0;
+
     width: 100%;
     max-width: 420px;
+
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
+
     padding: 14px;
+
     background: rgba(255,255,255,0.95);
     backdrop-filter: blur(12px);
+
     border-top: 1px solid rgba(0,0,0,0.08);
     box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
+
     border-top-left-radius: 18px;
     border-top-right-radius: 18px;
+
     transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
@@ -93,6 +98,7 @@ input {
   background-color: #F7F7F7;
 }
 
+/* PANEL */
 .side-panel {
     position: fixed;
     top: 0;
@@ -111,6 +117,26 @@ input {
     right: 0;
 }
 
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+th {
+    background: #f1f5f9;
+    border: 1px solid #ddd;
+    padding: 8px;
+    cursor: pointer;
+    position: sticky;
+    top: 0;
+}
+
+td {
+    border: 1px solid #ddd;
+    padding: 6px;
+}
+
 </style>
 </head>
 
@@ -119,7 +145,6 @@ input {
 <div class="container">
 
 <input id="input" readonly>
-
 <div id="result" class="result"></div>
 
 </div>
@@ -151,7 +176,28 @@ input {
 
 <script>
 
-// 🔥 Аркуш1
+const k = document.getElementById("keyboard");
+const input = document.getElementById("input");
+const resultBox = document.getElementById("result");
+const panel = document.getElementById("panel");
+
+/* =======================
+   KEYBOARD CONTROL
+======================= */
+
+function showKeyboard(){
+    if (panel.classList.contains("show")) return;
+    k.classList.remove("hide");
+}
+
+function hideKeyboard(){
+    k.classList.add("hide");
+}
+
+/* =======================
+   SEARCH
+======================= */
+
 const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
 
 let data = [];
@@ -169,144 +215,146 @@ fetch(url)
     });
 });
 
-// 🔥 Аркуш3 (ФІКС)
-const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + new Date().getTime();
-
-let data2 = [];
-let data2Ready = false;
-
-fetch(url2)
-.then(r => r.text())
-.then(t => {
-
-    data2 = t
-        .trim()
-        .split("\n")
-        .map(r => r.split(","))
-        .filter(r => r.length >= 3);
-
-    data2Ready = true;
-});
-
 function add(v){
-    document.getElementById("input").value += v;
+    input.value += v;
     search();
 }
 
 function clearAll(){
-    document.getElementById("input").value = "";
-    document.getElementById("result").innerHTML = "";
+    input.value = "";
+    resultBox.innerHTML = "";
 }
 
 function search(){
-    let v = document.getElementById("input").value.toLowerCase();
-    if(!v) return document.getElementById("result").innerHTML = "";
 
-    let res = data.filter(x =>
-        (x.station && x.station.toLowerCase().includes(v)) ||
-        (x.material && x.material.toLowerCase().includes(v)) ||
-        (x.article && x.article.toLowerCase().includes(v))
-    );
+    let v = input.value.toLowerCase();
+    if(!v) return resultBox.innerHTML = "";
 
-    document.getElementById("result").innerHTML =
-        res.length ? res.map(r => `
-            <b>Станція:</b> ${r.station}<br>
-            <b>Матеріал:</b> ${r.material}<br>
-            <b>Артикул:</b> ${r.article}
-            <hr>
-        `).join("") : "Не знайдено";
-}
+    const isNumber = /^\d+$/.test(v);
 
-// 🔥 PANEL (ПРАВИЛЬНА ГРУПА)
-function showPanel(){
+    const result = {};
 
-    const panel = document.getElementById("panel");
+    data.forEach(x => {
 
-    if(!data2Ready){
-        panel.innerHTML = "Завантаження...";
-        panel.classList.add("show");
-        return;
-    }
+        const match =
+            (x.station && (isNumber ? x.station.toLowerCase().endsWith(v) : x.station.toLowerCase().includes(v))) ||
+            (x.material && (isNumber ? x.material.toLowerCase().endsWith(v) : x.material.toLowerCase().includes(v))) ||
+            (x.article && (isNumber ? x.article.toLowerCase().endsWith(v) : x.article.toLowerCase().includes(v)));
 
-    let grouped = {};
+        if (match) {
 
-    for(let i = 1; i < data2.length; i++){
+            if (!result[x.article]) result[x.article] = {};
+            if (!result[x.article][x.material]) result[x.article][x.material] = new Set();
 
-        let row = data2[i];
-        if(!row) continue;
-
-        let station = (row[0] || "").trim();
-        let material = (row[1] || "").trim();
-        let article = (row[2] || "").trim();
-
-        if(!article) continue;
-
-        if(!grouped[article]) grouped[article] = {};
-        if(!grouped[article][material]) grouped[article][material] = [];
-
-        grouped[article][material].push(station);
-    }
+            result[x.article][x.material].add(x.station);
+        }
+    });
 
     let html = "";
 
-    let articles = Object.keys(grouped)
-        .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+    Object.keys(result).forEach(article => {
 
-    for(let art of articles){
+        html += `
+            <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
+                <div style="font-weight:bold; font-size:20px;">
+                    ${article}
+                </div>
+        `;
 
-        html += `<div style="background:#f1f5f9;padding:10px;margin-top:12px;font-weight:700;">
-                    Артикул: ${art}
-                 </div>`;
+        Object.keys(result[article]).forEach(material => {
 
-        let materials = Object.keys(grouped[art])
-            .sort();
+            html += `
+                <div style="margin-left:8px;">
+                    <div>📦 ${material}</div>
+                    <div style="font-size:13px; color:#888; padding-left:10px;">
+                        ${[...result[article][material]].map(s => `<div>${s}</div>`).join("")}
+                    </div>
+                </div>
+            `;
+        });
 
-        for(let mat of materials){
+        html += `</div>`;
+    });
 
-            html += `<div style="padding:6px 10px;font-weight:600;">
-                        Матеріал: ${mat}
-                     </div>`;
+    resultBox.innerHTML = html || "Не знайдено";
+}
 
-            for(let st of grouped[art][mat]){
+/* =======================
+   TAP + SWIPE (FIXED)
+======================= */
 
-                html += `<div style="padding-left:16px;border-bottom:1px solid #eee;">
-                            Станція: ${st}
-                         </div>`;
-            }
+let startX = 0;
+let startY = 0;
+let startTime = 0;
+
+const MAX_TIME = 250;
+const MAX_MOVE = 10;
+const SWIPE_MIN = 80;
+
+document.addEventListener("pointerdown", (e) => {
+
+    if (k.contains(e.target) || panel.contains(e.target)) return;
+
+    startX = e.clientX;
+    startY = e.clientY;
+    startTime = Date.now();
+});
+
+document.addEventListener("pointerup", (e) => {
+
+    if (k.contains(e.target) || panel.contains(e.target)) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const dt = Date.now() - startTime;
+
+    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
+    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
+
+    /* SWIPE FIRST */
+    if (isSwipe) {
+
+        if (dx > 0) {
+            showPanel();
+        } else {
+            hidePanel();
+            showKeyboard();
         }
+
+        return;
     }
 
-    panel.innerHTML = html || "Немає даних";
+    /* TAP */
+    if (isTap) {
+
+        if (k.classList.contains("hide")) {
+            showKeyboard();
+        } else {
+            hideKeyboard();
+        }
+    }
+});
+
+/* =======================
+   SCROLL
+======================= */
+
+window.addEventListener("scroll", () => {
+    hideKeyboard();
+});
+
+/* =======================
+   PANEL
+======================= */
+
+function showPanel(){
     panel.classList.add("show");
+    hideKeyboard();
 }
 
 function hidePanel(){
-    document.getElementById("panel").classList.remove("show");
+    panel.classList.remove("show");
 }
-
-// SWIPE
-let sx=0;
-document.addEventListener("touchstart",e=>sx=e.touches[0].clientX);
-document.addEventListener("touchend",e=>{
-    let dx = sx - e.changedTouches[0].clientX;
-    if(dx>80) showPanel();
-    if(dx<-80) hidePanel();
-});
-
-// KEYBOARD HIDE
-const k = document.getElementById("keyboard");
-let last=0, t=Date.now();
-
-window.addEventListener("scroll",()=>{
-    let y=window.scrollY;
-    let now=Date.now();
-    let sp=Math.abs((y-last)/(now-t));
-
-    if(y-last>0) k.classList.add("hide");
-    if(y-last<0 && sp>0.8) k.classList.remove("hide");
-
-    last=y;t=now;
-});
 
 </script>
 
