@@ -159,10 +159,8 @@ td {
 
 </div>
 
-<!-- PANEL -->
 <div class="side-panel" id="panel"></div>
 
-<!-- KEYBOARD -->
 <div class="keyboard" id="keyboard">
 
 <button class="button-23" onclick="add('1')">1</button>
@@ -188,7 +186,6 @@ td {
 
 <script>
 
-// 🔥 Аркуш1
 const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
 
 let data = [];
@@ -206,17 +203,6 @@ fetch(url)
     });
 });
 
-// 🔥 Аркуш3
-const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + new Date().getTime();
-
-let data2 = [];
-
-fetch(url2)
-.then(r => r.text())
-.then(t => {
-    data2 = t.trim().split("\n").map(r => r.split(","));
-});
-
 function add(v){
     document.getElementById("input").value += v;
     search();
@@ -228,18 +214,34 @@ function clearAll(){
 }
 
 function search(){
+
     let v = document.getElementById("input").value.toLowerCase();
     if(!v) return document.getElementById("result").innerHTML = "";
+
+    const isNumber = /^\d+$/.test(v);
 
     const result = {};
 
     data.forEach(x => {
 
-        if (
-(x.station && x.station.toString().toLowerCase().endsWith(v)) ||
-(x.material && x.material.toString().toLowerCase().endsWith(v)) ||
-(x.article && x.article.toString().toLowerCase().endsWith(v))
-        ) {
+        const match =
+            (x.station && (
+                isNumber
+                    ? x.station.toString().toLowerCase().endsWith(v)
+                    : x.station.toString().toLowerCase().includes(v)
+            )) ||
+            (x.material && (
+                isNumber
+                    ? x.material.toString().toLowerCase().endsWith(v)
+                    : x.material.toString().toLowerCase().includes(v)
+            )) ||
+            (x.article && (
+                isNumber
+                    ? x.article.toString().toLowerCase().endsWith(v)
+                    : x.article.toString().toLowerCase().includes(v)
+            ));
+
+        if (match) {
 
             if (!result[x.article]) {
                 result[x.article] = {};
@@ -259,7 +261,6 @@ function search(){
 
         html += `
             <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
-                
                 <div style="font-weight:bold; font-size:20px; margin-bottom:6px;">
                     ${article}
                 </div>
@@ -283,87 +284,6 @@ function search(){
     document.getElementById("result").innerHTML =
         html || "Не знайдено";
 }
-
-// 🔥 PANEL + SORT (без змін)
-let sortState = { col: -1, asc: true };
-
-function showPanel(){
-
-    const panel = document.getElementById("panel");
-
-    function render(arr){
-
-        panel.innerHTML = `
-        <table>
-            <thead>
-                <tr>
-                    ${arr[0].map((h,i)=>`
-                        <th onclick="sortBy(${i})">${h}</th>
-                    `).join("")}
-                </tr>
-            </thead>
-            <tbody>
-                ${arr.slice(1).map(r=>`
-                    <tr>
-                        ${r.map(c=>`<td>${c||""}</td>`).join("")}
-                    </tr>
-                `).join("")}
-            </tbody>
-        </table>
-        `;
-    }
-
-    window.sortBy = function(i){
-
-        if(sortState.col === i){
-            sortState.asc = !sortState.asc;
-        } else {
-            sortState.col = i;
-            sortState.asc = true;
-        }
-
-        let sorted = [...data2.slice(1)].sort((a,b)=>{
-            let A = a[i]||"";
-            let B = b[i]||"";
-            return sortState.asc
-                ? A.localeCompare(B,undefined,{numeric:true})
-                : B.localeCompare(A,undefined,{numeric:true});
-        });
-
-        render([data2[0], ...sorted]);
-    };
-
-    render(data2);
-    panel.classList.add("show");
-}
-
-function hidePanel(){
-    document.getElementById("panel").classList.remove("show");
-}
-
-// SWIPE
-let sx=0;
-document.addEventListener("touchstart",e=>sx=e.touches[0].clientX);
-document.addEventListener("touchend",e=>{
-    let dx = sx - e.changedTouches[0].clientX;
-    if(dx>80) showPanel();
-    if(dx<-80) hidePanel();
-});
-
-// KEYBOARD SCROLL
-const k = document.getElementById("keyboard");
-let last=0, t=Date.now();
-
-window.addEventListener("scroll",()=>{
-    let y=window.scrollY;
-    let now=Date.now();
-    let sp=Math.abs((y-last)/(now-t));
-
-    if(y-last>0) k.classList.add("hide");
-    if(y-last<0 && sp>0.8) k.classList.remove("hide");
-
-    last=y;t=now;
-});
 
 </script>
 
