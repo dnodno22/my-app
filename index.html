@@ -236,9 +236,9 @@ function search(){
     data.forEach(x => {
 
         if (
-            (x.station && x.station.toLowerCase().includes(v)) ||
-            (x.material && x.material.toLowerCase().includes(v)) ||
-            (x.article && x.article.toLowerCase().includes(v))
+(x.station && x.station.toString().toLowerCase().endsWith(v)) ||
+(x.material && x.material.toString().toLowerCase().endsWith(v)) ||
+(x.article && x.article.toString().toLowerCase().endsWith(v))
         ) {
 
             if (!result[x.article]) {
