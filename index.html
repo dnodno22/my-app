@@ -1,333 +1,54 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">
-
-<title>Пошук</title>
-
-<style>
-
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
-
-body {
-    margin: 0;
-    font-family: -apple-system, Arial, sans-serif;
-    background: #f4f6f8;
-}
-
-/* КОНТЕЙНЕР */
-.container {
-    max-width: 420px;
-    margin: 0 auto;
-    background: #fff;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding: 16px;
-    padding-bottom: 220px;
-}
-
-/* INPUT */
-input {
-    width: 100%;
-    padding: 18px;
-    font-size: 24px;
-    border-radius: 14px;
-    border: 1px solid #e5e7eb;
-    text-align: center;
-    margin-bottom: 12px;
-    outline: none;
-    background: #fafafa;
-
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-/* RESULT */
-.result {
-    font-size: 18px;
-    line-height: 1.6;
-    color: #333;
-}
-
-/* KEYBOARD */
-.keyboard {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 0;
-
-    width: 100%;
-    max-width: 420px;
-
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-
-    padding: 14px;
-
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(12px);
-
-    border-top: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 -8px 20px rgba(0,0,0,0.06);
-
-    border-top-left-radius: 18px;
-    border-top-right-radius: 18px;
-
-    transition: transform 0.25s ease, opacity 0.25s ease;
-}
-
-.keyboard.hide {
-    transform: translateX(-50%) translateY(120%);
-    opacity: 0;
-}
-
-/* BUTTON */
-.button-23 {
-  background-color: #FFFFFF;
-  border: 1px solid #222222;
-  border-radius: 8px;
-  color: #222;
-  font-size: 16px;
-  font-weight: 600;
-  padding: 14px 0;
-  cursor: pointer;
-  transition: transform .1s ease;
-}
-
-.button-23:active {
-  transform: scale(0.96);
-  background-color: #F7F7F7;
-}
-
-/* SIDE PANEL */
-.side-panel {
-    position: fixed;
-    top: 0;
-    right: -100%;
-    width: 100%;
-    max-width: 420px;
-    height: 100%;
-    background: #fff;
-    z-index: 20;
-    padding: 10px;
-    overflow: auto;
-    transition: right 0.3s ease;
-}
-
-.side-panel.show {
-    right: 0;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-th {
-    background: #f1f5f9;
-    border: 1px solid #ddd;
-    padding: 8px;
-    cursor: pointer;
-    position: sticky;
-    top: 0;
-}
-
-td {
-    border: 1px solid #ddd;
-    padding: 6px;
-}
-
-</style>
-</head>
-
-<body>
-
-<div class="container">
-
-<input id="input" readonly>
-
-<div id="result" class="result"></div>
-
-</div>
-
-<!-- PANEL -->
-<div class="side-panel" id="panel"></div>
-
-<!-- KEYBOARD -->
-<div class="keyboard" id="keyboard">
-
-<button class="button-23" onclick="add('1')">1</button>
-<button class="button-23" onclick="add('2')">2</button>
-<button class="button-23" onclick="add('3')">3</button>
-
-<button class="button-23" onclick="add('4')">4</button>
-<button class="button-23" onclick="add('5')">5</button>
-<button class="button-23" onclick="add('6')">6</button>
-
-<button class="button-23" onclick="add('7')">7</button>
-<button class="button-23" onclick="add('8')">8</button>
-<button class="button-23" onclick="add('9')">9</button>
-
-<button class="button-23" onclick="add('с')">с</button>
-<button class="button-23" onclick="add('0')">0</button>
-<button class="button-23" onclick="clearAll()">⌫</button>
-
-<button class="button-23" onclick="add('sp')">sp</button>
-<button class="button-23" onclick="add('ts')">ts</button>
-
-</div>
-
-<script>
-
-// 🔥 Аркуш1
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
-
-let data = [];
-
-fetch(url)
-.then(r => r.text())
-.then(t => {
-    data = t.trim().split("\n").map(r => {
-        let c = r.split(",");
-        return {
-            station: c[0] || "",
-            material: c[1] || "",
-            article: c[2] || ""
-        };
-    });
-});
-
-// 🔥 Аркуш3
-const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + new Date().getTime();
-
-let data2 = [];
-
-fetch(url2)
-.then(r => r.text())
-.then(t => {
-    data2 = t.trim().split("\n").map(r => r.split(","));
-});
-
-function add(v){
-    document.getElementById("input").value += v;
-    search();
-}
-
-function clearAll(){
-    document.getElementById("input").value = "";
-    document.getElementById("result").innerHTML = "";
-}
-
 function search(){
     let v = document.getElementById("input").value.toLowerCase();
     if(!v) return document.getElementById("result").innerHTML = "";
 
-    let res = data.filter(x =>
-        (x.station && x.station.toLowerCase().includes(v)) ||
-        (x.material && x.material.toLowerCase().includes(v)) ||
-        (x.article && x.article.toLowerCase().includes(v))
-    );
+    const result = {};
+
+    data.forEach(x => {
+
+        if (
+            (x.station && x.station.toLowerCase().includes(v)) ||
+            (x.material && x.material.toLowerCase().includes(v)) ||
+            (x.article && x.article.toLowerCase().includes(v))
+        ) {
+            if (!result[x.article]) {
+                result[x.article] = {
+                    materials: new Set(),
+                    stations: new Set()
+                };
+            }
+
+            result[x.article].materials.add(x.material);
+            result[x.article].stations.add(x.station);
+        }
+    });
+
+    let html = "";
+
+    Object.keys(result).forEach(article => {
+        const item = result[article];
+
+        html += `
+            <div style="margin-bottom:15px; padding:12px; border:1px solid #e5e7eb; border-radius:14px; background:#fafafa;">
+                
+                <div style="font-weight:bold; font-size:20px; margin-bottom:6px;">
+                    ${article}
+                </div>
+
+                <div style="font-size:13px; color:#888;">Станції:</div>
+                <div style="margin-bottom:6px;">
+                    ${[...item.stations].map(s => `<div>🏭 ${s}</div>`).join("")}
+                </div>
+
+                <div style="font-size:13px; color:#888;">Матеріали:</div>
+                <div style="padding-left:5px;">
+                    ${[...item.materials].map(m => `<div>📦 ${m}</div>`).join("")}
+                </div>
+
+            </div>
+        `;
+    });
 
     document.getElementById("result").innerHTML =
-        res.length ? res.map(r => `
-            <b>Станція:</b> ${r.station}<br>
-            <b>Матеріал:</b> ${r.material}<br>
-            <b>Артикул:</b> ${r.article}
-            <hr>
-        `).join("") : "Не знайдено";
+        html || "Не знайдено";
 }
-
-// 🔥 PANEL + SORT
-let sortState = { col: -1, asc: true };
-
-function showPanel(){
-
-    const panel = document.getElementById("panel");
-
-    function render(arr){
-
-        panel.innerHTML = `
-        <table>
-            <thead>
-                <tr>
-                    ${arr[0].map((h,i)=>`
-                        <th onclick="sortBy(${i})">${h}</th>
-                    `).join("")}
-                </tr>
-            </thead>
-            <tbody>
-                ${arr.slice(1).map(r=>`
-                    <tr>
-                        ${r.map(c=>`<td>${c||""}</td>`).join("")}
-                    </tr>
-                `).join("")}
-            </tbody>
-        </table>
-        `;
-    }
-
-    window.sortBy = function(i){
-
-        if(sortState.col === i){
-            sortState.asc = !sortState.asc;
-        } else {
-            sortState.col = i;
-            sortState.asc = true;
-        }
-
-        let sorted = [...data2.slice(1)].sort((a,b)=>{
-            let A = a[i]||"";
-            let B = b[i]||"";
-            return sortState.asc
-                ? A.localeCompare(B,undefined,{numeric:true})
-                : B.localeCompare(A,undefined,{numeric:true});
-        });
-
-        render([data2[0], ...sorted]);
-    };
-
-    render(data2);
-    panel.classList.add("show");
-}
-
-function hidePanel(){
-    document.getElementById("panel").classList.remove("show");
-}
-
-// SWIPE
-let sx=0;
-document.addEventListener("touchstart",e=>sx=e.touches[0].clientX);
-document.addEventListener("touchend",e=>{
-    let dx = sx - e.changedTouches[0].clientX;
-    if(dx>80) showPanel();
-    if(dx<-80) hidePanel();
-});
-
-// KEYBOARD SCROLL
-const k = document.getElementById("keyboard");
-let last=0, t=Date.now();
-
-window.addEventListener("scroll",()=>{
-    let y=window.scrollY;
-    let now=Date.now();
-    let sp=Math.abs((y-last)/(now-t));
-
-    if(y-last>0) k.classList.add("hide");
-    if(y-last<0 && sp>0.8) k.classList.remove("hide");
-
-    last=y;t=now;
-});
-
-</script>
-
-</body>
-</html>
