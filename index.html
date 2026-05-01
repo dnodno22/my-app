@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f6f8">   
+<meta name="theme-color" content="#f4f6f8">
 
 <title>Пошук</title>
 
@@ -18,6 +18,7 @@ body {
     margin: 0;
     font-family: -apple-system, Arial, sans-serif;
     background: #f4f6f8;
+    overflow-x: hidden;
 }
 
 .container {
@@ -31,17 +32,35 @@ body {
     padding-bottom: 220px;
 }
 
+.top-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
 input {
-    width: 100%;
+    flex: 1;
     padding: 18px;
     font-size: 24px;
     border-radius: 14px;
     border: 1px solid #e5e7eb;
     text-align: center;
-    margin-bottom: 12px;
     outline: none;
     background: #fafafa;
 }
+
+.btn-table {
+    background: #f1f5f9;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    font-size: 22px;
+    padding: 10px 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.btn-table:active { background: #e2e8f0; }
 
 .result {
     font-size: 18px;
@@ -68,45 +87,48 @@ input {
     border-top-left-radius: 18px;
     border-top-right-radius: 18px;
     transition: transform 0.25s ease, opacity 0.25s ease;
+    z-index: 10;
 }
 
 .keyboard.hide {
     transform: translateX(-50%) translateY(120%);
     opacity: 0;
+    pointer-events: none;
 }
 
 .button-23 {
-  background-color: #FFFFFF;
-  border: 1px solid #222222;
-  border-radius: 8px;
-  color: #222;
-  font-size: 16px;
-  font-weight: 600;
-  padding: 14px 0;
-  cursor: pointer;
+    background-color: #FFFFFF;
+    border: 1px solid #222222;
+    border-radius: 8px;
+    color: #222;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 14px 0;
+    cursor: pointer;
+    touch-action: manipulation;
 }
 
 .button-23:active {
-  transform: scale(0.96);
-  background-color: #F7F7F7;
+    transform: scale(0.96);
+    background-color: #F7F7F7;
 }
 
 /* PANEL */
 .side-panel {
     position: fixed;
     top: 0;
-    right: -100%;
+    left: 100%;
     width: 100%;
     max-width: 420px;
     height: 100%;
     background: #fff;
-    z-index: 20;
+    z-index: 30;
     overflow: auto;
-    transition: right 0.3s ease;
+    transition: left 0.3s ease;
 }
 
 .side-panel.show {
-    right: 0;
+    left: 0;
 }
 
 .panel-header {
@@ -126,9 +148,9 @@ input {
     border: none;
     border-radius: 8px;
     font-size: 18px;
-    padding: 6px 12px;
+    padding: 8px 14px;
     cursor: pointer;
-    flex-shrink: 0;
+    touch-action: manipulation;
 }
 
 .panel-title {
@@ -160,14 +182,14 @@ th {
     border: 1px solid #ddd;
     padding: 8px 6px;
     cursor: pointer;
-    position: sticky;
-    top: 53px;
     text-align: left;
     white-space: nowrap;
     user-select: none;
+    position: sticky;
+    top: 53px;
 }
 
-th:hover { background: #e2e8f0; }
+th:active { background: #e2e8f0; }
 th.sorted { background: #dbeafe; }
 
 td {
@@ -184,16 +206,19 @@ tr:nth-child(even) td { background: #fafafa; }
 <body>
 
 <div class="container">
-    <input id="input" readonly>
+    <div class="top-bar">
+        <input id="input" readonly placeholder="введи номер...">
+        <button class="btn-table" onclick="showPanel()">📋</button>
+    </div>
     <div id="result" class="result"></div>
 </div>
 
 <div class="side-panel" id="panel">
     <div class="panel-header">
-        <button class="panel-close" onclick="hidePanel()">✕</button>
+        <button class="panel-close" onclick="hidePanel()">← Назад</button>
         <span class="panel-title">Таблиця</span>
     </div>
-    <div id="panel-content"><div class="panel-loading">Завантаження...</div></div>
+    <div id="panel-content"><div class="panel-loading">⏳ Завантаження...</div></div>
 </div>
 
 <div class="keyboard" id="keyboard">
@@ -376,38 +401,60 @@ function sortTable(col){
 }
 
 /* =======================
-   TAP + SWIPE
+   SWIPE (touch)
 ======================= */
 
-let startX = 0, startY = 0, startTime = 0;
-const MAX_TIME = 250, MAX_MOVE = 10, SWIPE_MIN = 80;
+let touchStartX = 0, touchStartY = 0;
 
-document.addEventListener("pointerdown", (e) => {
-    if (k.contains(e.target) || panel.contains(e.target)) return;
-    startX = e.clientX; startY = e.clientY; startTime = Date.now();
-});
+document.addEventListener("touchstart", (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+}, { passive: true });
 
-document.addEventListener("pointerup", (e) => {
-    if (k.contains(e.target) || panel.contains(e.target)) return;
+document.addEventListener("touchend", (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
 
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    const dt = Date.now() - startTime;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
 
-    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
-    const isTap   = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
-
-    if (isSwipe) {
-        if (dx > 0) { showPanel(); } else { hidePanel(); showKeyboard(); }
+    // свайп вправо з лівого краю (перших 40px) — відкрити панель
+    if (dx > 0 && touchStartX < 40 && !panel.classList.contains("show")) {
+        showPanel();
         return;
     }
 
-    if (isTap) {
+    // свайп вліво в панелі — закрити
+    if (dx < 0 && panel.classList.contains("show")) {
+        hidePanel();
+    }
+}, { passive: true });
+
+/* =======================
+   TAP на основному екрані
+======================= */
+
+let tapStartX = 0, tapStartY = 0, tapTime = 0;
+
+document.addEventListener("touchstart", (e) => {
+    if (k.contains(e.target) || panel.contains(e.target)) return;
+    tapStartX = e.touches[0].clientX;
+    tapStartY = e.touches[0].clientY;
+    tapTime = Date.now();
+}, { passive: true });
+
+document.addEventListener("touchend", (e) => {
+    if (k.contains(e.target) || panel.contains(e.target)) return;
+
+    const dx = Math.abs(e.changedTouches[0].clientX - tapStartX);
+    const dy = Math.abs(e.changedTouches[0].clientY - tapStartY);
+    const dt = Date.now() - tapTime;
+
+    if (dt < 250 && dx < 10 && dy < 10) {
         k.classList.contains("hide") ? showKeyboard() : hideKeyboard();
     }
-});
+}, { passive: true });
 
-window.addEventListener("scroll", hideKeyboard);
+window.addEventListener("scroll", hideKeyboard, { passive: true });
 
 /* =======================
    PANEL
