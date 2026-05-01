@@ -117,26 +117,6 @@ input {
     right: 0;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
-
-th {
-    background: #f1f5f9;
-    border: 1px solid #ddd;
-    padding: 8px;
-    cursor: pointer;
-    position: sticky;
-    top: 0;
-}
-
-td {
-    border: 1px solid #ddd;
-    padding: 6px;
-}
-
 </style>
 </head>
 
@@ -172,6 +152,9 @@ td {
 <button class="button-23" onclick="add('sp')">sp</button>
 <button class="button-23" onclick="add('ts')">ts</button>
 
+<!-- НОВА КНОПКА -->
+<button class="button-23" onclick="openSheet3()">Аркуш3</button>
+
 </div>
 
 <script>
@@ -195,25 +178,49 @@ function hideKeyboard(){
 }
 
 /* =======================
-   SEARCH
+   SHEET URLS
 ======================= */
 
-const url = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + new Date().getTime();
+const baseURL = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=";
+
+const gidMain = "1679964111";
+const gidSheet3 = "0"; // <-- ВСТАВ СЮДИ gid Аркуш3
+
+/* =======================
+   DATA
+======================= */
 
 let data = [];
 
-fetch(url)
-.then(r => r.text())
-.then(t => {
-    data = t.trim().split("\n").map(r => {
-        let c = r.split(",");
-        return {
-            station: c[0] || "",
-            material: c[1] || "",
-            article: c[2] || ""
-        };
+function loadSheet(gid){
+    fetch(baseURL + gid + "&t=" + new Date().getTime())
+    .then(r => r.text())
+    .then(t => {
+        data = t.trim().split("\n").map(r => {
+            let c = r.split(",");
+            return {
+                station: c[0] || "",
+                material: c[1] || "",
+                article: c[2] || ""
+            };
+        });
     });
-});
+}
+
+/* стартовий лист */
+loadSheet(gidMain);
+
+/* =======================
+   BUTTON ACTIONS
+======================= */
+
+function openSheet3(){
+    panel.classList.add("show");
+    hideKeyboard();
+    loadSheet(gidSheet3);
+}
+
+/* ======================= */
 
 function add(v){
     input.value += v;
@@ -279,82 +286,7 @@ function search(){
     resultBox.innerHTML = html || "Не знайдено";
 }
 
-/* =======================
-   TAP + SWIPE (FIXED)
-======================= */
-
-let startX = 0;
-let startY = 0;
-let startTime = 0;
-
-const MAX_TIME = 250;
-const MAX_MOVE = 10;
-const SWIPE_MIN = 80;
-
-document.addEventListener("pointerdown", (e) => {
-
-    if (k.contains(e.target) || panel.contains(e.target)) return;
-
-    startX = e.clientX;
-    startY = e.clientY;
-    startTime = Date.now();
-});
-
-document.addEventListener("pointerup", (e) => {
-
-    if (k.contains(e.target) || panel.contains(e.target)) return;
-
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    const dt = Date.now() - startTime;
-
-    const isSwipe = Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy);
-    const isTap = dt <= MAX_TIME && Math.abs(dx) <= MAX_MOVE && Math.abs(dy) <= MAX_MOVE;
-
-    /* SWIPE FIRST */
-    if (isSwipe) {
-
-        if (dx > 0) {
-            showPanel();
-        } else {
-            hidePanel();
-            showKeyboard();
-        }
-
-        return;
-    }
-
-    /* TAP */
-    if (isTap) {
-
-        if (k.classList.contains("hide")) {
-            showKeyboard();
-        } else {
-            hideKeyboard();
-        }
-    }
-});
-
-/* =======================
-   SCROLL
-======================= */
-
-window.addEventListener("scroll", () => {
-    hideKeyboard();
-});
-
-/* =======================
-   PANEL
-======================= */
-
-function showPanel(){
-    panel.classList.add("show");
-    hideKeyboard();
-}
-
-function hidePanel(){
-    panel.classList.remove("show");
-}
+/* ======================= */
 
 </script>
 
