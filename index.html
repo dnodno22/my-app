@@ -65,7 +65,6 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
 <body>
 
 <div id="pages">
-    <!-- PAGE 1: SEARCH -->
     <div class="page" id="page1">
         <div class="search-header">
             <input id="input" readonly placeholder="">
@@ -75,7 +74,6 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
         </div>
         
         <div id="kb-wrapper" class="kb-container">
-            <!-- Клавіатура 1 (Цифрова) -->
             <div id="kb1" class="kb-grid">
                 <button class="btn" data-v="1">1</button>
                 <button class="btn" data-v="2">2</button>
@@ -94,19 +92,14 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
                 <button class="btn btn-special" id="btn-to-kb2">⌨️</button>
             </div>
 
-            <!-- Клавіатура 2 (Спеціальна) -->
             <div id="kb2" class="kb-grid hidden">
                 <button class="btn" data-v="стр">стр</button>
-                <div></div>
-                <div></div>
-                <div></div>
-                <div></div>
+                <div></div><div></div><div></div><div></div>
                 <button class="btn btn-special" id="btn-to-kb1">назад</button>
             </div>
         </div>
     </div>
 
-    <!-- PAGE 2: TABLE -->
     <div class="page" id="page2">
         <div class="table-header"><span class="table-title">Повна таблиця</span></div>
         <div class="table-scroll" id="table-scroll">
@@ -129,35 +122,24 @@ const kb1 = document.getElementById('kb1');
 const kb2 = document.getElementById('kb2');
 const kbWrapper = document.getElementById('kb-wrapper');
 
-// Перемикання клавіатур
 document.getElementById('btn-to-kb2').onclick = (e) => { e.stopPropagation(); kb1.classList.add('hidden'); kb2.classList.remove('hidden'); };
 document.getElementById('btn-to-kb1').onclick = (e) => { e.stopPropagation(); kb2.classList.add('hidden'); kb1.classList.remove('hidden'); };
 
-// Логіка кнопок
 document.querySelectorAll('.btn').forEach(btn => {
     if (btn.id.startsWith('btn-to')) return;
     btn.onclick = (e) => {
         e.stopPropagation();
-        if (btn.dataset.del) {
-            input.value = "";
-        } else {
-            input.value += btn.dataset.v;
-        }
+        if (btn.dataset.del) { input.value = ""; } 
+        else { input.value += btn.dataset.v; }
         search();
     };
 });
 
-// Завантаження даних для пошуку
 const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
 fetch(url1).then(r => r.text()).then(t => {
     searchData = t.trim().split("\n").map(r => {
         const c = r.split(",");
-        return { 
-            station: c[0]||"", 
-            material: c[1]||"", 
-            article: c[2]||"",
-            colD: c[3]||"" // Стовпчик D
-        };
+        return { station: c[0]||"", material: c[1]||"", article: c[2]||"", colD: c[3]||"" };
     });
 });
 
@@ -165,16 +147,23 @@ function search() {
     const v = input.value.toLowerCase();
     if (!v) { resultBox.innerHTML = ""; return; }
 
-    // Пошук: якщо в запиті є "стр", шукаємо ТІЛЬКИ в стовпчику D. Інакше - в A, B, C.
+    const isNumOnly = /^\d+$/.test(v); // Чи містить запит тільки цифри?
     const isStrSearch = v.includes("стр");
-    
+
     const filtered = searchData.filter(x => {
         if (isStrSearch) {
-            return x.colD.toLowerCase().includes(v);
+            // Для "стр" шукаємо в D, якщо букви — від початку
+            return x.colD.toLowerCase().startsWith(v);
+        } else if (isNumOnly) {
+            // ТІЛЬКИ ЦИФРИ: знаходимо 896 у 123896 (endsWith), але не 128963
+            return x.station.toLowerCase().endsWith(v) || 
+                   x.material.toLowerCase().endsWith(v) || 
+                   x.article.toLowerCase().endsWith(v);
         } else {
-            return x.station.toLowerCase().includes(v) || 
-                   x.material.toLowerCase().includes(v) || 
-                   x.article.toLowerCase().includes(v);
+            // Є БУКВИ (с, sp, ts): шукаємо від початку (startsWith)
+            return x.station.toLowerCase().startsWith(v) || 
+                   x.material.toLowerCase().startsWith(v) || 
+                   x.article.toLowerCase().startsWith(v);
         }
     });
 
@@ -183,7 +172,6 @@ function search() {
         return;
     }
 
-    // Групування результатів
     const grouped = {};
     filtered.forEach(x => {
         if (!grouped[x.article]) grouped[x.article] = {};
@@ -205,7 +193,6 @@ function search() {
     resultBox.innerHTML = html;
 }
 
-// Сторінки та Жести
 function goToPage(n) {
     currentPage = n;
     document.getElementById('pages').style.transform = `translateX(-${n * 50}%)`;
@@ -228,7 +215,6 @@ document.addEventListener('touchend', e => {
     }
 }, {passive:true});
 
-// Таблиця (Сторінка 2)
 function loadTable() {
     const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
     fetch(url2).then(r => r.text()).then(t => {
