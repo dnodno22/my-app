@@ -11,150 +11,53 @@
 *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
 
 html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
+    width: 100%; height: 100%; overflow: hidden;
     font-family: -apple-system, Arial, sans-serif;
-    background: #fff;
-    touch-action: none;
+    background: #fff; touch-action: none;
 }
 
-#pages {
-    display: flex;
-    width: 200%;
-    height: 100%;
-    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
-}
-
-.page {
-    width: 50%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    position: relative;
-}
+#pages { display: flex; width: 200%; height: 100%; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); }
+.page { width: 50%; height: 100%; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 
 /* SEARCH PAGE */
-#page1 { background: #fff; }
-
-.search-header {
-    padding: 16px 16px 8px;
-    padding-top: calc(16px + env(safe-area-inset-top));
-    flex-shrink: 0;
-}
-
+.search-header { padding: 16px 16px 8px; padding-top: calc(16px + env(safe-area-inset-top)); flex-shrink: 0; }
 input#input {
-    width: 100%;
-    padding: 16px 18px;
-    font-size: 22px;
-    border-radius: 14px;
-    border: 1px solid #e5e7eb;
-    text-align: center;
-    outline: none;
-    background: #f9fafb;
-    color: #111;
-    caret-color: transparent;
-    height: 60px;
+    width: 100%; padding: 16px 18px; font-size: 22px; border-radius: 14px;
+    border: 1px solid #e5e7eb; text-align: center; outline: none;
+    background: #f9fafb; color: #111; caret-color: transparent; height: 60px;
 }
 
-.scroll-area {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    padding: 8px 16px 16px;
-    overscroll-behavior: contain;
-}
-
-.result-card {
-    margin-bottom: 12px;
-    padding: 12px;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    background: #fafafa;
-}
-
-.result-article {
-    font-weight: 700;
-    font-size: 20px;
-    color: #111;
-    margin-bottom: 6px;
-}
-
-.result-material { margin-left: 6px; margin-bottom: 4px; }
+.scroll-area { flex: 1; overflow-y: auto; padding: 8px 16px 16px; -webkit-overflow-scrolling: touch; }
+.result-card { margin-bottom: 12px; padding: 12px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fafafa; }
+.result-article { font-weight: 700; font-size: 20px; color: #111; margin-bottom: 6px; }
 .result-material-name { font-size: 15px; color: #666; margin-bottom: 4px; }
+.result-stations { font-size: 24px; font-weight: 800; color: #000; }
 
-/* ЗБІЛЬШЕНИЙ ШРИФТ ДЛЯ СТАНЦІЙ (с1 і т.д.) */
-.result-stations { 
-    font-size: 24px; 
-    font-weight: 800; 
-    color: #000; 
-    padding-left: 5px;
+/* KEYBOARDS */
+.kb-container {
+    flex-shrink: 0; background: #fff; border-top: 1px solid #e5e7eb;
+    padding: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
-
-.empty-msg {
-    text-align: center;
-    padding: 40px 20px;
-    color: #aaa;
-    font-size: 16px;
-}
-
-/* KEYBOARD */
-#keyboard {
-    flex-shrink: 0;
-    padding: 12px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
-    background: #fff;
-    border-top: 1px solid #e5e7eb;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-}
-
-#keyboard.hidden { display: none; }
+.kb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.hidden { display: none !important; }
 
 .btn {
-    background-color: #FFFFFF;
-    border: 1px solid #222222;
-    border-radius: 8px;
-    color: #222222;
-    cursor: pointer;
-    display: block;
-    font-family: -apple-system, sans-serif;
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 20px;
-    padding: 15px 0;
-    text-align: center;
-    touch-action: manipulation;
-    transition: background-color .2s, transform .1s;
-    user-select: none;
+    background: #fff; border: 1px solid #222; border-radius: 8px;
+    color: #222; font-size: 18px; font-weight: 600; padding: 15px 0;
+    text-align: center; touch-action: manipulation; user-select: none;
 }
-
-.btn:active {
-    background-color: #F7F7F7;
-    transform: scale(.96);
-}
+.btn:active { background: #F7F7F7; transform: scale(.96); }
+.btn-special { background: #f1f5f9; }
 
 /* TABLE PAGE */
 #page2 { background: #fff; }
 .table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; }
-.table-title { font-size: 17px; font-weight: 700; }
-.table-scroll { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll { flex: 1; overflow: auto; }
 table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
 th { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 10px 8px; position: sticky; top: 0; }
 td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
 
-.page-dots {
-    position: fixed;
-    bottom: calc(8px + env(safe-area-inset-bottom));
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 6px;
-    z-index: 100;
-}
+.page-dots { position: fixed; bottom: calc(8px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: #d1d5db; }
 .dot.active { background: #374151; transform: scale(1.3); }
 </style>
@@ -162,37 +65,52 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
 <body>
 
 <div id="pages">
+    <!-- PAGE 1 -->
     <div class="page" id="page1">
         <div class="search-header">
-            <!-- ПРИБРАНО ПЛЕЙСХОЛДЕР -->
             <input id="input" readonly placeholder="">
         </div>
         <div class="scroll-area" id="scroll-area">
             <div id="result"></div>
         </div>
-        <div id="keyboard">
-            <button class="btn" data-v="1">1</button>
-            <button class="btn" data-v="2">2</button>
-            <button class="btn" data-v="3">3</button>
-            <button class="btn" data-v="4">4</button>
-            <button class="btn" data-v="5">5</button>
-            <button class="btn" data-v="6">6</button>
-            <button class="btn" data-v="7">7</button>
-            <button class="btn" data-v="8">8</button>
-            <button class="btn" data-v="9">9</button>
-            <button class="btn" data-v="с">с</button>
-            <button class="btn" data-v="0">0</button>
-            <!-- КНОПКА ВИДАЛЕННЯ (ОЧИЩУЄ ВСЕ) -->
-            <button class="btn" data-del="all">⌫</button>
-            <button class="btn" data-v="sp">sp</button>
-            <button class="btn" data-v="ts">ts</button>
+        
+        <div id="kb-wrapper" class="kb-container">
+            <!-- КЛАВІАТУРА 1 -->
+            <div id="kb1" class="kb-grid">
+                <button class="btn" data-v="1">1</button>
+                <button class="btn" data-v="2">2</button>
+                <button class="btn" data-v="3">3</button>
+                <button class="btn" data-v="4">4</button>
+                <button class="btn" data-v="5">5</button>
+                <button class="btn" data-v="6">6</button>
+                <button class="btn" data-v="7">7</button>
+                <button class="btn" data-v="8">8</button>
+                <button class="btn" data-v="9">9</button>
+                <button class="btn" data-v="с">с</button>
+                <button class="btn" data-v="0">0</button>
+                <button class="btn btn-special" data-del="all">⌫</button>
+                <button class="btn" data-v="sp">sp</button>
+                <button class="btn" data-v="ts">ts</button>
+                <!-- КНОПКА ПЕРЕКЛЮЧЕННЯ -->
+                <button class="btn btn-special" id="btn-next-kb">⌨️</button>
+            </div>
+
+            <!-- КЛАВІАТУРА 2 -->
+            <div id="kb2" class="kb-grid hidden">
+                <button class="btn" data-v="стр">стр</button>
+                <div style="grid-column: span 1;"></div>
+                <div style="grid-column: span 1;"></div>
+                <!-- КНОПКА ПОВЕРНЕННЯ -->
+                <button class="btn btn-special" id="btn-prev-kb" style="grid-column: 3;">назад</button>
+            </div>
         </div>
     </div>
 
+    <!-- PAGE 2 -->
     <div class="page" id="page2">
         <div class="table-header"><span class="table-title">Таблиця</span></div>
         <div class="table-scroll" id="table-scroll">
-            <div class="table-loading" id="table-loading">⏳ Завантаження...</div>
+            <div id="table-loading" style="text-align:center; padding:20px;">⏳ Завантаження...</div>
         </div>
     </div>
 </div>
@@ -206,48 +124,84 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
 let currentPage = 0;
 let kbVisible = true;
 
-const pages = document.getElementById('pages');
-const keyboard = document.getElementById('keyboard');
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
-const scrollArea = document.getElementById('scroll-area');
-const tableScroll = document.getElementById('table-scroll');
+const kbWrapper = document.getElementById('kb-wrapper');
+const kb1 = document.getElementById('kb1');
+const kb2 = document.getElementById('kb2');
 
-function goToPage(n) {
-    currentPage = n;
-    pages.style.transform = `translateX(-${n * 50}%)`;
-    document.getElementById('dot0').classList.toggle('active', n === 0);
-    document.getElementById('dot1').classList.toggle('active', n === 1);
-    if (n === 1) { hideKeyboard(); loadTable(); }
-}
+// Перемикання клавіатур
+document.getElementById('btn-next-kb').addEventListener('click', (e) => {
+    e.stopPropagation();
+    kb1.classList.add('hidden');
+    kb2.classList.remove('hidden');
+});
 
-function showKeyboard() {
-    if (currentPage !== 0) return;
-    kbVisible = true;
-    keyboard.classList.remove('hidden');
-}
+document.getElementById('btn-prev-kb').addEventListener('click', (e) => {
+    e.stopPropagation();
+    kb2.classList.add('hidden');
+    kb1.classList.remove('hidden');
+});
 
-function hideKeyboard() {
-    kbVisible = false;
-    keyboard.classList.add('hidden');
-}
-
+// Обробка кнопок
 document.querySelectorAll('.btn').forEach(btn => {
+    if (btn.id === 'btn-next-kb' || btn.id === 'btn-prev-kb') return;
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (btn.dataset.del) {
-            // ТЕПЕР ОЧИЩУЄ ВЕСЬ ТЕКСТ
             input.value = "";
-        } else {
+        } else if (btn.dataset.v) {
             input.value += btn.dataset.v;
         }
         search();
     });
 });
 
-const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
-let searchData = [];
+function goToPage(n) {
+    currentPage = n;
+    document.getElementById('pages').style.transform = `translateX(-${n * 50}%)`;
+    document.getElementById('dot0').classList.toggle('active', n === 0);
+    document.getElementById('dot1').classList.toggle('active', n === 1);
+    if (n === 1) { kbWrapper.classList.add('hidden'); loadTable(); }
+}
 
+function search() {
+    const v = input.value.toLowerCase();
+    if (!v) { resultBox.innerHTML = ""; return; }
+    const isNum = /^\d+$/.test(v);
+    let html = "";
+    const filtered = searchData.filter(x => 
+        (x.station && x.station.toLowerCase().includes(v)) ||
+        (x.material && x.material.toLowerCase().includes(v)) ||
+        (x.article && x.article.toLowerCase().includes(v))
+    );
+
+    if (!filtered.length) { resultBox.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">Не знайдено</div>'; return; }
+
+    // Групування
+    const grouped = {};
+    filtered.forEach(x => {
+        if (!grouped[x.article]) grouped[x.article] = {};
+        if (!grouped[x.article][x.material]) grouped[x.article][x.material] = new Set();
+        grouped[x.article][x.material].add(x.station);
+    });
+
+    for (let art in grouped) {
+        html += `<div class="result-card"><div class="result-article">${art}</div>`;
+        for (let mat in grouped[art]) {
+            html += `<div style="margin-bottom:8px;">
+                <div class="result-material-name">📦 ${mat}</div>
+                <div class="result-stations">${[...grouped[art][mat]].join(", ")}</div>
+            </div>`;
+        }
+        html += `</div>`;
+    }
+    resultBox.innerHTML = html;
+}
+
+// Завантаження даних пошуку
+let searchData = [];
+const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
 fetch(url1).then(r => r.text()).then(t => {
     searchData = t.trim().split("\n").map(r => {
         const c = r.split(",");
@@ -255,127 +209,31 @@ fetch(url1).then(r => r.text()).then(t => {
     });
 });
 
-function search() {
-    const v = input.value.toLowerCase();
-    if (!v) { resultBox.innerHTML = ""; return; }
-    const isNum = /^\d+$/.test(v);
-    const result = {};
-    searchData.forEach(x => {
-        const match =
-            (x.station  && (isNum ? x.station.toLowerCase().endsWith(v)  : x.station.toLowerCase().includes(v)))  ||
-            (x.material && (isNum ? x.material.toLowerCase().endsWith(v) : x.material.toLowerCase().includes(v))) ||
-            (x.article  && (isNum ? x.article.toLowerCase().endsWith(v)  : x.article.toLowerCase().includes(v)));
-        if (match) {
-            if (!result[x.article]) result[x.article] = {};
-            if (!result[x.article][x.material]) result[x.article][x.material] = new Set();
-            result[x.article][x.material].add(x.station);
-        }
-    });
-    const keys = Object.keys(result);
-    if (!keys.length) { resultBox.innerHTML = '<div class="empty-msg">Не знайдено</div>'; return; }
-    let html = "";
-    keys.forEach(article => {
-        html += `<div class="result-card"><div class="result-article">${article}</div>`;
-        Object.keys(result[article]).forEach(material => {
-            html += `<div class="result-material">
-                <div class="result-material-name">📦 ${material}</div>
-                <div class="result-stations">${[...result[article][material]].map(s=>`<div>${s}</div>`).join("")}</div>
-            </div>`;
-        });
-        html += `</div>`;
-    });
-    resultBox.innerHTML = html;
-}
-
-/* TABLE LOGIC (URL2) */
-const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
-let tableRows = [], tableHeaders = [], sortCol = -1, sortAsc = true, tableLoaded = false;
-
-function parseCSV(row) {
-    const res = []; let cur = "", q = false;
-    for (let i = 0; i < row.length; i++) {
-        const c = row[i];
-        if (c === '"') { q = !q; }
-        else if (c === ',' && !q) { res.push(cur.trim()); cur = ""; }
-        else cur += c;
-    }
-    res.push(cur.trim());
-    return res;
-}
-
+// Завантаження таблиці (спрощено)
 function loadTable() {
-    if (tableLoaded) return;
+    const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
     fetch(url2).then(r => r.text()).then(t => {
-        const lines = t.trim().split("\n");
-        tableHeaders = parseCSV(lines[0]);
-        tableRows = lines.slice(1).map(l => parseCSV(l));
-        tableLoaded = true;
-        renderTable();
-    }).catch(() => {
-        document.getElementById('table-loading').textContent = "❌ Помилка завантаження";
+        const lines = t.trim().split("\n").map(l => l.split(","));
+        let h = '<table><thead><tr>' + lines[0].map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+        h += lines.slice(1).map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('');
+        document.getElementById('table-scroll').innerHTML = h + '</tbody></table>';
     });
 }
 
-function renderTable() {
-    let rows = [...tableRows];
-    if (sortCol >= 0) {
-        rows.sort((a, b) => {
-            const av = a[sortCol]||"", bv = b[sortCol]||"";
-            const an = parseFloat(av), bn = parseFloat(bv);
-            if (!isNaN(an) && !isNaN(bn)) return sortAsc ? an-bn : bn-an;
-            return sortAsc ? av.localeCompare(bv,'uk') : bv.localeCompare(av,'uk');
-        });
-    }
-    let html = '<table><thead><tr>';
-    tableHeaders.forEach((h, i) => {
-        const s = sortCol === i;
-        html += `<th onclick="doSort(${i})">${h}${s?(sortAsc?' ↑':' ↓'):''}</th>`;
-    });
-    html += '</tr></thead><tbody>';
-    rows.forEach(r => {
-        html += '<tr>' + tableHeaders.map((_,i) => `<td>${r[i]||''}</td>`).join('') + '</tr>';
-    });
-    html += '</tbody></table>';
-    tableScroll.innerHTML = html;
-}
-
-function doSort(col) {
-    sortAsc = sortCol === col ? !sortAsc : true;
-    sortCol = col;
-    renderTable();
-}
-
-/* GESTURES */
-let tx = 0, ty = 0, moved = false, isScrolling = null;
-document.addEventListener('touchstart', e => {
-    tx = e.touches[0].clientX; ty = e.touches[0].clientY;
-    moved = false; isScrolling = null;
-}, { passive: true });
-
-document.addEventListener('touchmove', e => {
-    const dx = e.touches[0].clientX - tx;
-    const dy = e.touches[0].clientY - ty;
-    if (isScrolling === null) {
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) isScrolling = false;
-        else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) isScrolling = true;
-    }
-    moved = true;
-    if (isScrolling === true && kbVisible && scrollArea.contains(e.target)) hideKeyboard();
-}, { passive: true });
-
+// Жести
+let tx = 0, ty = 0, moved = false;
+document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; moved = false; }, {passive:true});
+document.addEventListener('touchmove', e => { moved = true; }, {passive:true});
 document.addEventListener('touchend', e => {
     const dx = e.changedTouches[0].clientX - tx;
-    const dy = e.changedTouches[0].clientY - ty;
-    if (!moved || (Math.abs(dx) < 8 && Math.abs(dy) < 8)) {
-        if (keyboard.contains(e.target)) return;
-        if (currentPage === 0) kbVisible ? hideKeyboard() : showKeyboard();
-        return;
-    }
-    if (isScrolling === false && Math.abs(dx) > 50) {
+    if (moved && Math.abs(dx) > 50) {
         if (dx < 0 && currentPage === 0) goToPage(1);
         if (dx > 0 && currentPage === 1) goToPage(0);
+    } else if (!moved && !kbWrapper.contains(e.target)) {
+        if (currentPage === 0) kbWrapper.classList.toggle('hidden');
     }
-}, { passive: true });
+}, {passive:true});
+
 </script>
 </body>
 </html>
