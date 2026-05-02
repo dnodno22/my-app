@@ -27,7 +27,7 @@ input#input {
     background: #f9fafb; color: #111; caret-color: transparent; height: 60px;
 }
 
-.scroll-area { flex: 1; overflow-y: auto; padding: 8px 16px 16px; -webkit-overflow-scrolling: touch; }
+.scroll-area { flex: 1; overflow-y: auto; padding: 8px 16px 16px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .result-card { margin-bottom: 12px; padding: 12px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fafafa; }
 .result-article { font-weight: 700; font-size: 20px; color: #111; margin-bottom: 6px; }
 .result-material-name { font-size: 15px; color: #666; margin-bottom: 4px; }
@@ -57,7 +57,7 @@ table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
 th { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 10px 8px; position: sticky; top: 0; }
 td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
 
-.page-dots { position: fixed; bottom: calc(8px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+.page-dots { position: fixed; bottom: calc(8px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: none; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: #d1d5db; }
 .dot.active { background: #374151; transform: scale(1.3); }
 </style>
@@ -65,7 +65,7 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
 <body>
 
 <div id="pages">
-    <!-- PAGE 1 -->
+    <!-- PAGE 1: SEARCH -->
     <div class="page" id="page1">
         <div class="search-header">
             <input id="input" readonly placeholder="">
@@ -75,7 +75,7 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
         </div>
         
         <div id="kb-wrapper" class="kb-container">
-            <!-- КЛАВІАТУРА 1 -->
+            <!-- Клавіатура 1 (Цифрова) -->
             <div id="kb1" class="kb-grid">
                 <button class="btn" data-v="1">1</button>
                 <button class="btn" data-v="2">2</button>
@@ -91,26 +91,26 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
                 <button class="btn btn-special" data-del="all">⌫</button>
                 <button class="btn" data-v="sp">sp</button>
                 <button class="btn" data-v="ts">ts</button>
-                <!-- КНОПКА ПЕРЕКЛЮЧЕННЯ -->
-                <button class="btn btn-special" id="btn-next-kb">⌨️</button>
+                <button class="btn btn-special" id="btn-to-kb2">⌨️</button>
             </div>
 
-            <!-- КЛАВІАТУРА 2 -->
+            <!-- Клавіатура 2 (Спеціальна) -->
             <div id="kb2" class="kb-grid hidden">
                 <button class="btn" data-v="стр">стр</button>
-                <div style="grid-column: span 1;"></div>
-                <div style="grid-column: span 1;"></div>
-                <!-- КНОПКА ПОВЕРНЕННЯ -->
-                <button class="btn btn-special" id="btn-prev-kb" style="grid-column: 3;">назад</button>
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+                <button class="btn btn-special" id="btn-to-kb1">назад</button>
             </div>
         </div>
     </div>
 
-    <!-- PAGE 2 -->
+    <!-- PAGE 2: TABLE -->
     <div class="page" id="page2">
-        <div class="table-header"><span class="table-title">Таблиця</span></div>
+        <div class="table-header"><span class="table-title">Повна таблиця</span></div>
         <div class="table-scroll" id="table-scroll">
-            <div id="table-loading" style="text-align:center; padding:20px;">⏳ Завантаження...</div>
+            <div id="table-loading" style="text-align:center; padding:40px; color:#999;">⏳ Завантаження...</div>
         </div>
     </div>
 </div>
@@ -122,63 +122,68 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
 
 <script>
 let currentPage = 0;
-let kbVisible = true;
-
+let searchData = [];
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
-const kbWrapper = document.getElementById('kb-wrapper');
 const kb1 = document.getElementById('kb1');
 const kb2 = document.getElementById('kb2');
+const kbWrapper = document.getElementById('kb-wrapper');
 
 // Перемикання клавіатур
-document.getElementById('btn-next-kb').addEventListener('click', (e) => {
-    e.stopPropagation();
-    kb1.classList.add('hidden');
-    kb2.classList.remove('hidden');
-});
+document.getElementById('btn-to-kb2').onclick = (e) => { e.stopPropagation(); kb1.classList.add('hidden'); kb2.classList.remove('hidden'); };
+document.getElementById('btn-to-kb1').onclick = (e) => { e.stopPropagation(); kb2.classList.add('hidden'); kb1.classList.remove('hidden'); };
 
-document.getElementById('btn-prev-kb').addEventListener('click', (e) => {
-    e.stopPropagation();
-    kb2.classList.add('hidden');
-    kb1.classList.remove('hidden');
-});
-
-// Обробка кнопок
+// Логіка кнопок
 document.querySelectorAll('.btn').forEach(btn => {
-    if (btn.id === 'btn-next-kb' || btn.id === 'btn-prev-kb') return;
-    btn.addEventListener('click', (e) => {
+    if (btn.id.startsWith('btn-to')) return;
+    btn.onclick = (e) => {
         e.stopPropagation();
         if (btn.dataset.del) {
             input.value = "";
-        } else if (btn.dataset.v) {
+        } else {
             input.value += btn.dataset.v;
         }
         search();
-    });
+    };
 });
 
-function goToPage(n) {
-    currentPage = n;
-    document.getElementById('pages').style.transform = `translateX(-${n * 50}%)`;
-    document.getElementById('dot0').classList.toggle('active', n === 0);
-    document.getElementById('dot1').classList.toggle('active', n === 1);
-    if (n === 1) { kbWrapper.classList.add('hidden'); loadTable(); }
-}
+// Завантаження даних для пошуку
+const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
+fetch(url1).then(r => r.text()).then(t => {
+    searchData = t.trim().split("\n").map(r => {
+        const c = r.split(",");
+        return { 
+            station: c[0]||"", 
+            material: c[1]||"", 
+            article: c[2]||"",
+            colD: c[3]||"" // Стовпчик D
+        };
+    });
+});
 
 function search() {
     const v = input.value.toLowerCase();
     if (!v) { resultBox.innerHTML = ""; return; }
-    const isNum = /^\d+$/.test(v);
-    let html = "";
-    const filtered = searchData.filter(x => 
-        (x.station && x.station.toLowerCase().includes(v)) ||
-        (x.material && x.material.toLowerCase().includes(v)) ||
-        (x.article && x.article.toLowerCase().includes(v))
-    );
 
-    if (!filtered.length) { resultBox.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">Не знайдено</div>'; return; }
+    // Пошук: якщо в запиті є "стр", шукаємо ТІЛЬКИ в стовпчику D. Інакше - в A, B, C.
+    const isStrSearch = v.includes("стр");
+    
+    const filtered = searchData.filter(x => {
+        if (isStrSearch) {
+            return x.colD.toLowerCase().includes(v);
+        } else {
+            return x.station.toLowerCase().includes(v) || 
+                   x.material.toLowerCase().includes(v) || 
+                   x.article.toLowerCase().includes(v);
+        }
+    });
 
-    // Групування
+    if (!filtered.length) {
+        resultBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
+        return;
+    }
+
+    // Групування результатів
     const grouped = {};
     filtered.forEach(x => {
         if (!grouped[x.article]) grouped[x.article] = {};
@@ -186,12 +191,13 @@ function search() {
         grouped[x.article][x.material].add(x.station);
     });
 
+    let html = "";
     for (let art in grouped) {
         html += `<div class="result-card"><div class="result-article">${art}</div>`;
         for (let mat in grouped[art]) {
             html += `<div style="margin-bottom:8px;">
                 <div class="result-material-name">📦 ${mat}</div>
-                <div class="result-stations">${[...grouped[art][mat]].join(", ")}</div>
+                <div class="result-stations">${[...grouped[art][mat]].join(" | ")}</div>
             </div>`;
         }
         html += `</div>`;
@@ -199,17 +205,30 @@ function search() {
     resultBox.innerHTML = html;
 }
 
-// Завантаження даних пошуку
-let searchData = [];
-const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
-fetch(url1).then(r => r.text()).then(t => {
-    searchData = t.trim().split("\n").map(r => {
-        const c = r.split(",");
-        return { station: c[0]||"", material: c[1]||"", article: c[2]||"" };
-    });
-});
+// Сторінки та Жести
+function goToPage(n) {
+    currentPage = n;
+    document.getElementById('pages').style.transform = `translateX(-${n * 50}%)`;
+    document.getElementById('dot0').classList.toggle('active', n === 0);
+    document.getElementById('dot1').classList.toggle('active', n === 1);
+    if (n === 1) { kbWrapper.classList.add('hidden'); loadTable(); }
+    else { kbWrapper.classList.remove('hidden'); }
+}
 
-// Завантаження таблиці (спрощено)
+let tx = 0, moved = false;
+document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; moved = false; }, {passive:true});
+document.addEventListener('touchmove', () => { moved = true; }, {passive:true});
+document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - tx;
+    if (moved && Math.abs(dx) > 60) {
+        if (dx < 0 && currentPage === 0) goToPage(1);
+        if (dx > 0 && currentPage === 1) goToPage(0);
+    } else if (!moved && currentPage === 0 && !kbWrapper.contains(e.target)) {
+        kbWrapper.classList.toggle('hidden');
+    }
+}, {passive:true});
+
+// Таблиця (Сторінка 2)
 function loadTable() {
     const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
     fetch(url2).then(r => r.text()).then(t => {
@@ -219,21 +238,6 @@ function loadTable() {
         document.getElementById('table-scroll').innerHTML = h + '</tbody></table>';
     });
 }
-
-// Жести
-let tx = 0, ty = 0, moved = false;
-document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; moved = false; }, {passive:true});
-document.addEventListener('touchmove', e => { moved = true; }, {passive:true});
-document.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].clientX - tx;
-    if (moved && Math.abs(dx) > 50) {
-        if (dx < 0 && currentPage === 0) goToPage(1);
-        if (dx > 0 && currentPage === 1) goToPage(0);
-    } else if (!moved && !kbWrapper.contains(e.target)) {
-        if (currentPage === 0) kbWrapper.classList.toggle('hidden');
-    }
-}, {passive:true});
-
 </script>
 </body>
 </html>
