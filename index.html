@@ -55,10 +55,11 @@ input#input {
     background: #f9fafb;
     color: #111;
     caret-color: transparent;
+    height: 60px;
 }
 
 .scroll-area {
-    flex: 1; /* Займає весь вільний простір */
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -82,8 +83,15 @@ input#input {
 }
 
 .result-material { margin-left: 6px; margin-bottom: 4px; }
-.result-material-name { font-size: 15px; color: #333; }
-.result-stations { font-size: 13px; color: #888; padding-left: 10px; }
+.result-material-name { font-size: 15px; color: #666; margin-bottom: 4px; }
+
+/* ЗБІЛЬШЕНИЙ ШРИФТ ДЛЯ СТАНЦІЙ (с1 і т.д.) */
+.result-stations { 
+    font-size: 24px; 
+    font-weight: 800; 
+    color: #000; 
+    padding-left: 5px;
+}
 
 .empty-msg {
     text-align: center;
@@ -104,11 +112,8 @@ input#input {
     gap: 10px;
 }
 
-#keyboard.hidden {
-    display: none; /* Прибираємо з потоку документа */
-}
+#keyboard.hidden { display: none; }
 
-/* BUTTON STYLE */
 .btn {
     background-color: #FFFFFF;
     border: 1px solid #222222;
@@ -116,18 +121,15 @@ input#input {
     color: #222222;
     cursor: pointer;
     display: block;
-    font-family: Circular, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    font-family: -apple-system, sans-serif;
     font-size: 18px;
     font-weight: 600;
     line-height: 20px;
-    outline: none;
     padding: 15px 0;
     text-align: center;
     touch-action: manipulation;
-    transition: box-shadow .2s, transform .1s;
+    transition: background-color .2s, transform .1s;
     user-select: none;
-    -webkit-user-select: none;
-    width: 100%;
 }
 
 .btn:active {
@@ -137,60 +139,13 @@ input#input {
 
 /* TABLE PAGE */
 #page2 { background: #fff; }
+.table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; }
+.table-title { font-size: 17px; font-weight: 700; }
+.table-scroll { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+th { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 10px 8px; position: sticky; top: 0; }
+td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
 
-.table-header {
-    padding: 16px;
-    padding-top: calc(16px + env(safe-area-inset-top));
-    border-bottom: 1px solid #e5e7eb;
-    flex-shrink: 0;
-}
-
-.table-title {
-    font-size: 17px;
-    font-weight: 700;
-    color: #111;
-}
-
-.table-scroll {
-    flex: 1;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-}
-
-table {
-    border-collapse: collapse;
-    font-size: 13px;
-    min-width: 100%;
-}
-
-th {
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
-    padding: 10px 8px;
-    text-align: left;
-    position: sticky;
-    top: 0;
-    font-weight: 600;
-    color: #374151;
-}
-
-td {
-    border: 1px solid #e2e8f0;
-    padding: 8px;
-    white-space: nowrap;
-    color: #374151;
-}
-
-tr:nth-child(even) td { background: #f9fafb; }
-
-.table-loading {
-    text-align: center;
-    padding: 60px 20px;
-    color: #9ca3af;
-}
-
-/* Page dots */
 .page-dots {
     position: fixed;
     bottom: calc(8px + env(safe-area-inset-bottom));
@@ -199,29 +154,18 @@ tr:nth-child(even) td { background: #f9fafb; }
     display: flex;
     gap: 6px;
     z-index: 100;
-    pointer-events: none;
 }
-
-.dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #d1d5db;
-}
-
-.dot.active {
-    background: #374151;
-    transform: scale(1.3);
-}
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #d1d5db; }
+.dot.active { background: #374151; transform: scale(1.3); }
 </style>
 </head>
 <body>
 
 <div id="pages">
-    <!-- PAGE 1: SEARCH -->
     <div class="page" id="page1">
         <div class="search-header">
-            <input id="input" readonly placeholder="Пошук...">
+            <!-- ПРИБРАНО ПЛЕЙСХОЛДЕР -->
+            <input id="input" readonly placeholder="">
         </div>
         <div class="scroll-area" id="scroll-area">
             <div id="result"></div>
@@ -238,17 +182,15 @@ tr:nth-child(even) td { background: #f9fafb; }
             <button class="btn" data-v="9">9</button>
             <button class="btn" data-v="с">с</button>
             <button class="btn" data-v="0">0</button>
-            <button class="btn" data-del="1">⌫</button>
+            <!-- КНОПКА ВИДАЛЕННЯ (ОЧИЩУЄ ВСЕ) -->
+            <button class="btn" data-del="all">⌫</button>
             <button class="btn" data-v="sp">sp</button>
             <button class="btn" data-v="ts">ts</button>
         </div>
     </div>
 
-    <!-- PAGE 2: TABLE -->
     <div class="page" id="page2">
-        <div class="table-header">
-            <span class="table-title">Таблиця</span>
-        </div>
+        <div class="table-header"><span class="table-title">Таблиця</span></div>
         <div class="table-scroll" id="table-scroll">
             <div class="table-loading" id="table-loading">⏳ Завантаження...</div>
         </div>
@@ -294,7 +236,8 @@ document.querySelectorAll('.btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (btn.dataset.del) {
-            input.value = input.value.slice(0, -1);
+            // ТЕПЕР ОЧИЩУЄ ВЕСЬ ТЕКСТ
+            input.value = "";
         } else {
             input.value += btn.dataset.v;
         }
@@ -302,7 +245,6 @@ document.querySelectorAll('.btn').forEach(btn => {
     });
 });
 
-/* SEARCH DATA */
 const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
 let searchData = [];
 
@@ -345,7 +287,7 @@ function search() {
     resultBox.innerHTML = html;
 }
 
-/* TABLE DATA */
+/* TABLE LOGIC (URL2) */
 const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
 let tableRows = [], tableHeaders = [], sortCol = -1, sortAsc = true, tableLoaded = false;
 
@@ -405,49 +347,35 @@ function doSort(col) {
 
 /* GESTURES */
 let tx = 0, ty = 0, moved = false, isScrolling = null;
-
 document.addEventListener('touchstart', e => {
-    const t = e.touches[0];
-    tx = t.clientX; ty = t.clientY;
+    tx = e.touches[0].clientX; ty = e.touches[0].clientY;
     moved = false; isScrolling = null;
 }, { passive: true });
 
 document.addEventListener('touchmove', e => {
-    const t = e.touches[0];
-    const dx = t.clientX - tx;
-    const dy = t.clientY - ty;
+    const dx = e.touches[0].clientX - tx;
+    const dy = e.touches[0].clientY - ty;
     if (isScrolling === null) {
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) isScrolling = false;
         else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) isScrolling = true;
     }
     moved = true;
-    // Приховуємо клавіатуру під час скролу результатів
     if (isScrolling === true && kbVisible && scrollArea.contains(e.target)) hideKeyboard();
 }, { passive: true });
 
 document.addEventListener('touchend', e => {
-    const t = e.changedTouches[0];
-    const dx = t.clientX - tx;
-    const dy = t.clientY - ty;
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-
-    // Тап по екрану (не свайп)
-    if (!moved || (absDx < 8 && absDy < 8)) {
+    const dx = e.changedTouches[0].clientX - tx;
+    const dy = e.changedTouches[0].clientY - ty;
+    if (!moved || (Math.abs(dx) < 8 && Math.abs(dy) < 8)) {
         if (keyboard.contains(e.target)) return;
-        if (currentPage === 0) {
-            kbVisible ? hideKeyboard() : showKeyboard();
-        }
+        if (currentPage === 0) kbVisible ? hideKeyboard() : showKeyboard();
         return;
     }
-
-    // Горизонтальний свайп для перемикання сторінок
-    if (isScrolling === false && absDx > 50 && absDx > absDy * 1.5) {
+    if (isScrolling === false && Math.abs(dx) > 50) {
         if (dx < 0 && currentPage === 0) goToPage(1);
         if (dx > 0 && currentPage === 1) goToPage(0);
     }
 }, { passive: true });
-
 </script>
 </body>
 </html>
