@@ -51,11 +51,12 @@ input#input {
 
 /* TABLE PAGE */
 #page2 { background: #fff; }
-.table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; }
-.table-scroll { flex: 1; overflow: auto; }
+.table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+.table-scroll { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
 table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
-th { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 10px 8px; position: sticky; top: 0; }
-td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
+th { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 12px 8px; position: sticky; top: 0; text-align: left; font-weight: 700; color: #333; }
+td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; color: #444; }
+tr:nth-child(even) td { background: #f9fafb; }
 
 .page-dots { position: fixed; bottom: calc(8px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: none; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: #d1d5db; }
@@ -65,14 +66,10 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
 <body>
 
 <div id="pages">
+    <!-- PAGE 1 -->
     <div class="page" id="page1">
-        <div class="search-header">
-            <input id="input" readonly placeholder="">
-        </div>
-        <div class="scroll-area" id="scroll-area">
-            <div id="result"></div>
-        </div>
-        
+        <div class="search-header"><input id="input" readonly></div>
+        <div class="scroll-area"><div id="result"></div></div>
         <div id="kb-wrapper" class="kb-container">
             <div id="kb1" class="kb-grid">
                 <button class="btn" data-v="1">1</button>
@@ -91,7 +88,6 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
                 <button class="btn" data-v="ts">ts</button>
                 <button class="btn btn-special" id="btn-to-kb2">⌨️</button>
             </div>
-
             <div id="kb2" class="kb-grid hidden">
                 <button class="btn" data-v="стр">стр</button>
                 <div></div><div></div><div></div><div></div>
@@ -100,10 +96,11 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
         </div>
     </div>
 
+    <!-- PAGE 2 -->
     <div class="page" id="page2">
         <div class="table-header"><span class="table-title">Повна таблиця</span></div>
         <div class="table-scroll" id="table-scroll">
-            <div id="table-loading" style="text-align:center; padding:40px; color:#999;">⏳ Завантаження...</div>
+            <div id="table-content"><div style="text-align:center; padding:40px; color:#999;">⏳ Завантаження...</div></div>
         </div>
     </div>
 </div>
@@ -116,12 +113,19 @@ td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; }
 <script>
 let currentPage = 0;
 let searchData = [];
+let fullTableData = [];
+let tableHeaders = [];
+let sortCol = -1;
+let sortAsc = true;
+
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
 const kb1 = document.getElementById('kb1');
 const kb2 = document.getElementById('kb2');
 const kbWrapper = document.getElementById('kb-wrapper');
+const tableContent = document.getElementById('table-content');
 
+// Клавіатура
 document.getElementById('btn-to-kb2').onclick = (e) => { e.stopPropagation(); kb1.classList.add('hidden'); kb2.classList.remove('hidden'); };
 document.getElementById('btn-to-kb1').onclick = (e) => { e.stopPropagation(); kb2.classList.add('hidden'); kb1.classList.remove('hidden'); };
 
@@ -135,6 +139,7 @@ document.querySelectorAll('.btn').forEach(btn => {
     };
 });
 
+// Дані для Пошуку
 const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
 fetch(url1).then(r => r.text()).then(t => {
     searchData = t.trim().split("\n").map(r => {
@@ -146,31 +151,16 @@ fetch(url1).then(r => r.text()).then(t => {
 function search() {
     const v = input.value.toLowerCase();
     if (!v) { resultBox.innerHTML = ""; return; }
-
-    const isNumOnly = /^\d+$/.test(v); // Чи містить запит тільки цифри?
+    const isNumOnly = /^\d+$/.test(v);
     const isStrSearch = v.includes("стр");
 
     const filtered = searchData.filter(x => {
-        if (isStrSearch) {
-            // Для "стр" шукаємо в D, якщо букви — від початку
-            return x.colD.toLowerCase().startsWith(v);
-        } else if (isNumOnly) {
-            // ТІЛЬКИ ЦИФРИ: знаходимо 896 у 123896 (endsWith), але не 128963
-            return x.station.toLowerCase().endsWith(v) || 
-                   x.material.toLowerCase().endsWith(v) || 
-                   x.article.toLowerCase().endsWith(v);
-        } else {
-            // Є БУКВИ (с, sp, ts): шукаємо від початку (startsWith)
-            return x.station.toLowerCase().startsWith(v) || 
-                   x.material.toLowerCase().startsWith(v) || 
-                   x.article.toLowerCase().startsWith(v);
-        }
+        if (isStrSearch) return x.colD.toLowerCase().startsWith(v);
+        if (isNumOnly) return x.station.toLowerCase().endsWith(v) || x.material.toLowerCase().endsWith(v) || x.article.toLowerCase().endsWith(v);
+        return x.station.toLowerCase().startsWith(v) || x.material.toLowerCase().startsWith(v) || x.article.toLowerCase().startsWith(v);
     });
 
-    if (!filtered.length) {
-        resultBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
-        return;
-    }
+    if (!filtered.length) { resultBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>'; return; }
 
     const grouped = {};
     filtered.forEach(x => {
@@ -183,16 +173,54 @@ function search() {
     for (let art in grouped) {
         html += `<div class="result-card"><div class="result-article">${art}</div>`;
         for (let mat in grouped[art]) {
-            html += `<div style="margin-bottom:8px;">
-                <div class="result-material-name">📦 ${mat}</div>
-                <div class="result-stations">${[...grouped[art][mat]].join(" | ")}</div>
-            </div>`;
+            html += `<div style="margin-bottom:8px;"><div class="result-material-name">📦 ${mat}</div><div class="result-stations">${[...grouped[art][mat]].join(" | ")}</div></div>`;
         }
         html += `</div>`;
     }
     resultBox.innerHTML = html;
 }
 
+// ПОВНА ТАБЛИЦЯ ТА СОРТУВАННЯ
+function loadTable() {
+    if (fullTableData.length > 0) return;
+    const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
+    fetch(url2).then(r => r.text()).then(t => {
+        const lines = t.trim().split("\n").map(l => l.split(","));
+        tableHeaders = lines[0];
+        fullTableData = lines.slice(1);
+        renderTable();
+    });
+}
+
+function renderTable() {
+    let data = [...fullTableData];
+    if (sortCol >= 0) {
+        data.sort((a, b) => {
+            let v1 = a[sortCol] || "", v2 = b[sortCol] || "";
+            let n1 = parseFloat(v1), n2 = parseFloat(v2);
+            if (!isNaN(n1) && !isNaN(n2)) return sortAsc ? n1 - n2 : n2 - n1;
+            return sortAsc ? v1.localeCompare(v2, 'uk') : v2.localeCompare(v1, 'uk');
+        });
+    }
+
+    let h = '<table><thead><tr>';
+    tableHeaders.forEach((name, i) => {
+        h += `<th onclick="doSort(${i})">${name}${sortCol === i ? (sortAsc ? ' ↑' : ' ↓') : ''}</th>`;
+    });
+    h += '</tr></thead><tbody>';
+    data.forEach(row => {
+        h += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+    });
+    tableContent.innerHTML = h + '</tbody></table>';
+}
+
+window.doSort = function(col) {
+    if (sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = true; }
+    renderTable();
+};
+
+// Навігація
 function goToPage(n) {
     currentPage = n;
     document.getElementById('pages').style.transform = `translateX(-${n * 50}%)`;
@@ -214,16 +242,6 @@ document.addEventListener('touchend', e => {
         kbWrapper.classList.toggle('hidden');
     }
 }, {passive:true});
-
-function loadTable() {
-    const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
-    fetch(url2).then(r => r.text()).then(t => {
-        const lines = t.trim().split("\n").map(l => l.split(","));
-        let h = '<table><thead><tr>' + lines[0].map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
-        h += lines.slice(1).map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('');
-        document.getElementById('table-scroll').innerHTML = h + '</tbody></table>';
-    });
-}
 </script>
 </body>
 </html>
