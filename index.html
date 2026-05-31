@@ -89,11 +89,14 @@ tr:nth-child(even) td { background: #f9fafb; }
                 <button class="btn" data-v="ts">ts</button>
                 <button class="btn btn-special" id="btn-to-kb2">⌨️</button>
             </div>
-            <div id="kb2" class="kb-grid hidden">
-                <button class="btn" data-v="стр">стр</button>
-                <div></div><div></div><div></div><div></div>
-                <button class="btn btn-special" id="btn-to-kb1">назад</button>
-            </div>
+<div id="kb2" class="kb-grid hidden">
+    <button class="btn" data-v="стр">стр</button>
+    <button class="btn" data-v="мм">мм</button>
+    <div></div>
+    <div></div>
+    <div></div>
+    <button class="btn btn-special" id="btn-to-kb1">назад</button>
+</div>
         </div>
     </div>
 
@@ -157,13 +160,13 @@ function search() {
     const v = input.value.toLowerCase();
     if (!v) { resultBox.innerHTML = ""; return; }
     const isNumOnly = /^\d+$/.test(v);
-    const isStrSearch = v.includes("стр");
+  const isSpecialSearch = v.includes("стр") || v.includes("мм");
 
-    const filtered = searchData.filter(x => {
-        if (isStrSearch) return x.colD.toLowerCase().startsWith(v);
-        if (isNumOnly) return x.station.toLowerCase().endsWith(v) || x.material.toLowerCase().endsWith(v) || x.article.toLowerCase().endsWith(v);
-        return x.station.toLowerCase().startsWith(v) || x.material.toLowerCase().startsWith(v) || x.article.toLowerCase().startsWith(v);
-    });
+const filtered = searchData.filter(x => {
+    if (isSpecialSearch) return x.colD.toLowerCase().startsWith(v);
+    if (isNumOnly) return x.station.toLowerCase().endsWith(v) || x.material.toLowerCase().endsWith(v) || x.article.toLowerCase().endsWith(v);
+    return x.station.toLowerCase().startsWith(v) || x.material.toLowerCase().startsWith(v) || x.article.toLowerCase().startsWith(v);
+});
 
     if (!filtered.length) { resultBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>'; return; }
 
