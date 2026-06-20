@@ -143,15 +143,36 @@ document.querySelectorAll('.btn').forEach(btn => {
 
 // Дані для Пошуку
 const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
-fetch(url1).then(r => r.text()).then(t => {
+fetch(url1)
+.then(r => r.text())
+.then(t => {
+
+    localStorage.setItem("searchDataCSV", t);
+
     searchData = t.trim().split("\n").map(r => {
         const c = r.split(",");
-        return { 
-            station: c[0]||"", 
-            material: c[1]||"", 
-            article: c[2]||"", 
+        return {
+            station: c[0]||"",
+            material: c[1]||"",
+            article: c[2]||"",
             colD: c[3]||"",
-            address: c[4]||"" // Колонка E (індекс 4)
+            address: c[4]||""
+        };
+    });
+})
+.catch(() => {
+
+    const t = localStorage.getItem("searchDataCSV");
+    if (!t) return;
+
+    searchData = t.trim().split("\n").map(r => {
+        const c = r.split(",");
+        return {
+            station: c[0]||"",
+            material: c[1]||"",
+            article: c[2]||"",
+            colD: c[3]||"",
+            address: c[4]||""
         };
     });
 });
