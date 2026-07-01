@@ -31,7 +31,7 @@ input#input {
 .result-card { margin-bottom: 12px; padding: 12px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fafafa; }
 .result-article { font-weight: 700; font-size: 20px; color: #111; margin-bottom: 6px; }
 .result-material-name { font-size: 15px; color: #666; margin-bottom: 4px; display: flex; justify-content: space-between; }
-.result-address { color: #059669; font-weight: 600; font-size: 14px; } /* Стиль для адреси з колонки E */
+.result-address { color: #059669; font-weight: 600; font-size: 14px; }
 .result-stations { font-size: 24px; font-weight: 800; color: #000; }
 
 /* KEYBOARDS */
@@ -121,11 +121,15 @@ let fullTableData = [];
 let tableHeaders = [];
 let sortCol = -1;
 let sortAsc = true;
+let tableLoadedOnce = false;
 
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
 const kbWrapper = document.getElementById('kb-wrapper');
 const tableContent = document.getElementById('table-content');
+
+const CACHE_KEY_SEARCH = "searchDataCSV";
+const CACHE_KEY_TABLE = "tableDataCSV";
 
 // Клавіатура
 document.getElementById('btn-to-kb2').onclick = (e) => { e.stopPropagation(); document.getElementById('kb1').classList.add('hidden'); document.getElementById('kb2').classList.remove('hidden'); };
@@ -141,14 +145,7 @@ document.querySelectorAll('.btn').forEach(btn => {
     };
 });
 
-// Дані для Пошуку
-const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
-fetch(url1)
-.then(r => r.text())
-.then(t => {
-
-    localStorage.setItem("searchDataCSV", t);
-
+function parseSearchCSV(t) {
     searchData = t.trim().split("\n").map(r => {
         const c = r.split(",");
         return {
@@ -159,23 +156,30 @@ fetch(url1)
             address: c[4]||""
         };
     });
-})
-.catch(() => {
+}
 
-    const t = localStorage.getItem("searchDataCSV");
-    if (!t) return;
+// 1. СПОЧАТКУ дивимось у кеш і одразу малюємо, якщо там щось є
+const cachedSearch = localStorage.getItem(CACHE_KEY_SEARCH);
+if (cachedSearch) {
+    parseSearchCSV(cachedSearch);
+    if (input.value) search();
+}
 
-    searchData = t.trim().split("\n").map(r => {
-        const c = r.split(",");
-        return {
-            station: c[0]||"",
-            material: c[1]||"",
-            article: c[2]||"",
-            colD: c[3]||"",
-            address: c[4]||""
-        };
+// 2. ПОТІМ у фоні тягнемо свіжі дані і тихо оновлюємо кеш + список
+function fetchSearchData() {
+    const url1 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=1679964111&t=" + Date.now();
+    fetch(url1)
+    .then(r => r.text())
+    .then(t => {
+        localStorage.setItem(CACHE_KEY_SEARCH, t);
+        parseSearchCSV(t);
+        if (input.value) search(); // оновити видиме, якщо користувач вже щось шукає
+    })
+    .catch(() => {
+        // мережі нема — просто лишаємось на тому, що вже є в кеші/пам'яті
     });
-});
+}
+fetchSearchData();
 
 function search() {
     const v = input.value.toLowerCase();
@@ -195,7 +199,7 @@ const filtered = searchData.filter(x => {
     const grouped = {};
     filtered.forEach(x => {
         if (!grouped[x.article]) grouped[x.article] = {};
-        const matKey = x.material + "|" + x.address; // Створюємо ключ назва+адреса
+        const matKey = x.material + "|" + x.address;
         if (!grouped[x.article][matKey]) grouped[x.article][matKey] = new Set();
         grouped[x.article][matKey].add(x.station);
     });
@@ -218,15 +222,32 @@ const filtered = searchData.filter(x => {
     resultBox.innerHTML = html;
 }
 
-// ПОВНА ТАБЛИЦЯ ТА СОРТУВАННЯ (без змін)
+// ПОВНА ТАБЛИЦЯ ТА СОРТУВАННЯ
+function parseTableCSV(t) {
+    const lines = t.trim().split("\n").map(l => l.split(","));
+    tableHeaders = lines[0];
+    fullTableData = lines.slice(1);
+}
+
 function loadTable() {
-    if (fullTableData.length > 0) return;
+    if (tableLoadedOnce) return; // вже завантажили в цій сесії — не смикаємо мережу знову
+    tableLoadedOnce = true;
+
+    // 1. Спочатку кеш — одразу показуємо
+    const cachedTable = localStorage.getItem(CACHE_KEY_TABLE);
+    if (cachedTable) {
+        parseTableCSV(cachedTable);
+        renderTable();
+    }
+
+    // 2. Потім тихо підтягуємо свіже
     const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
     fetch(url2).then(r => r.text()).then(t => {
-        const lines = t.trim().split("\n").map(l => l.split(","));
-        tableHeaders = lines[0];
-        fullTableData = lines.slice(1);
+        localStorage.setItem(CACHE_KEY_TABLE, t);
+        parseTableCSV(t);
         renderTable();
+    }).catch(() => {
+        // нема мережі — лишаємось на кеші (якщо він був)
     });
 }
 
