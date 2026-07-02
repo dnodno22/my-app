@@ -182,20 +182,33 @@ function fetchSearchData() {
 fetchSearchData();
 
 function search() {
-    const v = input.value.toLowerCase();
-    if (!v) { resultBox.innerHTML = ""; return; }
+    const v = input.value.toLowerCase().trim();
+
+    if (!v) {
+        resultBox.innerHTML = "";
+        return;
+    }
+
     const isNumOnly = /^\d+$/.test(v);
-  const isSpecialSearch = v.includes("стр") || v.includes("мм");
 
-const filtered = searchData.filter(x => {
-    if (isSpecialSearch) return x.colD.toLowerCase().startsWith(v);
-    if (isNumOnly) return x.station.toLowerCase().endsWith(v) || x.material.toLowerCase().endsWith(v) || x.article.toLowerCase().endsWith(v);
-    return x.station.toLowerCase().startsWith(v) || x.material.toLowerCase().startsWith(v) || x.article.toLowerCase().startsWith(v);
-});
+    const filtered = searchData.filter(x => {
+        // шукаємо по всіх полях рядка
+        const allFields = Object.values(x)
+            .join(" ")
+            .toLowerCase();
 
-    if (!filtered.length) { resultBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>'; return; }
+        if (isNumOnly) {
+            return allFields.includes(v);
+        }
 
-    // Групуємо, зберігаючи адресу разом з назвою матеріалу
+        return allFields.includes(v);
+    });
+
+    if (!filtered.length) {
+        resultBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
+        return;
+    }
+
     const grouped = {};
     filtered.forEach(x => {
         if (!grouped[x.article]) grouped[x.article] = {};
@@ -209,7 +222,8 @@ const filtered = searchData.filter(x => {
         html += `<div class="result-card"><div class="result-article">${art}</div>`;
         for (let matKey in grouped[art]) {
             const [matName, matAddr] = matKey.split("|");
-            html += `<div style="margin-bottom:8px;">
+            html += `
+            <div style="margin-bottom:8px;">
                 <div class="result-material-name">
                     <span>📦 ${matName}</span>
                     <span class="result-address">${matAddr}</span>
@@ -219,6 +233,7 @@ const filtered = searchData.filter(x => {
         }
         html += `</div>`;
     }
+
     resultBox.innerHTML = html;
 }
 
