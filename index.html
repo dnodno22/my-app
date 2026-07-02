@@ -34,6 +34,15 @@ input#input {
 .result-address { color: #059669; font-weight: 600; font-size: 14px; }
 .result-stations { font-size: 24px; font-weight: 800; color: #000; }
 
+/* HIGHLIGHT */
+mark.hl {
+    background: #fde047;
+    color: #111;
+    border-radius: 3px;
+    padding: 0 2px;
+    font-weight: inherit;
+}
+
 /* KEYBOARDS */
 .kb-container {
     flex-shrink: 0; background: #fff; border-top: 1px solid #e5e7eb;
@@ -52,7 +61,9 @@ input#input {
 
 /* TABLE PAGE */
 #page2 { background: #fff; }
-.table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+.table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; flex-shrink: 0; display: flex; justify-content: space-between; align-items: baseline; }
+.table-title { font-weight: 700; font-size: 16px; color: #111; }
+.table-updated { font-size: 11px; color: #9ca3af; }
 .table-scroll { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
 table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
 th { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 12px 8px; position: sticky; top: 0; text-align: left; font-weight: 700; color: #333; }
@@ -102,7 +113,10 @@ tr:nth-child(even) td { background: #f9fafb; }
 
     <!-- PAGE 2 -->
     <div class="page" id="page2">
-        <div class="table-header"><span class="table-title">Повна таблиця</span></div>
+        <div class="table-header">
+            <span class="table-title">Повна таблиця</span>
+            <span class="table-updated" id="table-updated"></span>
+        </div>
         <div class="table-scroll" id="table-scroll">
             <div id="table-content"><div style="text-align:center; padding:40px; color:#999;">⏳ Завантаження...</div></div>
         </div>
@@ -127,9 +141,11 @@ const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
 const kbWrapper = document.getElementById('kb-wrapper');
 const tableContent = document.getElementById('table-content');
+const tableUpdatedEl = document.getElementById('table-updated');
 
 const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_TABLE = "tableDataCSV";
+const CACHE_KEY_TABLE_TIME = "tableDataTime";
 
 // Клавіатура
 document.getElementById('btn-to-kb2').onclick = (e) => { e.stopPropagation(); document.getElementById('kb1').classList.add('hidden'); document.getElementById('kb2').classList.remove('hidden'); };
@@ -181,17 +197,41 @@ function fetchSearchData() {
 }
 fetchSearchData();
 
+// Екранування HTML перед вставкою (щоб дані з таблиці не ламали розмітку)
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+// Підсвічує збіг у тексті: з початку (startsWith) або з кінця (endsWith),
+// залежно від того, як саме шукався цей запис
+function highlight(text, v, fromEnd) {
+    const safe = escapeHtml(text);
+    if (!v) return safe;
+    const lower = text.toLowerCase();
+    if (fromEnd) {
+        if (!lower.endsWith(v)) return safe;
+        const idx = text.length - v.length;
+        return escapeHtml(text.slice(0, idx)) + '<mark class="hl">' + escapeHtml(text.slice(idx)) + '</mark>';
+    } else {
+        if (!lower.startsWith(v)) return safe;
+        return '<mark class="hl">' + escapeHtml(text.slice(0, v.length)) + '</mark>' + escapeHtml(text.slice(v.length));
+    }
+}
+
 function search() {
     const v = input.value.toLowerCase();
     if (!v) { resultBox.innerHTML = ""; return; }
     const isNumOnly = /^\d+$/.test(v);
-  const isSpecialSearch = v.includes("стр") || v.includes("мм");
+    const isSpecialSearch = v.includes("стр") || v.includes("мм");
 
-const filtered = searchData.filter(x => {
-    if (isSpecialSearch) return x.colD.toLowerCase().startsWith(v);
-    if (isNumOnly) return x.station.toLowerCase().endsWith(v) || x.material.toLowerCase().endsWith(v) || x.article.toLowerCase().endsWith(v);
-    return x.station.toLowerCase().startsWith(v) || x.material.toLowerCase().startsWith(v) || x.article.toLowerCase().startsWith(v);
-});
+    const filtered = searchData.filter(x => {
+        if (isSpecialSearch) return x.colD.toLowerCase().startsWith(v);
+        if (isNumOnly) return x.station.toLowerCase().endsWith(v) || x.material.toLowerCase().endsWith(v) || x.article.toLowerCase().endsWith(v);
+        return x.station.toLowerCase().startsWith(v) || x.material.toLowerCase().startsWith(v) || x.article.toLowerCase().startsWith(v);
+    });
 
     if (!filtered.length) { resultBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>'; return; }
 
@@ -206,15 +246,20 @@ const filtered = searchData.filter(x => {
 
     let html = "";
     for (let art in grouped) {
-        html += `<div class="result-card"><div class="result-article">${art}</div>`;
+        const artHtml = isSpecialSearch ? escapeHtml(art) : highlight(art, v, isNumOnly);
+        html += `<div class="result-card"><div class="result-article">${artHtml}</div>`;
         for (let matKey in grouped[art]) {
             const [matName, matAddr] = matKey.split("|");
+            const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
+            const stationsHtml = [...grouped[art][matKey]]
+                .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly))
+                .join(" | ");
             html += `<div style="margin-bottom:8px;">
                 <div class="result-material-name">
-                    <span>📦 ${matName}</span>
-                    <span class="result-address">${matAddr}</span>
+                    <span>📦 ${matHtml}</span>
+                    <span class="result-address">${escapeHtml(matAddr)}</span>
                 </div>
-                <div class="result-stations">${[...grouped[art][matKey]].join(" | ")}</div>
+                <div class="result-stations">${stationsHtml}</div>
             </div>`;
         }
         html += `</div>`;
@@ -229,6 +274,17 @@ function parseTableCSV(t) {
     fullTableData = lines.slice(1);
 }
 
+function formatDate(ts) {
+    const d = new Date(parseInt(ts, 10));
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function updateTableTimeDisplay() {
+    const t = localStorage.getItem(CACHE_KEY_TABLE_TIME);
+    tableUpdatedEl.textContent = t ? ('оновлено ' + formatDate(t)) : '';
+}
+
 function loadTable() {
     if (tableLoadedOnce) return; // вже завантажили в цій сесії — не смикаємо мережу знову
     tableLoadedOnce = true;
@@ -238,14 +294,17 @@ function loadTable() {
     if (cachedTable) {
         parseTableCSV(cachedTable);
         renderTable();
+        updateTableTimeDisplay();
     }
 
     // 2. Потім тихо підтягуємо свіже
     const url2 = "https://docs.google.com/spreadsheets/d/1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8/export?format=csv&gid=421001458&t=" + Date.now();
     fetch(url2).then(r => r.text()).then(t => {
         localStorage.setItem(CACHE_KEY_TABLE, t);
+        localStorage.setItem(CACHE_KEY_TABLE_TIME, Date.now().toString());
         parseTableCSV(t);
         renderTable();
+        updateTableTimeDisplay();
     }).catch(() => {
         // нема мережі — лишаємось на кеші (якщо він був)
     });
@@ -263,10 +322,10 @@ function renderTable() {
     }
     let h = '<table><thead><tr>';
     tableHeaders.forEach((name, i) => {
-        h += `<th onclick="doSort(${i})">${name}${sortCol === i ? (sortAsc ? ' ↑' : ' ↓') : ''}</th>`;
+        h += `<th onclick="doSort(${i})">${escapeHtml(name)}${sortCol === i ? (sortAsc ? ' ↑' : ' ↓') : ''}</th>`;
     });
     h += '</tr></thead><tbody>';
-    data.forEach(row => { h += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>'; });
+    data.forEach(row => { h += '<tr>' + row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('') + '</tr>'; });
     tableContent.innerHTML = h + '</tbody></table>';
 }
 
