@@ -229,8 +229,18 @@ function search() {
 
     const filtered = searchData.filter(x => {
         if (isSpecialSearch) return x.colD.toLowerCase().startsWith(v);
-        if (isNumOnly) return x.station.toLowerCase().endsWith(v) || x.material.toLowerCase().endsWith(v) || x.article.toLowerCase().endsWith(v);
-        return x.station.toLowerCase().startsWith(v) || x.material.toLowerCase().startsWith(v) || x.article.toLowerCase().startsWith(v);
+        if (isNumOnly) {
+            return x.station.toLowerCase().endsWith(v)
+                || x.material.toLowerCase().endsWith(v)
+                || x.article.toLowerCase().endsWith(v)
+                || x.colD.toLowerCase().endsWith(v)
+                || x.address.toLowerCase().endsWith(v);
+        }
+        return x.station.toLowerCase().startsWith(v)
+            || x.material.toLowerCase().startsWith(v)
+            || x.article.toLowerCase().startsWith(v)
+            || x.colD.toLowerCase().startsWith(v)
+            || x.address.toLowerCase().startsWith(v);
     });
 
     if (!filtered.length) { resultBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>'; return; }
@@ -251,13 +261,14 @@ function search() {
         for (let matKey in grouped[art]) {
             const [matName, matAddr] = matKey.split("|");
             const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
+            const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
             const stationsHtml = [...grouped[art][matKey]]
                 .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly))
                 .join(" | ");
             html += `<div style="margin-bottom:8px;">
                 <div class="result-material-name">
                     <span>📦 ${matHtml}</span>
-                    <span class="result-address">${escapeHtml(matAddr)}</span>
+                    <span class="result-address">${addrHtml}</span>
                 </div>
                 <div class="result-stations">${stationsHtml}</div>
             </div>`;
