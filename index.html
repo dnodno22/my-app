@@ -59,6 +59,21 @@ mark.hl {
 .btn:active { background: #F7F7F7; transform: scale(.96); }
 .btn-special { background: #f1f5f9; }
 
+/* КАРУСЕЛЬ ДОДАТКОВИХ КНОПОК (sp, ts, стр, мм, ...) */
+.kb-carousel {
+    display: flex; gap: 10px; margin-top: 10px;
+    overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+}
+.kb-carousel::-webkit-scrollbar { display: none; }
+.kb-carousel .btn {
+    flex: 0 0 auto; min-width: 90px; padding: 15px 18px;
+    scroll-snap-align: start;
+}
+
 /* TABLE PAGES */
 .table-page { background: #fff; }
 .table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; flex-shrink: 0; display: flex; justify-content: space-between; align-items: baseline; }
@@ -96,18 +111,8 @@ tr:nth-child(even) td { background: #f9fafb; }
                 <button class="btn" data-v="с">с</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
-                <button class="btn" data-v="sp">sp</button>
-                <button class="btn" data-v="ts">ts</button>
-                <button class="btn btn-special" id="btn-to-kb2">⌨️</button>
             </div>
-<div id="kb2" class="kb-grid hidden">
-    <button class="btn" data-v="стр">стр</button>
-    <button class="btn" data-v="мм">мм</button>
-    <div></div>
-    <div></div>
-    <div></div>
-    <button class="btn btn-special" id="btn-to-kb1">назад</button>
-</div>
+            <div id="kb-carousel" class="kb-carousel"></div>
         </div>
     </div>
     <!-- TABLE PAGES генеруються скриптом нижче -->
@@ -199,17 +204,31 @@ for (let i = 0; i < TOTAL_PAGES; i++) {
 }
 
 /* ---------- Клавіатура (сторінка пошуку) ---------- */
-document.getElementById('btn-to-kb2').onclick = (e) => { e.stopPropagation(); document.getElementById('kb1').classList.add('hidden'); document.getElementById('kb2').classList.remove('hidden'); };
-document.getElementById('btn-to-kb1').onclick = (e) => { e.stopPropagation(); document.getElementById('kb2').classList.add('hidden'); document.getElementById('kb1').classList.remove('hidden'); };
 
-document.querySelectorAll('.btn').forEach(btn => {
-    if (btn.id.startsWith('btn-to')) return;
-    btn.onclick = (e) => {
-        e.stopPropagation();
-        if (btn.dataset.del) { input.value = ""; }
-        else { input.value += btn.dataset.v; }
-        search();
-    };
+// Кнопки каруселі — щоб додати нову, просто допишіть value в масив
+const CAROUSEL_KEYS = ["sp", "ts", "стр", "мм"];
+const carouselEl = document.getElementById('kb-carousel');
+CAROUSEL_KEYS.forEach(v => {
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.dataset.v = v;
+    b.textContent = v;
+    carouselEl.appendChild(b);
+});
+
+// Свайп усередині каруселі не повинен перемикати сторінки додатку
+let carouselTouchActive = false;
+carouselEl.addEventListener('touchstart', (e) => { carouselTouchActive = true; e.stopPropagation(); }, {passive:true});
+carouselEl.addEventListener('touchmove', (e) => { e.stopPropagation(); }, {passive:true});
+carouselEl.addEventListener('touchend', (e) => { carouselTouchActive = false; e.stopPropagation(); }, {passive:true});
+
+document.getElementById('kb-wrapper').addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn');
+    if (!btn) return;
+    e.stopPropagation();
+    if (btn.dataset.del) { input.value = ""; }
+    else if (btn.dataset.v !== undefined) { input.value += btn.dataset.v; }
+    search();
 });
 
 function parseSearchCSV(t) {
