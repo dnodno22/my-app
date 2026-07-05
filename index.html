@@ -36,10 +36,10 @@ input#input {
 
 /* HIGHLIGHT */
 mark.hl {
-    background: #fde047;
-    color: #111;
-    border-radius: 3px;
-    padding: 0 2px;
+    background: none;
+    color: inherit;
+    border-bottom: 2px solid #111;
+    padding: 0;
     font-weight: inherit;
 }
 
@@ -59,18 +59,20 @@ mark.hl {
 .btn:active { background: #F7F7F7; transform: scale(.96); }
 .btn-special { background: #f1f5f9; }
 
-/* КАРУСЕЛЬ ДОДАТКОВИХ КНОПОК (sp, ts, стр, мм, передмонтаж ...) */
+/* КАРУСЕЛЬ ДОДАТКОВИХ КНОПОК (sp, ts, стр, мм, ...) */
 .kb-carousel {
-    display: flex; gap: 10px; margin-top: 10px;
+    display: none; gap: 10px; margin-top: 10px;
     overflow-x: auto; overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
     scroll-snap-type: x proximity;
     scrollbar-width: none;
 }
+.kb-carousel.visible { display: flex; }
 .kb-carousel::-webkit-scrollbar { display: none; }
 .kb-carousel .btn {
-    flex: 0 0 auto; min-width: 90px; padding: 15px 18px;
+    flex: 0 0 auto; width: calc((100% - 20px) / 3); padding: 15px 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     scroll-snap-align: start;
 }
 
@@ -216,11 +218,42 @@ CAROUSEL_KEYS.forEach(v => {
     carouselEl.appendChild(b);
 });
 
-// Свайп усередині каруселі не повинен перемикати сторінки додатку
-let carouselTouchActive = false;
-carouselEl.addEventListener('touchstart', (e) => { carouselTouchActive = true; e.stopPropagation(); }, {passive:true});
+// Показ/приховування каруселі
+function showCarousel() { carouselEl.classList.add('visible'); }
+function hideCarousel() { carouselEl.classList.remove('visible'); }
+
+// Свайп усередині каруселі: горизонтальний — гортання кнопок (не чіпаємо сторінки),
+// вертикальний вниз — ховає карусель
+let carouselStartX = 0, carouselStartY = 0;
+carouselEl.addEventListener('touchstart', (e) => {
+    carouselStartX = e.touches[0].clientX;
+    carouselStartY = e.touches[0].clientY;
+    e.stopPropagation();
+}, {passive:true});
 carouselEl.addEventListener('touchmove', (e) => { e.stopPropagation(); }, {passive:true});
-carouselEl.addEventListener('touchend', (e) => { carouselTouchActive = false; e.stopPropagation(); }, {passive:true});
+carouselEl.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - carouselStartX;
+    const dy = e.changedTouches[0].clientY - carouselStartY;
+    if (Math.abs(dy) > Math.abs(dx) && dy > 40) { hideCarousel(); }
+    e.stopPropagation();
+}, {passive:true});
+
+// Свайп вгору/вниз по самій клавіатурі (цифровий блок) — показ/приховування каруселі
+let kbStartX = 0, kbStartY = 0, kbMoved = false;
+kbWrapper.addEventListener('touchstart', (e) => {
+    kbStartX = e.touches[0].clientX;
+    kbStartY = e.touches[0].clientY;
+    kbMoved = false;
+}, {passive:true});
+kbWrapper.addEventListener('touchmove', () => { kbMoved = true; }, {passive:true});
+kbWrapper.addEventListener('touchend', (e) => {
+    if (!kbMoved) return;
+    const dx = e.changedTouches[0].clientX - kbStartX;
+    const dy = e.changedTouches[0].clientY - kbStartY;
+    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 40) {
+        if (dy < 0) showCarousel(); else hideCarousel();
+    }
+}, {passive:true});
 
 document.getElementById('kb-wrapper').addEventListener('click', (e) => {
     const btn = e.target.closest('.btn');
@@ -436,6 +469,7 @@ function goToPage(n) {
         kbWrapper.classList.remove('hidden');
     } else {
         kbWrapper.classList.add('hidden');
+        hideCarousel();
         loadTableByIndex(n - 1); // n=1 -> tableState[0], n=2 -> tableState[1], ...
     }
 }
@@ -449,7 +483,26 @@ document.addEventListener('touchend', e => {
         if (dx < 0) goToPage(currentPage + 1); // свайп вліво -> наступна сторінка
         if (dx > 0) goToPage(currentPage - 1); // свайп вправо -> попередня сторінка
     } else if (!moved && currentPage === 0 && !kbWrapper.contains(e.target)) {
+        const willHide = !kbWrapper.classList.contains('hidden');
         kbWrapper.classList.toggle('hidden');
+        if (willHide) hideCarousel();
+    }
+}, {passive:true});
+
+// Свайп вгору по знайденому тексту (результатах пошуку) — ховає клавіатуру
+const scrollAreaEl = document.querySelector('.scroll-area');
+let resultStartY = 0, resultMoved = false;
+scrollAreaEl.addEventListener('touchstart', (e) => {
+    resultStartY = e.touches[0].clientY;
+    resultMoved = false;
+}, {passive:true});
+scrollAreaEl.addEventListener('touchmove', () => { resultMoved = true; }, {passive:true});
+scrollAreaEl.addEventListener('touchend', (e) => {
+    if (!resultMoved) return;
+    const dy = e.changedTouches[0].clientY - resultStartY;
+    if (dy < -40 && !kbWrapper.classList.contains('hidden')) {
+        kbWrapper.classList.add('hidden');
+        hideCarousel();
     }
 }, {passive:true});
 </script>
