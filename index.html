@@ -36,10 +36,10 @@ input#input {
 
 /* HIGHLIGHT */
 mark.hl {
-    background: none;
-    color: inherit;
-    border-bottom: 2px solid #111;
-    padding: 0;
+    background: #fde047;
+    color: #111;
+    border-radius: 3px;
+    padding: 0 2px;
     font-weight: inherit;
 }
 
@@ -220,7 +220,7 @@ CAROUSEL_KEYS.forEach(v => {
     carouselEl.appendChild(b);
 });
 
-// Показ/приховування каруселі (з анімацією висоти — «виїзд»/«заїзд»)
+// Показ/приховування каруселі (живе «витягування» слідом за пальцем)
 let carouselNaturalHeight = 0;
 function measureCarouselHeight() {
     if (carouselNaturalHeight) return carouselNaturalHeight;
@@ -228,46 +228,104 @@ function measureCarouselHeight() {
     carouselNaturalHeight = firstBtn ? firstBtn.offsetHeight : 54;
     return carouselNaturalHeight;
 }
-function showCarousel() {
-    carouselEl.style.height = measureCarouselHeight() + 'px';
-    carouselEl.classList.add('visible');
-}
-function hideCarousel() {
-    carouselEl.style.height = '0px';
-    carouselEl.classList.remove('visible');
+let carouselOpen = false;
+
+// Миттєво (без анімації) виставити висоту каруселі — викликається під час руху пальця
+function setCarouselDragHeight(px) {
+    const maxH = measureCarouselHeight();
+    px = Math.max(0, Math.min(maxH, px));
+    const ratio = maxH ? px / maxH : 0;
+    carouselEl.style.transition = 'none';
+    carouselEl.style.height = px + 'px';
+    carouselEl.style.opacity = ratio;
+    carouselEl.style.marginTop = (10 * ratio) + 'px';
+    if (px > 0) carouselEl.classList.add('visible'); else carouselEl.classList.remove('visible');
 }
 
-// Свайп усередині каруселі: горизонтальний — гортання кнопок (не чіпаємо сторінки),
-// вертикальний вниз — ховає карусель
-let carouselStartX = 0, carouselStartY = 0;
+// Доанімувати до кінця (повністю відкрито/закрито) — викликається при відпусканні пальця
+function settleCarousel(open) {
+    const maxH = measureCarouselHeight();
+    carouselEl.style.transition = ''; // повертаємо CSS-анімацію
+    void carouselEl.offsetHeight; // форс-рефлоу, щоб анімація точно спрацювала
+    if (open) {
+        carouselEl.style.height = maxH + 'px';
+        carouselEl.style.opacity = '1';
+        carouselEl.style.marginTop = '10px';
+        carouselEl.classList.add('visible');
+    } else {
+        carouselEl.style.height = '0px';
+        carouselEl.style.opacity = '0';
+        carouselEl.style.marginTop = '0px';
+        carouselEl.classList.remove('visible');
+    }
+    carouselOpen = open;
+}
+function showCarousel() { settleCarousel(true); }
+function hideCarousel() { settleCarousel(false); }
+
+// Спільна логіка перетягування (використовується і клавіатурою, і самою каруселлю)
+let dragStartY = 0, dragBaseHeight = 0, dragActive = false;
+function beginDrag(y) {
+    dragStartY = y;
+    dragBaseHeight = carouselEl.getBoundingClientRect().height;
+    dragActive = true;
+}
+function updateDrag(y) {
+    if (!dragActive) return;
+    const delta = dragStartY - y; // рух вгору = позитивне значення = карусель росте
+    setCarouselDragHeight(dragBaseHeight + delta);
+}
+function endDrag(y) {
+    if (!dragActive) return;
+    dragActive = false;
+    const delta = dragStartY - y;
+    const newH = Math.max(0, Math.min(measureCarouselHeight(), dragBaseHeight + delta));
+    settleCarousel(newH > measureCarouselHeight() * 0.35);
+}
+
+// Перетягування усередині каруселі: горизонтальний рух — гортання кнопок (нативний скрол),
+// вертикальний рух вниз — «затягує» карусель назад слідом за пальцем
+let carouselStartX = 0, carouselStartY = 0, carouselDragging = false;
 carouselEl.addEventListener('touchstart', (e) => {
     carouselStartX = e.touches[0].clientX;
     carouselStartY = e.touches[0].clientY;
+    carouselDragging = false;
     e.stopPropagation();
 }, {passive:true});
-carouselEl.addEventListener('touchmove', (e) => { e.stopPropagation(); }, {passive:true});
+carouselEl.addEventListener('touchmove', (e) => {
+    const x = e.touches[0].clientX, y = e.touches[0].clientY;
+    const dx = x - carouselStartX, dy = y - carouselStartY;
+    if (Math.abs(dy) > Math.abs(dx) && dy > 0) {
+        if (!carouselDragging) { carouselDragging = true; beginDrag(carouselStartY); }
+        updateDrag(y);
+    }
+    e.stopPropagation();
+}, {passive:true});
 carouselEl.addEventListener('touchend', (e) => {
-    const dx = e.changedTouches[0].clientX - carouselStartX;
-    const dy = e.changedTouches[0].clientY - carouselStartY;
-    if (Math.abs(dy) > Math.abs(dx) && dy > 40) { hideCarousel(); }
+    if (carouselDragging) { endDrag(e.changedTouches[0].clientY); }
+    carouselDragging = false;
     e.stopPropagation();
 }, {passive:true});
 
-// Свайп вгору/вниз по самій клавіатурі (цифровий блок) — показ/приховування каруселі
+// Перетягування по самій клавіатурі (цифровий блок): вгору — «витягує» карусель,
+// вниз — «затягує» назад. Слідує за пальцем у реальному часі.
 let kbStartX = 0, kbStartY = 0, kbMoved = false;
 kbWrapper.addEventListener('touchstart', (e) => {
     kbStartX = e.touches[0].clientX;
     kbStartY = e.touches[0].clientY;
     kbMoved = false;
 }, {passive:true});
-kbWrapper.addEventListener('touchmove', () => { kbMoved = true; }, {passive:true});
-kbWrapper.addEventListener('touchend', (e) => {
-    if (!kbMoved) return;
-    const dx = e.changedTouches[0].clientX - kbStartX;
-    const dy = e.changedTouches[0].clientY - kbStartY;
-    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 40) {
-        if (dy < 0) showCarousel(); else hideCarousel();
+kbWrapper.addEventListener('touchmove', (e) => {
+    const x = e.touches[0].clientX, y = e.touches[0].clientY;
+    const dx = x - kbStartX, dy = y - kbStartY;
+    if (Math.abs(dy) > Math.abs(dx)) {
+        if (!kbMoved) { kbMoved = true; beginDrag(kbStartY); }
+        updateDrag(y);
     }
+}, {passive:true});
+kbWrapper.addEventListener('touchend', (e) => {
+    if (kbMoved) { endDrag(e.changedTouches[0].clientY); }
+    kbMoved = false;
 }, {passive:true});
 
 document.getElementById('kb-wrapper').addEventListener('click', (e) => {
@@ -359,31 +417,34 @@ function search() {
 
     if (!filtered.length) { resultBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>'; return; }
 
+    // Групуємо по матеріалу (+адреса) — щоб не повторювати назву матеріалу
+    // для кожного артикула окремо. Всередині — по артикулу зі списком станцій.
     const grouped = {};
     filtered.forEach(x => {
-        if (!grouped[x.article]) grouped[x.article] = {};
         const matKey = x.material + "|" + x.address;
-        if (!grouped[x.article][matKey]) grouped[x.article][matKey] = new Set();
-        grouped[x.article][matKey].add(x.station);
+        if (!grouped[matKey]) grouped[matKey] = {};
+        if (!grouped[matKey][x.article]) grouped[matKey][x.article] = new Set();
+        grouped[matKey][x.article].add(x.station);
     });
 
     let html = "";
-    for (let art in grouped) {
-        const artHtml = isSpecialSearch ? escapeHtml(art) : highlight(art, v, isNumOnly);
-        html += `<div class="result-card"><div class="result-article">${artHtml}</div>`;
-        for (let matKey in grouped[art]) {
-            const [matName, matAddr] = matKey.split("|");
-            const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
-            const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
-            const stationsHtml = [...grouped[art][matKey]]
+    for (let matKey in grouped) {
+        const [matName, matAddr] = matKey.split("|");
+        const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
+        const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
+        html += `<div class="result-card">
+            <div class="result-material-name" style="font-size:17px; margin-bottom:10px;">
+                <span>📦 ${matHtml}</span>
+                <span class="result-address">${addrHtml}</span>
+            </div>`;
+        for (let art in grouped[matKey]) {
+            const artHtml = isSpecialSearch ? escapeHtml(art) : highlight(art, v, isNumOnly);
+            const stationsHtml = [...grouped[matKey][art]]
                 .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly))
                 .join(" | ");
-            html += `<div style="margin-bottom:8px;">
-                <div class="result-material-name">
-                    <span>📦 ${matHtml}</span>
-                    <span class="result-address">${addrHtml}</span>
-                </div>
-                <div class="result-stations">${stationsHtml}</div>
+            html += `<div style="margin-bottom:8px; padding-left:4px; border-left:2px solid #e5e7eb;">
+                <div class="result-article" style="font-size:15px; margin-bottom:2px; padding-left:8px;">${artHtml}</div>
+                <div class="result-stations" style="padding-left:8px;">${stationsHtml}</div>
             </div>`;
         }
         html += `</div>`;
@@ -484,7 +545,6 @@ function goToPage(n) {
         kbWrapper.classList.remove('hidden');
     } else {
         kbWrapper.classList.add('hidden');
-        hideCarousel();
         loadTableByIndex(n - 1); // n=1 -> tableState[0], n=2 -> tableState[1], ...
     }
 }
