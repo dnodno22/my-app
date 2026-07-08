@@ -328,12 +328,18 @@ kbWrapper.addEventListener('touchend', (e) => {
     kbMoved = false;
 }, {passive:true});
 
+let lastInputFromCarousel = false;
 document.getElementById('kb-wrapper').addEventListener('click', (e) => {
     const btn = e.target.closest('.btn');
     if (!btn) return;
     e.stopPropagation();
-    if (btn.dataset.del) { input.value = ""; }
-    else if (btn.dataset.v !== undefined) { input.value += btn.dataset.v; }
+    if (btn.dataset.del) {
+        input.value = "";
+        lastInputFromCarousel = false;
+    } else if (btn.dataset.v !== undefined) {
+        input.value += btn.dataset.v;
+        lastInputFromCarousel = !!btn.closest('#kb-carousel');
+    }
     search();
 });
 
@@ -417,38 +423,71 @@ function search() {
 
     if (!filtered.length) { resultBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>'; return; }
 
-    // Групуємо по матеріалу (+адреса) — щоб не повторювати назву матеріалу
-    // для кожного артикула окремо. Всередині — по артикулу зі списком станцій.
-    const grouped = {};
-    filtered.forEach(x => {
-        const matKey = x.material + "|" + x.address;
-        if (!grouped[matKey]) grouped[matKey] = {};
-        if (!grouped[matKey][x.article]) grouped[matKey][x.article] = new Set();
-        grouped[matKey][x.article].add(x.station);
-    });
-
     let html = "";
-    for (let matKey in grouped) {
-        const [matName, matAddr] = matKey.split("|");
-        const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
-        const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
-        html += `<div class="result-card">
-            <div class="result-material-name" style="font-size:17px; margin-bottom:10px;">
-                <span>📦 ${matHtml}</span>
-                <span class="result-address">${addrHtml}</span>
-            </div>`;
-        for (let art in grouped[matKey]) {
+
+    if (lastInputFromCarousel) {
+        // СТАРЕ відображення (як шукалось через карусель раніше): спочатку артикул,
+        // під ним — матеріал+адреса, і станції.
+        const grouped = {};
+        filtered.forEach(x => {
+            if (!grouped[x.article]) grouped[x.article] = {};
+            const matKey = x.material + "|" + x.address;
+            if (!grouped[x.article][matKey]) grouped[x.article][matKey] = new Set();
+            grouped[x.article][matKey].add(x.station);
+        });
+        for (let art in grouped) {
             const artHtml = isSpecialSearch ? escapeHtml(art) : highlight(art, v, isNumOnly);
-            const stationsHtml = [...grouped[matKey][art]]
-                .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly))
-                .join(" | ");
-            html += `<div style="margin-bottom:8px; padding-left:4px; border-left:2px solid #e5e7eb;">
-                <div class="result-article" style="font-size:15px; margin-bottom:2px; padding-left:8px;">${artHtml}</div>
-                <div class="result-stations" style="padding-left:8px;">${stationsHtml}</div>
-            </div>`;
+            html += `<div class="result-card"><div class="result-article">${artHtml}</div>`;
+            for (let matKey in grouped[art]) {
+                const [matName, matAddr] = matKey.split("|");
+                const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
+                const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
+                const stationsHtml = [...grouped[art][matKey]]
+                    .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly))
+                    .join(" | ");
+                html += `<div style="margin-bottom:8px;">
+                    <div class="result-material-name">
+                        <span>📦 ${matHtml}</span>
+                        <span class="result-address">${addrHtml}</span>
+                    </div>
+                    <div class="result-stations">${stationsHtml}</div>
+                </div>`;
+            }
+            html += `</div>`;
         }
-        html += `</div>`;
+    } else {
+        // НОВЕ відображення: групуємо по матеріалу (+адреса), щоб не повторювати
+        // назву матеріалу для кожного артикула окремо.
+        const grouped = {};
+        filtered.forEach(x => {
+            const matKey = x.material + "|" + x.address;
+            if (!grouped[matKey]) grouped[matKey] = {};
+            if (!grouped[matKey][x.article]) grouped[matKey][x.article] = new Set();
+            grouped[matKey][x.article].add(x.station);
+        });
+        for (let matKey in grouped) {
+            const [matName, matAddr] = matKey.split("|");
+            const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
+            const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
+            html += `<div class="result-card">
+                <div class="result-material-name" style="font-size:17px; margin-bottom:10px;">
+                    <span>📦 ${matHtml}</span>
+                    <span class="result-address">${addrHtml}</span>
+                </div>`;
+            for (let art in grouped[matKey]) {
+                const artHtml = isSpecialSearch ? escapeHtml(art) : highlight(art, v, isNumOnly);
+                const stationsHtml = [...grouped[matKey][art]]
+                    .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly))
+                    .join(" | ");
+                html += `<div style="margin-bottom:8px; padding-left:4px; border-left:2px solid #e5e7eb;">
+                    <div class="result-article" style="font-size:15px; margin-bottom:2px; padding-left:8px;">${artHtml}</div>
+                    <div class="result-stations" style="padding-left:8px;">${stationsHtml}</div>
+                </div>`;
+            }
+            html += `</div>`;
+        }
     }
+
     resultBox.innerHTML = html;
 }
 
