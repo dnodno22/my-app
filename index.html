@@ -478,16 +478,16 @@ function search() {
 
     let artHtml;
 
-    if (art.length > 4) {
-        const first4 = art.substring(0, 4);
-        const rest = art.substring(4);
+   if (art.length > 4) {
+    const first4 = art.substring(0, 4);
+    const rest = art.substring(4);
 
-        artHtml = `
-            <span style="font-size:32px; font-weight:700;">${first4}</span><span style="font-size:20px; font-weight:700;">${rest}</span>
-        `;
-    } else {
-        artHtml = `<span style="font-size:32px; font-weight:700;">${art}</span>`;
-    }
+    artHtml = `
+        <span style="font-size:20px; font-weight:700;">${first4}</span><span style="font-size:23px; font-weight:700;">${rest}</span>
+    `;
+} else {
+    artHtml = `<span style="font-size:20px; font-weight:700;">${art}</span>`;
+}
 
     const stationsHtml = [...grouped[matKey][art]]
         .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly))
