@@ -28,11 +28,75 @@ input#input {
 }
 
 .scroll-area { flex: 1; overflow-y: auto; padding: 8px 16px 16px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
-.result-card { margin-bottom: 12px; padding: 12px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fafafa; }
-.result-article { font-weight: 700; font-size: 35px; color: #111; margin-bottom: 6px; }
-.result-material-name { font-size: 15px; color: #666; margin-bottom: 4px; display: flex; justify-content: space-between; }
-.result-address { color: #059669; font-weight: 600; font-size: 14px; }
-.result-stations { font-size: 20px; font-weight: 800; color: #000; }
+
+/* ==================== RESULT CARDS (NEW DESIGN) ==================== */
+.result-card {
+    background: #ffffff;
+    border-radius: 22px;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.08);
+    padding: 24px;
+    margin-bottom: 16px;
+}
+
+.result-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.result-material-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #FFE36E;
+    color: #111111;
+    font-weight: 700;
+    font-size: 38px;
+    line-height: 1.1;
+    border-radius: 12px;
+    padding: 4px 14px;
+    white-space: nowrap;
+}
+
+.result-material-badge .box-icon { font-size: 0.7em; }
+
+.result-address-new {
+    font-weight: 700;
+    font-size: 26px;
+    color: #111111;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.article-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 0;
+    border-top: 1px solid #ECECEC;
+}
+.article-row:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+.article-number {
+    font-size: 26px;
+    font-weight: 700;
+    color: #111111;
+    white-space: nowrap;
+}
+
+.article-stations {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111111;
+    text-align: right;
+    line-height: 1.35;
+}
 
 /* HIGHLIGHT */
 mark.hl {
@@ -399,6 +463,17 @@ function highlight(text, v, fromEnd) {
     }
 }
 
+// Розбиває масив HTML-рядків станцій на рядки по STATIONS_PER_LINE штук,
+// з'єднуючи їх " | " і переносячи (<br>) кожні STATIONS_PER_LINE елементів.
+const STATIONS_PER_LINE = 5;
+function buildStationsHtml(stationHtmlArr) {
+    const lines = [];
+    for (let i = 0; i < stationHtmlArr.length; i += STATIONS_PER_LINE) {
+        lines.push(stationHtmlArr.slice(i, i + STATIONS_PER_LINE).join(" | "));
+    }
+    return lines.join("<br>");
+}
+
 function search() {
     const v = input.value.toLowerCase();
     if (!v) { resultBox.innerHTML = ""; return; }
@@ -426,8 +501,8 @@ function search() {
     let html = "";
 
     if (lastInputFromCarousel) {
-        // СТАРЕ відображення (як шукалось через карусель раніше): спочатку артикул,
-        // під ним — матеріал+адреса, і станції.
+        // СТАРЕ групування (як шукалось через карусель раніше): спочатку артикул,
+        // під ним — матеріал+адреса, і станції. Відображення — у новому дизайні карток.
         const grouped = {};
         filtered.forEach(x => {
             if (!grouped[x.article]) grouped[x.article] = {};
@@ -437,27 +512,29 @@ function search() {
         });
         for (let art in grouped) {
             const artHtml = isSpecialSearch ? escapeHtml(art) : highlight(art, v, isNumOnly);
-            html += `<div class="result-card"><div class="result-article">${artHtml}</div>`;
+            html += `<div class="result-card">
+                <div class="result-top">
+                    <span class="result-material-badge"><span class="box-icon">📦</span>${artHtml}</span>
+                </div>`;
+            let first = true;
             for (let matKey in grouped[art]) {
                 const [matName, matAddr] = matKey.split("|");
                 const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
                 const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
-                const stationsHtml = [...grouped[art][matKey]]
-                    .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly))
-                    .join(" | ");
-                html += `<div style="margin-bottom:8px;">
-                    <div class="result-material-name">
-                        <span>📦 ${matHtml}</span>
-                        <span class="result-address">${addrHtml}</span>
-                    </div>
-                    <div class="result-stations">${stationsHtml}</div>
+                const stationHtmlArr = [...grouped[art][matKey]]
+                    .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly));
+                const stationsHtml = buildStationsHtml(stationHtmlArr);
+                html += `<div class="article-row"${first ? ' style="border-top:none;padding-top:0;"' : ''}>
+                    <span class="article-number">${matHtml}</span>
+                    <span class="article-stations">${addrHtml}<br>${stationsHtml}</span>
                 </div>`;
+                first = false;
             }
             html += `</div>`;
         }
     } else {
-        // НОВЕ відображення: групуємо по матеріалу (+адреса), щоб не повторювати
-        // назву матеріалу для кожного артикула окремо.
+        // НОВЕ групування: групуємо по матеріалу (+адреса), щоб не повторювати
+        // назву матеріалу для кожного артикула окремо. Дизайн карток — як на скріншоті.
         const grouped = {};
         filtered.forEach(x => {
             const matKey = x.material + "|" + x.address;
@@ -470,34 +547,20 @@ function search() {
             const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
             const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
             html += `<div class="result-card">
-                <div class="result-material-name" style="font-size:17px; margin-bottom:10px;">
-                    <span>📦 ${matHtml}</span>
-                    <span class="result-address">${addrHtml}</span>
+                <div class="result-top">
+                    <span class="result-material-badge"><span class="box-icon">📦</span>${matHtml}</span>
+                    <span class="result-address-new">${addrHtml}</span>
                 </div>`;
-           for (let art in grouped[matKey]) {
-
-    let artHtml;
-
-   if (art.length > 4) {
-    const first4 = art.substring(0, 4);
-    const rest = art.substring(4);
-
-    artHtml = `
-        <span style="font-size:20px; font-weight:700;">${first4}</span><span style="font-size:23px; font-weight:700;">${rest}</span>
-    `;
-} else {
-    artHtml = `<span style="font-size:20px; font-weight:700;">${art}</span>`;
-}
-
-    const stationsHtml = [...grouped[matKey][art]]
-        .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly))
-        .join(" | ");
-
-    html += `<div style="margin-bottom:8px; padding-left:4px; border-left:2px solid #e5e7eb;">
-        <div class="result-article" style="margin-bottom:2px; padding-left:8px;">${artHtml}</div>
-        <div class="result-stations" style="padding-left:8px;">${stationsHtml}</div>
-    </div>`;
-}
+            for (let art in grouped[matKey]) {
+                const artHtml = isSpecialSearch ? escapeHtml(art) : highlight(art, v, isNumOnly);
+                const stationHtmlArr = [...grouped[matKey][art]]
+                    .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly));
+                const stationsHtml = buildStationsHtml(stationHtmlArr);
+                html += `<div class="article-row">
+                    <span class="article-number">${artHtml}</span>
+                    <span class="article-stations">${stationsHtml}</span>
+                </div>`;
+            }
             html += `</div>`;
         }
     }
