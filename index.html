@@ -86,6 +86,9 @@ input#input {
     color: #111111;
     white-space: nowrap;
 }
+.article-number .art-g1 { margin-right: 3px; }
+.article-number .art-g2 { font-size: 1.2em; margin-right: 3px; }
+.article-number .art-g3 { }
 
 .article-stations {
     font-size: 20px;
@@ -471,6 +474,41 @@ function buildStationsHtml(stationHtmlArr) {
     return lines.join("<br>");
 }
 
+// Розбиває номер артикулу на групи 4-3-решта (напр. "779600813B" -> "7796 008 13B"),
+// середня група трохи більшим шрифтом, з невеликим відступом між групами (не пробіл).
+// Підсвітка (mark.hl) для знайдених цифр зберігається так само, як і раніше.
+function renderArticleNumber(art, v, isNumOnly, isSpecialSearch) {
+    let matchStart = -1, matchEnd = -1;
+    if (!isSpecialSearch && v) {
+        const lower = art.toLowerCase();
+        if (isNumOnly) {
+            if (lower.endsWith(v)) { matchStart = art.length - v.length; matchEnd = art.length; }
+        } else {
+            if (lower.startsWith(v)) { matchStart = 0; matchEnd = v.length; }
+        }
+    }
+    function part(s, e) {
+        const str = art.slice(s, e);
+        if (matchStart === -1) return escapeHtml(str);
+        const overlapStart = Math.max(s, matchStart);
+        const overlapEnd = Math.min(e, matchEnd);
+        if (overlapStart >= overlapEnd) return escapeHtml(str);
+        let out = '';
+        if (overlapStart > s) out += escapeHtml(art.slice(s, overlapStart));
+        out += '<mark class="hl">' + escapeHtml(art.slice(overlapStart, overlapEnd)) + '</mark>';
+        if (overlapEnd < e) out += escapeHtml(art.slice(overlapEnd, e));
+        return out;
+    }
+    const len = art.length;
+    if (len <= 4) return `<span class="art-g1">${part(0, len)}</span>`;
+    const g1end = Math.min(4, len);
+    const g2end = Math.min(7, len);
+    let html = `<span class="art-g1">${part(0, g1end)}</span>`;
+    if (len > 4) html += `<span class="art-g2">${part(g1end, g2end)}</span>`;
+    if (len > 7) html += `<span class="art-g3">${part(g2end, len)}</span>`;
+    return html;
+}
+
 function search() {
     const v = input.value.toLowerCase();
     if (!v) { resultBox.innerHTML = ""; return; }
@@ -508,7 +546,7 @@ function search() {
             grouped[x.article][matKey].add(x.station);
         });
         for (let art in grouped) {
-            const artHtml = isSpecialSearch ? escapeHtml(art) : highlight(art, v, isNumOnly);
+            const artHtml = renderArticleNumber(art, v, isNumOnly, isSpecialSearch);
             html += `<div class="result-card">
                 <div class="result-top">
                     <span class="result-material-badge"><span class="box-icon">📦</span>${artHtml}</span>
@@ -549,7 +587,7 @@ function search() {
                     <span class="result-address-new">${addrHtml}</span>
                 </div>`;
             for (let art in grouped[matKey]) {
-                const artHtml = isSpecialSearch ? escapeHtml(art) : highlight(art, v, isNumOnly);
+                const artHtml = renderArticleNumber(art, v, isNumOnly, isSpecialSearch);
                 const stationHtmlArr = [...grouped[matKey][art]]
                     .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly));
                 const stationsHtml = buildStationsHtml(stationHtmlArr);
