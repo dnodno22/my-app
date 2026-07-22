@@ -120,12 +120,60 @@ input#input {
 .select-btn.selected { color: #FFC400; }
 .select-btn:active { transform: scale(.9); }
 
-.waitlist-remove-btn {
-    display: block;
+.waitlist-actions-row {
+    display: flex;
+    gap: 8px;
     margin-top: 16px;
+}
+
+.waitlist-remove-btn {
     border: none;
     background: #fff7e0;
     color: #b45309;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 10px;
+    padding: 10px 0;
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+}
+.waitlist-remove-btn:active { background: #fdeeca; }
+
+.comment-toggle-btn {
+    border: none;
+    background: #eef2ff;
+    color: #4338ca;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 10px;
+    padding: 10px 0;
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+}
+.comment-toggle-btn:active { background: #e0e7ff; }
+
+.comment-edit-area { margin-top: 12px; }
+.comment-textarea {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 64px;
+    outline: none;
+    color: #111;
+    background: #f9fafb;
+}
+.comment-save-btn {
+    display: block;
+    margin-top: 8px;
+    border: none;
+    background: #4338ca;
+    color: #fff;
     font-weight: 700;
     font-size: 14px;
     border-radius: 10px;
@@ -134,7 +182,18 @@ input#input {
     text-align: center;
     cursor: pointer;
 }
-.waitlist-remove-btn:active { background: #fdeeca; }
+.comment-save-btn:active { background: #372ea8; }
+
+.waitlist-comment-text {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #f3f4f6;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #374151;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
 
 /* HIGHLIGHT */
 mark.hl {
@@ -580,10 +639,18 @@ function toggleWaitlistItem(key, material, address, articlesPlain) {
     if (idx >= 0) {
         list.splice(idx, 1);
     } else {
-        list.push({ key, material, address, articles: articlesPlain });
+        list.push({ key, material, address, articles: articlesPlain, comment: "" });
     }
     saveWaitlist(list);
     return idx < 0; // true = щойно додано, false = щойно прибрано
+}
+function setWaitlistComment(key, text) {
+    const list = loadWaitlist();
+    const idx = list.findIndex(item => item.key === key);
+    if (idx >= 0) {
+        list[idx].comment = text;
+        saveWaitlist(list);
+    }
 }
 
 let waitlistCardKeys = [];
@@ -598,6 +665,7 @@ function renderWaitlistPage() {
     let html = "";
     list.forEach(item => {
         const idx = waitlistCardKeys.push(item.key) - 1;
+        const hasComment = !!(item.comment && item.comment.trim());
         html += `<div class="result-card">
             <div class="result-top">
                 <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(item.material)}</span>
@@ -613,19 +681,56 @@ function renderWaitlistPage() {
                 <span class="article-stations">${stationsHtml}</span>
             </div>`;
         }
-        html += `<button class="waitlist-remove-btn" data-idx="${idx}">★ Прибрати зі списку</button></div>`;
+        html += `<div class="waitlist-actions-row">
+                <button class="waitlist-remove-btn" data-idx="${idx}">★ Прибрати зі списку</button>
+                <button class="comment-toggle-btn" data-idx="${idx}">${hasComment ? '✎ Коментар' : '💬 Коментар'}</button>
+            </div>
+            <div class="comment-edit-area hidden" data-idx="${idx}">
+                <textarea class="comment-textarea" data-idx="${idx}" placeholder="Ваш коментар...">${escapeHtml(item.comment || "")}</textarea>
+                <button class="comment-save-btn" data-idx="${idx}">Зберегти</button>
+            </div>`;
+        if (hasComment) {
+            html += `<div class="waitlist-comment-text" data-idx="${idx}">${escapeHtml(item.comment)}</div>`;
+        }
+        html += `</div>`;
     });
     waitlistBox.innerHTML = html;
 }
 
 waitlistBox.addEventListener('click', (e) => {
-    const btn = e.target.closest('.waitlist-remove-btn');
-    if (!btn) return;
-    const key = waitlistCardKeys[parseInt(btn.dataset.idx, 10)];
-    if (key === undefined) return;
-    const list = loadWaitlist().filter(item => item.key !== key);
-    saveWaitlist(list);
-    renderWaitlistPage();
+    const removeBtn = e.target.closest('.waitlist-remove-btn');
+    if (removeBtn) {
+        const key = waitlistCardKeys[parseInt(removeBtn.dataset.idx, 10)];
+        if (key === undefined) return;
+        const list = loadWaitlist().filter(item => item.key !== key);
+        saveWaitlist(list);
+        renderWaitlistPage();
+        return;
+    }
+    const toggleBtn = e.target.closest('.comment-toggle-btn');
+    if (toggleBtn) {
+        const idx = toggleBtn.dataset.idx;
+        const area = waitlistBox.querySelector(`.comment-edit-area[data-idx="${idx}"]`);
+        if (area) {
+            area.classList.toggle('hidden');
+            if (!area.classList.contains('hidden')) {
+                const ta = area.querySelector('.comment-textarea');
+                if (ta) ta.focus();
+            }
+        }
+        return;
+    }
+    const saveBtn = e.target.closest('.comment-save-btn');
+    if (saveBtn) {
+        const idx = parseInt(saveBtn.dataset.idx, 10);
+        const key = waitlistCardKeys[idx];
+        if (key === undefined) return;
+        const textarea = waitlistBox.querySelector(`.comment-textarea[data-idx="${idx}"]`);
+        const text = textarea ? textarea.value : "";
+        setWaitlistComment(key, text);
+        renderWaitlistPage();
+        return;
+    }
 });
 
 // Клік по кнопці-зірочці на картці результату пошуку — додає/прибирає матеріал зі списку очікування
@@ -858,7 +963,7 @@ document.addEventListener('touchend', e => {
     if (moved && Math.abs(dx) > 60) {
         if (dx < 0) goToPage(currentPage + 1); // свайп вліво -> наступна сторінка
         if (dx > 0) goToPage(currentPage - 1); // свайп вправо -> попередня сторінка
-    } else if (!moved && currentPage === SEARCH_PAGE_INDEX && !kbWrapper.contains(e.target)) {
+    } else if (!moved && currentPage === SEARCH_PAGE_INDEX && !kbWrapper.contains(e.target) && !e.target.closest('.select-btn')) {
         const willHide = !kbWrapper.classList.contains('hidden');
         kbWrapper.classList.toggle('hidden');
         if (willHide) hideCarousel();
