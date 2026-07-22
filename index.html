@@ -98,6 +98,44 @@ input#input {
     line-height: 1.3;
 }
 
+/* ==================== СПИСОК ОЧІКУВАННЯ (WAITLIST) ==================== */
+.waitlist-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111111;
+    text-align: center;
+    padding: 8px 0;
+}
+
+.select-btn {
+    border: none;
+    background: transparent;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 4px;
+    color: #d1d5db;
+    flex-shrink: 0;
+}
+.select-btn.selected { color: #FFC400; }
+.select-btn:active { transform: scale(.9); }
+
+.waitlist-remove-btn {
+    display: block;
+    margin-top: 16px;
+    border: none;
+    background: #fff7e0;
+    color: #b45309;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 10px;
+    padding: 10px 0;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+}
+.waitlist-remove-btn:active { background: #fdeeca; }
+
 /* HIGHLIGHT */
 mark.hl {
     background: #fde047;
@@ -161,7 +199,12 @@ tr:nth-child(even) td { background: #f9fafb; }
 <body>
 
 <div id="pages">
-    <!-- PAGE 0: SEARCH -->
+    <!-- PAGE (waitlist): свайп управо від пошуку -->
+    <div class="page" id="page-waitlist">
+        <div class="search-header"><div class="waitlist-title">⭐ Обрані матеріали</div></div>
+        <div class="scroll-area"><div id="waitlist-result"></div></div>
+    </div>
+    <!-- PAGE (search) -->
     <div class="page" id="page0">
         <div class="search-header"><input id="input" readonly></div>
         <div class="scroll-area"><div id="result"></div></div>
@@ -206,12 +249,14 @@ const TABLE_SHEETS = [
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
 
-const TOTAL_PAGES = 1 + TABLE_SHEETS.length; // сторінка пошуку + всі аркуші таблиці
-let currentPage = 0;
+const TOTAL_PAGES = 2 + TABLE_SHEETS.length; // сторінка очікування + пошук + всі аркуші таблиці
+const SEARCH_PAGE_INDEX = 1; // 0 = waitlist, 1 = search, 2+ = table sheets
+let currentPage = SEARCH_PAGE_INDEX;
 let searchData = [];
 
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
+const waitlistBox = document.getElementById('waitlist-result');
 const kbWrapper = document.getElementById('kb-wrapper');
 const pagesEl = document.getElementById('pages');
 const dotsEl = document.getElementById('page-dots');
@@ -266,10 +311,16 @@ pagesEl.style.width = (TOTAL_PAGES * 100) + '%';
 // крапки
 for (let i = 0; i < TOTAL_PAGES; i++) {
     const d = document.createElement('div');
-    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.className = 'dot' + (i === SEARCH_PAGE_INDEX ? ' active' : '');
     d.id = 'dot' + i;
     dotsEl.appendChild(d);
 }
+
+// одразу (без анімації) відкриваємо сторінку пошуку — вона знаходиться між
+// сторінкою очікування (свайп управо) і аркушами таблиць (свайп вліво)
+pagesEl.style.transition = 'none';
+pagesEl.style.transform = `translateX(-${SEARCH_PAGE_INDEX * pageWidthPercent}%)`;
+requestAnimationFrame(() => { pagesEl.style.transition = ''; });
 
 /* ---------- Клавіатура (сторінка пошуку) ---------- */
 
@@ -509,6 +560,89 @@ function renderArticleNumber(art, v, isNumOnly, isSpecialSearch) {
     return html;
 }
 
+// ==================== СПИСОК ОЧІКУВАННЯ (обрані матеріали) ====================
+// Зберігається у localStorage, живе доти, доки не очистити кеш браузера.
+const CACHE_KEY_WAITLIST = "materialWaitlist";
+
+function loadWaitlist() {
+    try { return JSON.parse(localStorage.getItem(CACHE_KEY_WAITLIST) || "[]"); }
+    catch (e) { return []; }
+}
+function saveWaitlist(list) {
+    localStorage.setItem(CACHE_KEY_WAITLIST, JSON.stringify(list));
+}
+function isInWaitlist(key) {
+    return loadWaitlist().some(item => item.key === key);
+}
+function toggleWaitlistItem(key, material, address, articlesPlain) {
+    const list = loadWaitlist();
+    const idx = list.findIndex(item => item.key === key);
+    if (idx >= 0) {
+        list.splice(idx, 1);
+    } else {
+        list.push({ key, material, address, articles: articlesPlain });
+    }
+    saveWaitlist(list);
+    return idx < 0; // true = щойно додано, false = щойно прибрано
+}
+
+let waitlistCardKeys = [];
+function renderWaitlistPage() {
+    const list = loadWaitlist();
+    if (!list.length) {
+        waitlistBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Список порожній</div>';
+        waitlistCardKeys = [];
+        return;
+    }
+    waitlistCardKeys = [];
+    let html = "";
+    list.forEach(item => {
+        const idx = waitlistCardKeys.push(item.key) - 1;
+        html += `<div class="result-card">
+            <div class="result-top">
+                <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(item.material)}</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="result-address-new">${escapeHtml(item.address)}</span>
+                </div>
+            </div>`;
+        for (let art in item.articles) {
+            const stationHtmlArr = item.articles[art].map(st => escapeHtml(st));
+            const stationsHtml = buildStationsHtml(stationHtmlArr);
+            html += `<div class="article-row">
+                <span class="article-number">${renderArticleNumber(art, "", false, true)}</span>
+                <span class="article-stations">${stationsHtml}</span>
+            </div>`;
+        }
+        html += `<button class="waitlist-remove-btn" data-idx="${idx}">★ Прибрати зі списку</button></div>`;
+    });
+    waitlistBox.innerHTML = html;
+}
+
+waitlistBox.addEventListener('click', (e) => {
+    const btn = e.target.closest('.waitlist-remove-btn');
+    if (!btn) return;
+    const key = waitlistCardKeys[parseInt(btn.dataset.idx, 10)];
+    if (key === undefined) return;
+    const list = loadWaitlist().filter(item => item.key !== key);
+    saveWaitlist(list);
+    renderWaitlistPage();
+});
+
+// Клік по кнопці-зірочці на картці результату пошуку — додає/прибирає матеріал зі списку очікування
+let searchCardKeys = [];
+let searchResultLookup = {};
+resultBox.addEventListener('click', (e) => {
+    const btn = e.target.closest('.select-btn');
+    if (!btn) return;
+    const key = searchCardKeys[parseInt(btn.dataset.idx, 10)];
+    if (key === undefined) return;
+    const data = searchResultLookup[key];
+    if (!data) return;
+    const nowSelected = toggleWaitlistItem(key, data.material, data.address, data.articles);
+    btn.classList.toggle('selected', nowSelected);
+    btn.textContent = nowSelected ? '★' : '☆';
+});
+
 function search() {
     const v = input.value.toLowerCase();
     if (!v) { resultBox.innerHTML = ""; return; }
@@ -534,6 +668,8 @@ function search() {
     if (!filtered.length) { resultBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>'; return; }
 
     let html = "";
+    searchCardKeys = [];
+    searchResultLookup = {};
 
     if (lastInputFromCarousel) {
         // СТАРЕ групування (як шукалось через карусель раніше): спочатку артикул,
@@ -581,10 +717,20 @@ function search() {
             const [matName, matAddr] = matKey.split("|");
             const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
             const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
+
+            const articlesPlain = {};
+            for (let art in grouped[matKey]) articlesPlain[art] = [...grouped[matKey][art]];
+            searchResultLookup[matKey] = { material: matName, address: matAddr, articles: articlesPlain };
+            const cardIdx = searchCardKeys.push(matKey) - 1;
+            const selected = isInWaitlist(matKey);
+
             html += `<div class="result-card">
                 <div class="result-top">
                     <span class="result-material-badge"><span class="box-icon">📦</span>${matHtml}</span>
-                    <span class="result-address-new">${addrHtml}</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="result-address-new">${addrHtml}</span>
+                        <button class="select-btn${selected ? ' selected' : ''}" data-idx="${cardIdx}">${selected ? '★' : '☆'}</button>
+                    </div>
                 </div>`;
             for (let art in grouped[matKey]) {
                 const artHtml = renderArticleNumber(art, v, isNumOnly, isSpecialSearch);
@@ -692,11 +838,15 @@ function goToPage(n) {
     for (let i = 0; i < TOTAL_PAGES; i++) {
         document.getElementById('dot' + i).classList.toggle('active', i === n);
     }
-    if (n === 0) {
+    if (n === SEARCH_PAGE_INDEX) {
         kbWrapper.classList.remove('hidden');
     } else {
         kbWrapper.classList.add('hidden');
-        loadTableByIndex(n - 1); // n=1 -> tableState[0], n=2 -> tableState[1], ...
+        if (n === 0) {
+            renderWaitlistPage();
+        } else {
+            loadTableByIndex(n - SEARCH_PAGE_INDEX - 1); // n=2 -> tableState[0], n=3 -> tableState[1], ...
+        }
     }
 }
 
@@ -708,7 +858,7 @@ document.addEventListener('touchend', e => {
     if (moved && Math.abs(dx) > 60) {
         if (dx < 0) goToPage(currentPage + 1); // свайп вліво -> наступна сторінка
         if (dx > 0) goToPage(currentPage - 1); // свайп вправо -> попередня сторінка
-    } else if (!moved && currentPage === 0 && !kbWrapper.contains(e.target)) {
+    } else if (!moved && currentPage === SEARCH_PAGE_INDEX && !kbWrapper.contains(e.target)) {
         const willHide = !kbWrapper.classList.contains('hidden');
         kbWrapper.classList.toggle('hidden');
         if (willHide) hideCarousel();
