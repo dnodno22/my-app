@@ -120,13 +120,9 @@ input#input {
 .select-btn.selected { color: #FFC400; }
 .select-btn:active { transform: scale(.9); }
 
-.waitlist-actions-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-}
-
 .waitlist-remove-btn {
+    display: block;
+    margin-top: 16px;
     border: none;
     background: #fff7e0;
     color: #b45309;
@@ -134,45 +130,66 @@ input#input {
     font-size: 14px;
     border-radius: 10px;
     padding: 10px 0;
-    flex: 1;
+    width: 100%;
     text-align: center;
     cursor: pointer;
 }
 .waitlist-remove-btn:active { background: #fdeeca; }
 
-.comment-toggle-btn {
+.waitlist-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+.waitlist-actions .waitlist-remove-btn,
+.waitlist-actions .waitlist-comment-btn {
+    margin-top: 0;
+    flex: 1;
+}
+.waitlist-comment-btn {
+    display: block;
     border: none;
     background: #eef2ff;
-    color: #4338ca;
+    color: #3730a3;
     font-weight: 700;
     font-size: 14px;
     border-radius: 10px;
     padding: 10px 0;
-    flex: 1;
+    width: 100%;
     text-align: center;
     cursor: pointer;
 }
-.comment-toggle-btn:active { background: #e0e7ff; }
+.waitlist-comment-btn:active { background: #e0e7ff; }
 
-.comment-edit-area { margin-top: 12px; }
-.comment-textarea {
+.waitlist-comment-text {
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: #f9fafb;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #374151;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.waitlist-comment-editor { margin-top: 12px; }
+.waitlist-comment-input {
     width: 100%;
+    min-height: 70px;
     border: 1px solid #e5e7eb;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 10px 12px;
     font-size: 14px;
     font-family: inherit;
-    resize: vertical;
-    min-height: 64px;
-    outline: none;
     color: #111;
-    background: #f9fafb;
+    resize: vertical;
+    outline: none;
 }
-.comment-save-btn {
+.waitlist-comment-save {
     display: block;
     margin-top: 8px;
     border: none;
-    background: #4338ca;
+    background: #111827;
     color: #fff;
     font-weight: 700;
     font-size: 14px;
@@ -182,18 +199,7 @@ input#input {
     text-align: center;
     cursor: pointer;
 }
-.comment-save-btn:active { background: #372ea8; }
-
-.waitlist-comment-text {
-    margin-top: 12px;
-    padding: 10px 12px;
-    background: #f3f4f6;
-    border-radius: 10px;
-    font-size: 14px;
-    color: #374151;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
+.waitlist-comment-save:active { background: #1f2937; }
 
 /* HIGHLIGHT */
 mark.hl {
@@ -644,13 +650,12 @@ function toggleWaitlistItem(key, material, address, articlesPlain) {
     saveWaitlist(list);
     return idx < 0; // true = щойно додано, false = щойно прибрано
 }
-function setWaitlistComment(key, text) {
+function saveWaitlistComment(key, comment) {
     const list = loadWaitlist();
-    const idx = list.findIndex(item => item.key === key);
-    if (idx >= 0) {
-        list[idx].comment = text;
-        saveWaitlist(list);
-    }
+    const item = list.find(i => i.key === key);
+    if (!item) return;
+    item.comment = comment;
+    saveWaitlist(list);
 }
 
 let waitlistCardKeys = [];
@@ -665,7 +670,6 @@ function renderWaitlistPage() {
     let html = "";
     list.forEach(item => {
         const idx = waitlistCardKeys.push(item.key) - 1;
-        const hasComment = !!(item.comment && item.comment.trim());
         html += `<div class="result-card">
             <div class="result-top">
                 <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(item.material)}</span>
@@ -681,18 +685,16 @@ function renderWaitlistPage() {
                 <span class="article-stations">${stationsHtml}</span>
             </div>`;
         }
-        html += `<div class="waitlist-actions-row">
-                <button class="waitlist-remove-btn" data-idx="${idx}">★ Прибрати зі списку</button>
-                <button class="comment-toggle-btn" data-idx="${idx}">${hasComment ? '✎ Коментар' : '💬 Коментар'}</button>
+        html += `${item.comment ? `<div class="waitlist-comment-text">💬 ${escapeHtml(item.comment)}</div>` : ''}
+            <div class="waitlist-actions">
+                <button class="waitlist-remove-btn" data-idx="${idx}">★ Прибрати</button>
+                <button class="waitlist-comment-btn" data-idx="${idx}">${item.comment ? '✏️ Редагувати коментар' : '💬 Додати коментар'}</button>
             </div>
-            <div class="comment-edit-area hidden" data-idx="${idx}">
-                <textarea class="comment-textarea" data-idx="${idx}" placeholder="Ваш коментар...">${escapeHtml(item.comment || "")}</textarea>
-                <button class="comment-save-btn" data-idx="${idx}">Зберегти</button>
-            </div>`;
-        if (hasComment) {
-            html += `<div class="waitlist-comment-text" data-idx="${idx}">${escapeHtml(item.comment)}</div>`;
-        }
-        html += `</div>`;
+            <div class="waitlist-comment-editor hidden" data-idx="${idx}">
+                <textarea class="waitlist-comment-input" placeholder="Напишіть коментар...">${escapeHtml(item.comment || '')}</textarea>
+                <button class="waitlist-comment-save" data-idx="${idx}">Зберегти</button>
+            </div>
+        </div>`;
     });
     waitlistBox.innerHTML = html;
 }
@@ -707,29 +709,28 @@ waitlistBox.addEventListener('click', (e) => {
         renderWaitlistPage();
         return;
     }
-    const toggleBtn = e.target.closest('.comment-toggle-btn');
-    if (toggleBtn) {
-        const idx = toggleBtn.dataset.idx;
-        const area = waitlistBox.querySelector(`.comment-edit-area[data-idx="${idx}"]`);
-        if (area) {
-            area.classList.toggle('hidden');
-            if (!area.classList.contains('hidden')) {
-                const ta = area.querySelector('.comment-textarea');
+    const commentBtn = e.target.closest('.waitlist-comment-btn');
+    if (commentBtn) {
+        const idx = commentBtn.dataset.idx;
+        const editor = waitlistBox.querySelector(`.waitlist-comment-editor[data-idx="${idx}"]`);
+        if (editor) {
+            editor.classList.toggle('hidden');
+            if (!editor.classList.contains('hidden')) {
+                const ta = editor.querySelector('.waitlist-comment-input');
                 if (ta) ta.focus();
             }
         }
         return;
     }
-    const saveBtn = e.target.closest('.comment-save-btn');
+    const saveBtn = e.target.closest('.waitlist-comment-save');
     if (saveBtn) {
         const idx = parseInt(saveBtn.dataset.idx, 10);
         const key = waitlistCardKeys[idx];
         if (key === undefined) return;
-        const textarea = waitlistBox.querySelector(`.comment-textarea[data-idx="${idx}"]`);
-        const text = textarea ? textarea.value : "";
-        setWaitlistComment(key, text);
+        const editor = waitlistBox.querySelector(`.waitlist-comment-editor[data-idx="${idx}"]`);
+        const ta = editor ? editor.querySelector('.waitlist-comment-input') : null;
+        saveWaitlistComment(key, ta ? ta.value.trim() : "");
         renderWaitlistPage();
-        return;
     }
 });
 
@@ -752,7 +753,7 @@ function search() {
     const v = input.value.toLowerCase();
     if (!v) { resultBox.innerHTML = ""; return; }
     const isNumOnly = /^\d+$/.test(v);
-    const isSpecialSearch = v.includes("стр") || v.includes("мм");
+    const isSpecialSearch = v.includes("стр") || v.includes("мм") || v.includes("ts");
 
     const filtered = searchData.filter(x => {
         if (isSpecialSearch) return x.colD.toLowerCase().startsWith(v);
