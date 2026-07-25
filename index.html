@@ -301,26 +301,25 @@ tr:nth-child(even) td { background: #f9fafb; }
    Кожен об'єкт — це один аркуш Google-таблиці, який буде доступний
    для гортання свайпом. label можна змінити на реальну назву аркуша.
 
-   auto: true  -> це "авто-аркуш": у комірці A1 такого аркуша лежить
-   НЕ назва сторінки, а АРТИКУЛ. Сама таблиця на сторінці не читає свої
-   рядки з цього аркуша — натомість вона бере всі записи з аркуша
-   пошуку (SEARCH_GID), у яких колонка "артикул" збігається з тим,
-   що вказано в A1, і будує таблицю (станція / матеріал / адреса)
-   автоматично. Наприклад: на аркуші з gid 778366878 у A1 стоїть
-   779600813B -> сторінка сама підтягне всі станції/адреси з цим
-   артикулом з аркуша пошуку. */
+   auto: true  -> це "авто-аркуш": сторінка НЕ читає свій власний
+   аркуш взагалі. Замість цього вона бере артикул із поля "article"
+   нижче (задається тут, у коді) і сама будує таблицю (станція /
+   матеріал / адреса) з усіх записів аркуша пошуку (SEARCH_GID),
+   у яких колонка "артикул" збігається з цим значенням.
+   Щоб змінити артикул для будь-якої сторінки — просто відредагуй
+   значення "article" нижче. */
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const TABLE_SHEETS = [
     { gid: "421001458" },
     { gid: "1146686549" },
     { gid: "2115582321" },
     { gid: "994923423" },
-    { gid: "194111037", auto: true },
-    { gid: "167896896", auto: true },
-    { gid: "673306471", auto: true },
-    { gid: "778366878", auto: true },
-    { gid: "1910672303", auto: true },
-    { gid: "431508248", auto: true }
+    { gid: "194111037", auto: true, article: "500123456" },
+    { gid: "167896896", auto: true, article: "500223457" },
+    { gid: "673306471", auto: true, article: "500323458" },
+    { gid: "778366878", auto: true, article: "779600813B" },
+    { gid: "1910672303", auto: true, article: "500423459" },
+    { gid: "431508248", auto: true, article: "500523460" }
 ];
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -359,7 +358,7 @@ TABLE_SHEETS.forEach((sheet, idx) => {
     tableState.push({
         gid: sheet.gid,
         auto: sheet.auto === true,
-        article: "",
+        article: sheet.article || "",
         title: "",
         headers: [],
         rows: [],
@@ -910,30 +909,22 @@ function updateTableTimeDisplay(st) {
     st.updatedEl.textContent = t ? ('оновлено ' + formatDate(t)) : '';
 }
 
-// Обробляє свіжий/кешований CSV конкретного аркуша: для звичайного аркуша —
-// це готова таблиця; для авто-аркуша — це лише джерело артикулу з A1,
-// саму таблицю будує renderAutoTable() з даних пошуку.
+// Обробляє свіжий/кешований CSV звичайного (не auto) аркуша.
 function applySheetData(idx, csvText) {
     const st = tableState[idx];
     const parsed = parseTableCSV(csvText);
     st.title = parsed.title;
-    if (st.auto) {
-        st.article = (parsed.title || "").trim();
-        st.titleEl.textContent = st.article ? ("Артикул " + st.article) : ('Аркуш ' + (idx + 1));
-        renderAutoTable(idx);
-    } else {
-        st.headers = parsed.headers;
-        st.rows = parsed.rows;
-        st.titleEl.textContent = st.title || ('Аркуш ' + (idx + 1));
-        renderTable(idx);
-    }
+    st.headers = parsed.headers;
+    st.rows = parsed.rows;
+    st.titleEl.textContent = st.title || ('Аркуш ' + (idx + 1));
+    renderTable(idx);
 }
 
-// Будує таблицю авто-аркуша з даних пошуку за артикулом з A1.
+// Будує таблицю авто-сторінки з даних пошуку за артикулом, заданим у конфізі TABLE_SHEETS.
 function renderAutoTable(idx) {
     const st = tableState[idx];
     if (!st.article) {
-        st.contentEl.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">Немає артикулу в A1</div>';
+        st.contentEl.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">Артикул не вказано в конфігу</div>';
         return;
     }
     getSearchDataAsync().then(data => {
@@ -949,6 +940,14 @@ function loadTableByIndex(idx) {
     const st = tableState[idx];
     if (st.loadedOnce) return;
     st.loadedOnce = true;
+
+    if (st.auto) {
+        // Авто-сторінка: свій gid не читаємо взагалі — одразу малюємо
+        // з артикулу, заданого в конфізі, + даних аркуша пошуку.
+        st.titleEl.textContent = "";
+        renderAutoTable(idx);
+        return;
+    }
 
     // 1. Спочатку кеш — одразу показуємо
     const cached = localStorage.getItem(st.cacheKey);
