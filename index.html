@@ -824,12 +824,20 @@ function search() {
 
 /* ---------- Сторінки-артикули (генеруються з даних пошуку) ----------
    Викликається щоразу, як з'являються дані пошуку (з кешу і з кожного
-   свіжого фетчу). Проходить по всіх рядках, знаходить УНІКАЛЬНІ
-   артикули (в порядку появи в аркуші) і на кожен НОВИЙ (яких ще
-   немає серед побудованих сторінок) створює одну сторінку з таблицею
-   Станція / Матеріал / Адреса — свайп вліво від пошуку показує їх
-   одну за одною. Вже побудовані сторінки не чіпаються, тому це
-   безпечно викликати повторно після кожного оновлення даних. */
+   свіжого фетчу). Значення в колонці "артикул" може містити кілька
+   номерів через "/", напр. "248/526/470" — це НЕ один артикул, а три:
+   248, 526 і 470. Кожен такий номер отримує свою окрему сторінку,
+   і рядок з такою коміркою потрапляє одразу на всі три сторінки.
+   Вже побудовані сторінки не чіпаються, тому це безпечно викликати
+   повторно після кожного оновлення даних — нові номери просто
+   додаються в кінець. */
+function splitArticleNumbers(raw) {
+    return (raw || '')
+        .split('/')
+        .map(s => s.trim())
+        .filter(Boolean);
+}
+
 function buildArticlePages(data) {
     if (!data || !data.length) return;
 
@@ -837,8 +845,9 @@ function buildArticlePages(data) {
     const seen = new Set(known);
     const newArticles = [];
     data.forEach(x => {
-        const art = (x.article || '').trim();
-        if (art && !seen.has(art)) { seen.add(art); newArticles.push(art); }
+        splitArticleNumbers(x.article).forEach(art => {
+            if (!seen.has(art)) { seen.add(art); newArticles.push(art); }
+        });
     });
     if (!newArticles.length) return;
 
@@ -857,7 +866,7 @@ function buildArticlePages(data) {
         pagesEl.appendChild(pageEl);
 
         const rows = data
-            .filter(x => (x.article || '').trim() === art)
+            .filter(x => splitArticleNumbers(x.article).includes(art))
             .map(x => [x.station, x.material, x.address]);
 
         tableState.push({
