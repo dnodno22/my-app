@@ -297,37 +297,22 @@ tr:nth-child(even) td { background: #f9fafb; }
 <div class="page-dots" id="page-dots"></div>
 
 <script>
-/* ==================== НАЛАШТУВАННЯ АРКУШІВ ====================
-   Кожен об'єкт — це один аркуш Google-таблиці, який буде доступний
-   для гортання свайпом. label можна змінити на реальну назву аркуша.
-
-   auto: true  -> це "авто-аркуш": сторінка НЕ читає свій власний
-   аркуш взагалі. Замість цього вона бере артикул із поля "article"
-   нижче (задається тут, у коді) і сама будує таблицю (станція /
-   матеріал / адреса) з усіх записів аркуша пошуку (SEARCH_GID),
-   у яких колонка "артикул" збігається з цим значенням.
-   Щоб змінити артикул для будь-якої сторінки — просто відредагуй
-   значення "article" нижче. */
+/* ==================== ДЖЕРЕЛО ДАНИХ ====================
+   Всі сторінки-таблиці більше НЕ мають власних аркушів у Google
+   Sheets. Замість цього при завантаженні беруться дані аркуша
+   пошуку (SEARCH_GID), з них виокремлюються всі УНІКАЛЬНІ артикули
+   (в порядку появи), і на кожен артикул автоматично створюється
+   одна сторінка-таблиця (Станція / Матеріал / Адреса) — гортаєш
+   свайпом і бачиш їх одну за одною. */
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
-const TABLE_SHEETS = [
-    { gid: "421001458" },
-    { gid: "1146686549" },
-    { gid: "2115582321" },
-    { gid: "994923423" },
-    { gid: "194111037", auto: true, article: "500123456" },
-    { gid: "167896896", auto: true, article: "500223457" },
-    { gid: "673306471", auto: true, article: "500323458" },
-    { gid: "778366878", auto: true, article: "779600813B" },
-    { gid: "1910672303", auto: true, article: "500423459" },
-    { gid: "431508248", auto: true, article: "500523460" }
-];
 const SEARCH_GID = "1679964111";
-/* ================================================================ */
+/* ========================================================= */
 
-const TOTAL_PAGES = 2 + TABLE_SHEETS.length; // сторінка очікування + пошук + всі аркуші таблиці
-const SEARCH_PAGE_INDEX = 1; // 0 = waitlist, 1 = search, 2+ = table sheets
+let TOTAL_PAGES = 2; // 0 = очікування, 1 = пошук; сторінки артикулів додаються динамічно
+const SEARCH_PAGE_INDEX = 1; // 0 = waitlist, 1 = search, 2+ = сторінки артикулів
 let currentPage = SEARCH_PAGE_INDEX;
 let searchData = [];
+let tableState = []; // одна сторінка на кожен унікальний артикул
 
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
@@ -338,66 +323,34 @@ const dotsEl = document.getElementById('page-dots');
 
 const CACHE_KEY_SEARCH = "searchDataCSV";
 
-/* ---------- Побудова сторінок таблиць та крапок ---------- */
-const tableState = []; // { gid, auto, article, label, headers, rows, sortCol, sortAsc, loadedOnce, cacheKey, cacheTimeKey, contentEl, updatedEl }
-
-TABLE_SHEETS.forEach((sheet, idx) => {
-    const pageEl = document.createElement('div');
-    pageEl.className = 'page table-page';
-    pageEl.id = 'page' + (idx + 1);
-    pageEl.innerHTML = `
-        <div class="table-header">
-            <span class="table-title" id="table-title-${idx}">…</span>
-            <span class="table-updated" id="table-updated-${idx}"></span>
-        </div>
-        <div class="table-scroll">
-            <div id="table-content-${idx}"><div style="text-align:center; padding:40px; color:#999;">⏳ Завантаження...</div></div>
-        </div>`;
-    pagesEl.appendChild(pageEl);
-
-    tableState.push({
-        gid: sheet.gid,
-        auto: sheet.auto === true,
-        article: sheet.article || "",
-        title: "",
-        headers: [],
-        rows: [],
-        sortCol: -1,
-        sortAsc: true,
-        loadedOnce: false,
-        cacheKey: "tableDataCSV_" + sheet.gid,
-        cacheTimeKey: "tableDataTime_" + sheet.gid,
-        contentEl: null,
-        updatedEl: null,
-        titleEl: null
-    });
-});
-
-// зберігаємо посилання на елементи після вставки в DOM
-tableState.forEach((st, idx) => {
-    st.contentEl = document.getElementById('table-content-' + idx);
-    st.updatedEl = document.getElementById('table-updated-' + idx);
-    st.titleEl = document.getElementById('table-title-' + idx);
-});
-
-// однакова ширина для всіх сторінок
-const pageWidthPercent = 100 / TOTAL_PAGES;
-document.querySelectorAll('.page').forEach(p => { p.style.width = pageWidthPercent + '%'; });
-pagesEl.style.width = (TOTAL_PAGES * 100) + '%';
-
-// крапки
-for (let i = 0; i < TOTAL_PAGES; i++) {
-    const d = document.createElement('div');
-    d.className = 'dot' + (i === SEARCH_PAGE_INDEX ? ' active' : '');
-    d.id = 'dot' + i;
-    dotsEl.appendChild(d);
+/* ---------- Ширина сторінок і крапки (перебудовуються щоразу, коли міняється кількість сторінок) ---------- */
+function applyPageWidths() {
+    const pct = 100 / TOTAL_PAGES;
+    document.querySelectorAll('.page').forEach(p => { p.style.width = pct + '%'; });
+    pagesEl.style.width = (TOTAL_PAGES * 100) + '%';
+    return pct;
 }
 
-// одразу (без анімації) відкриваємо сторінку пошуку — вона знаходиться між
-// сторінкою очікування (свайп управо) і аркушами таблиць (свайп вліво)
-pagesEl.style.transition = 'none';
-pagesEl.style.transform = `translateX(-${SEARCH_PAGE_INDEX * pageWidthPercent}%)`;
-requestAnimationFrame(() => { pagesEl.style.transition = ''; });
+function rebuildDots() {
+    dotsEl.innerHTML = '';
+    for (let i = 0; i < TOTAL_PAGES; i++) {
+        const d = document.createElement('div');
+        d.className = 'dot' + (i === currentPage ? ' active' : '');
+        d.id = 'dot' + i;
+        dotsEl.appendChild(d);
+    }
+}
+
+function goToPageInstant(n) {
+    const pct = applyPageWidths();
+    pagesEl.style.transition = 'none';
+    pagesEl.style.transform = `translateX(-${n * pct}%)`;
+    requestAnimationFrame(() => { pagesEl.style.transition = ''; });
+}
+
+applyPageWidths();
+rebuildDots();
+goToPageInstant(SEARCH_PAGE_INDEX);
 
 /* ---------- Клавіатура (сторінка пошуку) ---------- */
 
@@ -553,36 +506,23 @@ const cachedSearch = localStorage.getItem(CACHE_KEY_SEARCH);
 if (cachedSearch) {
     parseSearchCSV(cachedSearch);
     if (input.value) search();
+    buildArticlePages(searchData);
 }
 
 // 2. ПОТІМ у фоні тягнемо свіжі дані і тихо оновлюємо кеш + список
-// (searchDataPromise дозволяє авто-аркушам "почекати" дані пошуку,
-// навіть якщо кешу ще не було і searchData ще порожній)
-let searchDataPromise = null;
 function fetchSearchData() {
     const url1 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SEARCH_GID}&t=` + Date.now();
-    searchDataPromise = fetch(url1)
+    fetch(url1)
     .then(r => r.text())
     .then(t => {
         localStorage.setItem(CACHE_KEY_SEARCH, t);
         parseSearchCSV(t);
         if (input.value) search();
-        // якщо свіжі дані прийшли вже після того, як авто-аркуш відкрили —
-        // перемальовуємо його з оновленими даними
-        tableState.forEach(st => { if (st.auto && st.loadedOnce) renderAutoTable(tableState.indexOf(st)); });
-        return searchData;
+        buildArticlePages(searchData); // не спрацює повторно, якщо вже побудовано з кешу
     })
-    .catch(() => searchData);
-    return searchDataPromise;
+    .catch(() => {});
 }
-searchDataPromise = fetchSearchData();
-
-// Повертає Promise з готовими даними пошуку: одразу, якщо вже завантажені
-// (з кешу), або чекає мережевий запит, якщо кешу ще не було.
-function getSearchDataAsync() {
-    if (searchData && searchData.length) return Promise.resolve(searchData);
-    return searchDataPromise || Promise.resolve(searchData);
-}
+fetchSearchData();
 
 // Екранування HTML перед вставкою
 function escapeHtml(str) {
@@ -882,88 +822,60 @@ function search() {
     resultBox.innerHTML = html;
 }
 
-/* ---------- Таблиці (аркуші) ----------
-   ЗВИЧАЙНИЙ аркуш: рядок 1 (A1) = назва сторінки, рядок 2 = заголовки
-   колонок, рядок 3+ = дані. Все читається напряму з аркуша.
+/* ---------- Сторінки-артикули (генеруються з даних пошуку) ----------
+   Викликається щоразу, як з'являються дані пошуку (з кешу і з кожного
+   свіжого фетчу). Проходить по всіх рядках, знаходить УНІКАЛЬНІ
+   артикули (в порядку появи в аркуші) і на кожен НОВИЙ (яких ще
+   немає серед побудованих сторінок) створює одну сторінку з таблицею
+   Станція / Матеріал / Адреса — свайп вліво від пошуку показує їх
+   одну за одною. Вже побудовані сторінки не чіпаються, тому це
+   безпечно викликати повторно після кожного оновлення даних. */
+function buildArticlePages(data) {
+    if (!data || !data.length) return;
 
-   АВТО-аркуш (auto: true): рядок 1 (A1) = АРТИКУЛ (напр. 779600813B).
-   Решта вмісту аркуша не використовується — замість цього сторінка сама
-   збирає таблицю зі станцій/матеріалів/адрес з аркуша пошуку (SEARCH_GID),
-   у яких артикул збігається з тим, що вказано в A1. */
-function parseTableCSV(t) {
-    const lines = t.trim().split("\n").map(l => l.split(","));
-    const title = (lines[0] && lines[0][0]) ? lines[0][0] : "";
-    const headers = lines[1] || [];
-    const rows = lines.slice(2);
-    return { title, headers, rows };
-}
+    const known = new Set(tableState.map(st => st.article));
+    const seen = new Set(known);
+    const newArticles = [];
+    data.forEach(x => {
+        const art = (x.article || '').trim();
+        if (art && !seen.has(art)) { seen.add(art); newArticles.push(art); }
+    });
+    if (!newArticles.length) return;
 
-function formatDate(ts) {
-    const d = new Date(parseInt(ts, 10));
-    const pad = n => String(n).padStart(2, '0');
-    return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+    newArticles.forEach(art => {
+        const idx = tableState.length;
+        const pageEl = document.createElement('div');
+        pageEl.className = 'page table-page';
+        pageEl.id = 'page' + (idx + 2); // 0=waitlist, 1=search, 2+=артикули
+        pageEl.innerHTML = `
+            <div class="table-header">
+                <span class="table-title" id="table-title-${idx}">${escapeHtml(art)}</span>
+            </div>
+            <div class="table-scroll">
+                <div id="table-content-${idx}"></div>
+            </div>`;
+        pagesEl.appendChild(pageEl);
 
-function updateTableTimeDisplay(st) {
-    const t = localStorage.getItem(st.cacheTimeKey);
-    st.updatedEl.textContent = t ? ('оновлено ' + formatDate(t)) : '';
-}
+        const rows = data
+            .filter(x => (x.article || '').trim() === art)
+            .map(x => [x.station, x.material, x.address]);
 
-// Обробляє свіжий/кешований CSV звичайного (не auto) аркуша.
-function applySheetData(idx, csvText) {
-    const st = tableState[idx];
-    const parsed = parseTableCSV(csvText);
-    st.title = parsed.title;
-    st.headers = parsed.headers;
-    st.rows = parsed.rows;
-    st.titleEl.textContent = st.title || ('Аркуш ' + (idx + 1));
-    renderTable(idx);
-}
+        tableState.push({
+            article: art,
+            headers: ["Станція", "Матеріал", "Адреса"],
+            rows,
+            sortCol: -1,
+            sortAsc: true,
+            contentEl: document.getElementById('table-content-' + idx),
+            titleEl: document.getElementById('table-title-' + idx)
+        });
 
-// Будує таблицю авто-сторінки з даних пошуку за артикулом, заданим у конфізі TABLE_SHEETS.
-function renderAutoTable(idx) {
-    const st = tableState[idx];
-    if (!st.article) {
-        st.contentEl.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">Артикул не вказано в конфігу</div>';
-        return;
-    }
-    getSearchDataAsync().then(data => {
-        const artLower = st.article.toLowerCase();
-        const rows = data.filter(x => x.article && x.article.trim().toLowerCase() === artLower);
-        st.headers = ["Станція", "Матеріал", "Адреса"];
-        st.rows = rows.map(x => [x.station, x.material, x.address]);
         renderTable(idx);
     });
-}
 
-function loadTableByIndex(idx) {
-    const st = tableState[idx];
-    if (st.loadedOnce) return;
-    st.loadedOnce = true;
-
-    if (st.auto) {
-        // Авто-сторінка: свій gid не читаємо взагалі — одразу малюємо
-        // з артикулу, заданого в конфізі, + даних аркуша пошуку.
-        st.titleEl.textContent = "";
-        renderAutoTable(idx);
-        return;
-    }
-
-    // 1. Спочатку кеш — одразу показуємо
-    const cached = localStorage.getItem(st.cacheKey);
-    if (cached) {
-        applySheetData(idx, cached);
-        updateTableTimeDisplay(st);
-    }
-
-    // 2. Потім тихо підтягуємо свіже
-    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${st.gid}&t=` + Date.now();
-    fetch(url).then(r => r.text()).then(t => {
-        localStorage.setItem(st.cacheKey, t);
-        localStorage.setItem(st.cacheTimeKey, Date.now().toString());
-        applySheetData(idx, t);
-        updateTableTimeDisplay(st);
-    }).catch(() => {});
+    TOTAL_PAGES = 2 + tableState.length;
+    rebuildDots();
+    goToPageInstant(currentPage);
 }
 
 function renderTable(idx) {
@@ -997,9 +909,11 @@ window.doSort = function(idx, col) {
 function goToPage(n) {
     n = Math.max(0, Math.min(TOTAL_PAGES - 1, n));
     currentPage = n;
-    document.getElementById('pages').style.transform = `translateX(-${n * pageWidthPercent}%)`;
+    const pct = applyPageWidths();
+    pagesEl.style.transform = `translateX(-${n * pct}%)`;
     for (let i = 0; i < TOTAL_PAGES; i++) {
-        document.getElementById('dot' + i).classList.toggle('active', i === n);
+        const d = document.getElementById('dot' + i);
+        if (d) d.classList.toggle('active', i === n);
     }
     if (n === SEARCH_PAGE_INDEX) {
         kbWrapper.classList.remove('hidden');
@@ -1007,9 +921,8 @@ function goToPage(n) {
         kbWrapper.classList.add('hidden');
         if (n === 0) {
             renderWaitlistPage();
-        } else {
-            loadTableByIndex(n - SEARCH_PAGE_INDEX - 1); // n=2 -> tableState[0], n=3 -> tableState[1], ...
         }
+        // сторінки-артикули (n >= 2) вже повністю відрендерені заздалегідь — нічого підвантажувати не треба
     }
 }
 
