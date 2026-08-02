@@ -291,27 +291,21 @@ tr:nth-child(even) td { background: #f9fafb; }
 <div class="page-dots" id="page-dots"></div>
 
 <script>
-/* ==================== НАЛАШТУВАННЯ АРКУШІВ ====================
-   Кожен об'єкт — це один аркуш Google-таблиці, який буде доступний
-   для гортання свайпом. label можна змінити на реальну назву аркуша. */
+/* ==================== ДЖЕРЕЛО ДАНИХ ====================
+   Аркуші зліва більше НЕ тягнуться з окремих гугл-таблиць —
+   вони будуються динамічно з тих самих даних, що і пошук,
+   згруповані за першими цифрами артикулу. */
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
-// label не задаємо тут — назва сторінки береться з клітинки A1 кожного аркуша
-const TABLE_SHEETS = [
-    { gid: "421001458" },
-    { gid: "1146686549" },
-    { gid: "2115582321" },
-    { gid: "994923423" },
-    { gid: "194111037" },
-    { gid: "167896896" },
-    { gid: "673306471" }
-];
 const SEARCH_GID = "1679964111";
+const ARTICLE_GROUP_PREFIX_LEN = 4; // скільки перших символів артикулу визначають групу/аркуш
 /* ================================================================ */
 
-const TOTAL_PAGES = 2 + TABLE_SHEETS.length; // сторінка очікування + пошук + всі аркуші таблиці
-const SEARCH_PAGE_INDEX = 1; // 0 = waitlist, 1 = search, 2+ = table sheets
+let TOTAL_PAGES = 2; // сторінка очікування + пошук; аркуші груп додаються динамічно
+const SEARCH_PAGE_INDEX = 1; // 0 = waitlist, 1 = search, 2+ = аркуші груп артикулів
 let currentPage = SEARCH_PAGE_INDEX;
 let searchData = [];
+let pageWidthPercent = 100 / TOTAL_PAGES;
+let articleGroups = [];
 
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
@@ -321,67 +315,84 @@ const pagesEl = document.getElementById('pages');
 const dotsEl = document.getElementById('page-dots');
 
 const CACHE_KEY_SEARCH = "searchDataCSV";
+const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 
-/* ---------- Побудова сторінок таблиць та крапок ---------- */
-const tableState = []; // { gid, label, headers, rows, sortCol, sortAsc, loadedOnce, cacheKey, cacheTimeKey, contentEl, updatedEl }
-
-TABLE_SHEETS.forEach((sheet, idx) => {
-    const pageEl = document.createElement('div');
-    pageEl.className = 'page table-page';
-    pageEl.id = 'page' + (idx + 1);
-    pageEl.innerHTML = `
-        <div class="table-header">
-            <span class="table-title" id="table-title-${idx}">…</span>
-            <span class="table-updated" id="table-updated-${idx}"></span>
-        </div>
-        <div class="table-scroll">
-            <div id="table-content-${idx}"><div style="text-align:center; padding:40px; color:#999;">⏳ Завантаження...</div></div>
-        </div>`;
-    pagesEl.appendChild(pageEl);
-
-    tableState.push({
-        gid: sheet.gid,
-        title: "",
-        headers: [],
-        rows: [],
-        sortCol: -1,
-        sortAsc: true,
-        loadedOnce: false,
-        cacheKey: "tableDataCSV_" + sheet.gid,
-        cacheTimeKey: "tableDataTime_" + sheet.gid,
-        contentEl: null,
-        updatedEl: null,
-        titleEl: null
+/* ---------- Групування артикулів на аркуші зліва (замість окремих гугл-таблиць) ---------- */
+function computeArticleGroups() {
+    const groups = {};
+    searchData.forEach(x => {
+        const art = x.article || "";
+        const prefix = art.length >= ARTICLE_GROUP_PREFIX_LEN ? art.slice(0, ARTICLE_GROUP_PREFIX_LEN) : (art || "—");
+        if (!groups[prefix]) groups[prefix] = [];
+        groups[prefix].push(x);
     });
-});
-
-// зберігаємо посилання на елементи після вставки в DOM
-tableState.forEach((st, idx) => {
-    st.contentEl = document.getElementById('table-content-' + idx);
-    st.updatedEl = document.getElementById('table-updated-' + idx);
-    st.titleEl = document.getElementById('table-title-' + idx);
-});
-
-// однакова ширина для всіх сторінок
-const pageWidthPercent = 100 / TOTAL_PAGES;
-document.querySelectorAll('.page').forEach(p => { p.style.width = pageWidthPercent + '%'; });
-pagesEl.style.width = (TOTAL_PAGES * 100) + '%';
-
-// крапки
-for (let i = 0; i < TOTAL_PAGES; i++) {
-    const d = document.createElement('div');
-    d.className = 'dot' + (i === SEARCH_PAGE_INDEX ? ' active' : '');
-    d.id = 'dot' + i;
-    dotsEl.appendChild(d);
+    const keys = Object.keys(groups).sort((a, b) => {
+        const na = parseFloat(a), nb = parseFloat(b);
+        if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+        return a.localeCompare(b, 'uk', { numeric: true });
+    });
+    return keys.map(k => ({ prefix: k, rows: groups[k] }));
 }
 
-// одразу (без анімації) відкриваємо сторінку пошуку — вона знаходиться між
-// сторінкою очікування (свайп управо) і аркушами таблиць (свайп вліво)
-pagesEl.style.transition = 'none';
-pagesEl.style.transform = `translateX(-${SEARCH_PAGE_INDEX * pageWidthPercent}%)`;
-requestAnimationFrame(() => { pagesEl.style.transition = ''; });
+function renderGroupTable(container, rows) {
+    const sorted = [...rows].sort((a, b) => {
+        const byArt = a.article.localeCompare(b.article, 'uk', { numeric: true });
+        if (byArt !== 0) return byArt;
+        return a.station.localeCompare(b.station, 'uk', { numeric: true });
+    });
+    let h = '<table><thead><tr><th>Артикул</th><th>Матеріал</th><th>Станція</th><th>Адреса</th></tr></thead><tbody>';
+    sorted.forEach(r => {
+        h += `<tr><td>${escapeHtml(r.article)}</td><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.station)}</td><td>${escapeHtml(r.address)}</td></tr>`;
+    });
+    h += '</tbody></table>';
+    container.innerHTML = h;
+}
+
+// Перебудовує аркуші зліва з поточних searchData. Викликається одразу після
+// завантаження кешу і повторно після кожного свіжого фетчу з Google Таблиці.
+function buildArticleGroupPages() {
+    document.querySelectorAll('.page.article-group-page').forEach(p => p.remove());
+
+    articleGroups = computeArticleGroups();
+    const updatedTime = localStorage.getItem(CACHE_KEY_SEARCH_TIME);
+    const updatedLabel = updatedTime ? ('оновлено ' + formatDate(updatedTime)) : '';
+
+    articleGroups.forEach(group => {
+        const pageEl = document.createElement('div');
+        pageEl.className = 'page table-page article-group-page';
+        pageEl.innerHTML = `
+            <div class="table-header">
+                <span class="table-title">Артикул ${escapeHtml(group.prefix)}…</span>
+                <span class="table-updated">${group.rows.length} зап. ${updatedLabel ? '• ' + updatedLabel : ''}</span>
+            </div>
+            <div class="table-scroll"><div class="group-table-content"></div></div>`;
+        pagesEl.appendChild(pageEl);
+        renderGroupTable(pageEl.querySelector('.group-table-content'), group.rows);
+    });
+
+    TOTAL_PAGES = 2 + articleGroups.length;
+    pageWidthPercent = 100 / TOTAL_PAGES;
+    document.querySelectorAll('.page').forEach(p => { p.style.width = pageWidthPercent + '%'; });
+    pagesEl.style.width = (TOTAL_PAGES * 100) + '%';
+
+    // перебудовуємо крапки
+    dotsEl.innerHTML = '';
+    for (let i = 0; i < TOTAL_PAGES; i++) {
+        const d = document.createElement('div');
+        d.className = 'dot' + (i === currentPage ? ' active' : '');
+        d.id = 'dot' + i;
+        dotsEl.appendChild(d);
+    }
+
+    // не змінюємо позицію користувача різко — лише підстраховка, якщо сторінок стало менше
+    currentPage = Math.min(currentPage, TOTAL_PAGES - 1);
+    pagesEl.style.transition = 'none';
+    pagesEl.style.transform = `translateX(-${currentPage * pageWidthPercent}%)`;
+    requestAnimationFrame(() => { pagesEl.style.transition = ''; });
+}
 
 /* ---------- Клавіатура (сторінка пошуку) ---------- */
+
 
 // Кнопки каруселі — щоб додати нову, просто допишіть value в масив
 const CAROUSEL_KEYS = ["sp", "ts", "стр", "мм", "передмонтаж"];
@@ -536,15 +547,18 @@ if (cachedSearch) {
     parseSearchCSV(cachedSearch);
     if (input.value) search();
 }
+buildArticleGroupPages();
 
-// 2. ПОТІМ у фоні тягнемо свіжі дані і тихо оновлюємо кеш + список
+// 2. ПОТІМ у фоні тягнемо свіжі дані і тихо оновлюємо кеш + список + аркуші зліва
 function fetchSearchData() {
     const url1 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SEARCH_GID}&t=` + Date.now();
     fetch(url1)
     .then(r => r.text())
     .then(t => {
         localStorage.setItem(CACHE_KEY_SEARCH, t);
+        localStorage.setItem(CACHE_KEY_SEARCH_TIME, Date.now().toString());
         parseSearchCSV(t);
+        buildArticleGroupPages();
         if (input.value) search();
     })
     .catch(() => {});
@@ -886,86 +900,12 @@ function search() {
     resultBox.innerHTML = html;
 }
 
-/* ---------- Таблиці (аркуші) ----------
-   Рядок 1 (A1) кожного аркуша = назва сторінки.
-   Рядок 2 = заголовки колонок таблиці. Рядок 3+ = дані. */
-function parseTableCSV(t) {
-    const lines = t.trim().split("\n").map(l => l.split(","));
-    const title = (lines[0] && lines[0][0]) ? lines[0][0] : "";
-    const headers = lines[1] || [];
-    const rows = lines.slice(2);
-    return { title, headers, rows };
-}
-
+/* ---------- Дата останнього оновлення (для аркушів з групами артикулів) ---------- */
 function formatDate(ts) {
     const d = new Date(parseInt(ts, 10));
     const pad = n => String(n).padStart(2, '0');
     return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
-
-function updateTableTimeDisplay(st) {
-    const t = localStorage.getItem(st.cacheTimeKey);
-    st.updatedEl.textContent = t ? ('оновлено ' + formatDate(t)) : '';
-}
-
-function loadTableByIndex(idx) {
-    const st = tableState[idx];
-    if (st.loadedOnce) return;
-    st.loadedOnce = true;
-
-    // 1. Спочатку кеш — одразу показуємо
-    const cached = localStorage.getItem(st.cacheKey);
-    if (cached) {
-        const parsed = parseTableCSV(cached);
-        st.title = parsed.title;
-        st.headers = parsed.headers;
-        st.rows = parsed.rows;
-        st.titleEl.textContent = st.title || ('Аркуш ' + (idx + 1));
-        renderTable(idx);
-        updateTableTimeDisplay(st);
-    }
-
-    // 2. Потім тихо підтягуємо свіже
-    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${st.gid}&t=` + Date.now();
-    fetch(url).then(r => r.text()).then(t => {
-        localStorage.setItem(st.cacheKey, t);
-        localStorage.setItem(st.cacheTimeKey, Date.now().toString());
-        const parsed = parseTableCSV(t);
-        st.title = parsed.title;
-        st.headers = parsed.headers;
-        st.rows = parsed.rows;
-        st.titleEl.textContent = st.title || ('Аркуш ' + (idx + 1));
-        renderTable(idx);
-        updateTableTimeDisplay(st);
-    }).catch(() => {});
-}
-
-function renderTable(idx) {
-    const st = tableState[idx];
-    let data = [...st.rows];
-    if (st.sortCol >= 0) {
-        data.sort((a, b) => {
-            let v1 = a[st.sortCol] || "", v2 = b[st.sortCol] || "";
-            let n1 = parseFloat(v1), n2 = parseFloat(v2);
-            if (!isNaN(n1) && !isNaN(n2)) return st.sortAsc ? n1 - n2 : n2 - n1;
-            return st.sortAsc ? v1.localeCompare(v2, 'uk') : v2.localeCompare(v1, 'uk');
-        });
-    }
-    let h = '<table><thead><tr>';
-    st.headers.forEach((name, i) => {
-        h += `<th onclick="doSort(${idx}, ${i})">${escapeHtml(name)}${st.sortCol === i ? (st.sortAsc ? ' ↑' : ' ↓') : ''}</th>`;
-    });
-    h += '</tr></thead><tbody>';
-    data.forEach(row => { h += '<tr>' + row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('') + '</tr>'; });
-    st.contentEl.innerHTML = h + '</tbody></table>';
-}
-
-window.doSort = function(idx, col) {
-    const st = tableState[idx];
-    if (st.sortCol === col) st.sortAsc = !st.sortAsc;
-    else { st.sortCol = col; st.sortAsc = true; }
-    renderTable(idx);
-};
 
 /* ---------- Навігація між сторінками (свайп) ---------- */
 function goToPage(n) {
@@ -981,9 +921,8 @@ function goToPage(n) {
         kbWrapper.classList.add('hidden');
         if (n === 0) {
             renderWaitlistPage();
-        } else {
-            loadTableByIndex(n - SEARCH_PAGE_INDEX - 1); // n=2 -> tableState[0], n=3 -> tableState[1], ...
         }
+        // аркуші з групами артикулів (n >= 2) вже пре-рендерені в buildArticleGroupPages()
     }
 }
 
@@ -1003,7 +942,7 @@ document.addEventListener('touchend', e => {
 }, {passive:true});
 
 // Свайп вгору по знайденому тексту (результатах пошуку) — ховає клавіатуру одразу на початку руху
-const scrollAreaEl = document.querySelector('.scroll-area');
+const scrollAreaEl = document.querySelector('#page0 .scroll-area');
 let resultStartY = 0;
 scrollAreaEl.addEventListener('touchstart', (e) => {
     resultStartY = e.touches[0].clientY;
