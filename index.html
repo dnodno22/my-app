@@ -120,9 +120,13 @@ input#input {
 .select-btn.selected { color: #FFC400; }
 .select-btn:active { transform: scale(.9); }
 
-.waitlist-remove-btn {
-    display: block;
+.waitlist-actions-row {
+    display: flex;
+    gap: 8px;
     margin-top: 16px;
+}
+
+.waitlist-remove-btn {
     border: none;
     background: #fff7e0;
     color: #b45309;
@@ -130,66 +134,45 @@ input#input {
     font-size: 14px;
     border-radius: 10px;
     padding: 10px 0;
-    width: 100%;
+    flex: 1;
     text-align: center;
     cursor: pointer;
 }
 .waitlist-remove-btn:active { background: #fdeeca; }
 
-.waitlist-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 16px;
-}
-.waitlist-actions .waitlist-remove-btn,
-.waitlist-actions .waitlist-comment-btn {
-    margin-top: 0;
-    flex: 1;
-}
-.waitlist-comment-btn {
-    display: block;
+.comment-toggle-btn {
     border: none;
     background: #eef2ff;
-    color: #3730a3;
+    color: #4338ca;
     font-weight: 700;
     font-size: 14px;
     border-radius: 10px;
     padding: 10px 0;
-    width: 100%;
+    flex: 1;
     text-align: center;
     cursor: pointer;
 }
-.waitlist-comment-btn:active { background: #e0e7ff; }
+.comment-toggle-btn:active { background: #e0e7ff; }
 
-.waitlist-comment-text {
-    margin-top: 16px;
-    padding: 12px 14px;
-    background: #f9fafb;
-    border-radius: 12px;
-    font-size: 14px;
-    color: #374151;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-.waitlist-comment-editor { margin-top: 12px; }
-.waitlist-comment-input {
+.comment-edit-area { margin-top: 12px; }
+.comment-textarea {
     width: 100%;
-    min-height: 70px;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 10px 12px;
     font-size: 14px;
     font-family: inherit;
-    color: #111;
     resize: vertical;
+    min-height: 64px;
     outline: none;
+    color: #111;
+    background: #f9fafb;
 }
-.waitlist-comment-save {
+.comment-save-btn {
     display: block;
     margin-top: 8px;
     border: none;
-    background: #111827;
+    background: #4338ca;
     color: #fff;
     font-weight: 700;
     font-size: 14px;
@@ -199,7 +182,18 @@ input#input {
     text-align: center;
     cursor: pointer;
 }
-.waitlist-comment-save:active { background: #1f2937; }
+.comment-save-btn:active { background: #372ea8; }
+
+.waitlist-comment-text {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #f3f4f6;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #374151;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
 
 /* HIGHLIGHT */
 mark.hl {
@@ -650,12 +644,13 @@ function toggleWaitlistItem(key, material, address, articlesPlain) {
     saveWaitlist(list);
     return idx < 0; // true = щойно додано, false = щойно прибрано
 }
-function saveWaitlistComment(key, comment) {
+function setWaitlistComment(key, text) {
     const list = loadWaitlist();
-    const item = list.find(i => i.key === key);
-    if (!item) return;
-    item.comment = comment;
-    saveWaitlist(list);
+    const idx = list.findIndex(item => item.key === key);
+    if (idx >= 0) {
+        list[idx].comment = text;
+        saveWaitlist(list);
+    }
 }
 
 let waitlistCardKeys = [];
@@ -670,6 +665,7 @@ function renderWaitlistPage() {
     let html = "";
     list.forEach(item => {
         const idx = waitlistCardKeys.push(item.key) - 1;
+        const hasComment = !!(item.comment && item.comment.trim());
         html += `<div class="result-card">
             <div class="result-top">
                 <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(item.material)}</span>
@@ -685,16 +681,18 @@ function renderWaitlistPage() {
                 <span class="article-stations">${stationsHtml}</span>
             </div>`;
         }
-        html += `${item.comment ? `<div class="waitlist-comment-text">💬 ${escapeHtml(item.comment)}</div>` : ''}
-            <div class="waitlist-actions">
-                <button class="waitlist-remove-btn" data-idx="${idx}">★ Прибрати</button>
-                <button class="waitlist-comment-btn" data-idx="${idx}">${item.comment ? '✏️ Редагувати коментар' : '💬 Додати коментар'}</button>
+        html += `<div class="waitlist-actions-row">
+                <button class="waitlist-remove-btn" data-idx="${idx}">★ Прибрати зі списку</button>
+                <button class="comment-toggle-btn" data-idx="${idx}">${hasComment ? '✎ Коментар' : '💬 Коментар'}</button>
             </div>
-            <div class="waitlist-comment-editor hidden" data-idx="${idx}">
-                <textarea class="waitlist-comment-input" placeholder="Напишіть коментар...">${escapeHtml(item.comment || '')}</textarea>
-                <button class="waitlist-comment-save" data-idx="${idx}">Зберегти</button>
-            </div>
-        </div>`;
+            <div class="comment-edit-area hidden" data-idx="${idx}">
+                <textarea class="comment-textarea" data-idx="${idx}" placeholder="Ваш коментар...">${escapeHtml(item.comment || "")}</textarea>
+                <button class="comment-save-btn" data-idx="${idx}">Зберегти</button>
+            </div>`;
+        if (hasComment) {
+            html += `<div class="waitlist-comment-text" data-idx="${idx}">${escapeHtml(item.comment)}</div>`;
+        }
+        html += `</div>`;
     });
     waitlistBox.innerHTML = html;
 }
@@ -709,28 +707,29 @@ waitlistBox.addEventListener('click', (e) => {
         renderWaitlistPage();
         return;
     }
-    const commentBtn = e.target.closest('.waitlist-comment-btn');
-    if (commentBtn) {
-        const idx = commentBtn.dataset.idx;
-        const editor = waitlistBox.querySelector(`.waitlist-comment-editor[data-idx="${idx}"]`);
-        if (editor) {
-            editor.classList.toggle('hidden');
-            if (!editor.classList.contains('hidden')) {
-                const ta = editor.querySelector('.waitlist-comment-input');
+    const toggleBtn = e.target.closest('.comment-toggle-btn');
+    if (toggleBtn) {
+        const idx = toggleBtn.dataset.idx;
+        const area = waitlistBox.querySelector(`.comment-edit-area[data-idx="${idx}"]`);
+        if (area) {
+            area.classList.toggle('hidden');
+            if (!area.classList.contains('hidden')) {
+                const ta = area.querySelector('.comment-textarea');
                 if (ta) ta.focus();
             }
         }
         return;
     }
-    const saveBtn = e.target.closest('.waitlist-comment-save');
+    const saveBtn = e.target.closest('.comment-save-btn');
     if (saveBtn) {
         const idx = parseInt(saveBtn.dataset.idx, 10);
         const key = waitlistCardKeys[idx];
         if (key === undefined) return;
-        const editor = waitlistBox.querySelector(`.waitlist-comment-editor[data-idx="${idx}"]`);
-        const ta = editor ? editor.querySelector('.waitlist-comment-input') : null;
-        saveWaitlistComment(key, ta ? ta.value.trim() : "");
+        const textarea = waitlistBox.querySelector(`.comment-textarea[data-idx="${idx}"]`);
+        const text = textarea ? textarea.value : "";
+        setWaitlistComment(key, text);
         renderWaitlistPage();
+        return;
     }
 });
 
@@ -748,6 +747,36 @@ resultBox.addEventListener('click', (e) => {
     btn.classList.toggle('selected', nowSelected);
     btn.textContent = nowSelected ? '★' : '☆';
 });
+
+// Об'єднує "короткі" (скорочені, до 3 символів) артикули з відповідним "повним" артикулом
+// у тій самій групі матеріалу, якщо короткий код збігається з останніми 3 символами повного.
+// Наприклад: "7340112" і "112" — це один і той самий артикул, так само "7340114" і "114" тощо.
+function mergeAbbreviatedArticles(articleMap) {
+    const arts = Object.keys(articleMap);
+    const fullArts = arts.filter(a => a.length > 3);
+    const shortArts = arts.filter(a => a.length <= 3);
+    if (!shortArts.length) return articleMap; // нічого зливати
+
+    const fullByLast3 = {};
+    fullArts.forEach(a => {
+        const last3 = a.slice(-3);
+        if (!fullByLast3[last3]) fullByLast3[last3] = a;
+    });
+
+    const merged = {};
+    fullArts.forEach(a => { merged[a] = new Set(articleMap[a]); });
+    shortArts.forEach(shortArt => {
+        const target = fullByLast3[shortArt];
+        if (target) {
+            articleMap[shortArt].forEach(st => merged[target].add(st));
+        } else {
+            // немає відповідного повного артикулу в цій групі — залишаємо як є
+            if (!merged[shortArt]) merged[shortArt] = new Set();
+            articleMap[shortArt].forEach(st => merged[shortArt].add(st));
+        }
+    });
+    return merged;
+}
 
 function search() {
     const v = input.value.toLowerCase();
@@ -824,8 +853,10 @@ function search() {
             const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
             const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
 
+            const mergedArticles = mergeAbbreviatedArticles(grouped[matKey]);
+
             const articlesPlain = {};
-            for (let art in grouped[matKey]) articlesPlain[art] = [...grouped[matKey][art]];
+            for (let art in mergedArticles) articlesPlain[art] = [...mergedArticles[art]];
             searchResultLookup[matKey] = { material: matName, address: matAddr, articles: articlesPlain };
             const cardIdx = searchCardKeys.push(matKey) - 1;
             const selected = isInWaitlist(matKey);
@@ -838,9 +869,9 @@ function search() {
                         <button class="select-btn${selected ? ' selected' : ''}" data-idx="${cardIdx}">${selected ? '★' : '☆'}</button>
                     </div>
                 </div>`;
-            for (let art in grouped[matKey]) {
+            for (let art in mergedArticles) {
                 const artHtml = renderArticleNumber(art, v, isNumOnly, isSpecialSearch);
-                const stationHtmlArr = [...grouped[matKey][art]]
+                const stationHtmlArr = [...mergedArticles[art]]
                     .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly));
                 const stationsHtml = buildStationsHtml(stationHtmlArr);
                 html += `<div class="article-row">
