@@ -293,15 +293,17 @@ tr:nth-child(even) td { background: #f9fafb; }
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ====================
    Аркуші зліва більше НЕ тягнуться з окремих гугл-таблиць —
-   вони будуються динамічно з тих самих даних, що і пошук,
-   згруповані за першими цифрами артикулу. */
+   вони будуються динамічно з тих самих даних, що і пошук.
+   Кожен ПОВНИЙ артикул — окрема сторінка; короткі (скорочені, до 3
+   символів) коди артикулів приєднуються до відповідного повного,
+   якщо збігаються з його останніми 3 символами (7340112 + 112 → 7340112). */
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
-const ARTICLE_GROUP_PREFIX_LEN = 4; // скільки перших символів артикулу визначають групу/аркуш
+const SHORT_ARTICLE_MAX_LEN = 3; // артикули довжиною до 3 символів вважаються скороченими
 /* ================================================================ */
 
 let TOTAL_PAGES = 2; // сторінка очікування + пошук; аркуші груп додаються динамічно
-const SEARCH_PAGE_INDEX = 1; // 0 = waitlist, 1 = search, 2+ = аркуші груп артикулів
+const SEARCH_PAGE_INDEX = 1; // 0 = waitlist, 1 = search, 2+ = аркуші повних артикулів
 let currentPage = SEARCH_PAGE_INDEX;
 let searchData = [];
 let pageWidthPercent = 100 / TOTAL_PAGES;
@@ -319,30 +321,43 @@ const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 
 /* ---------- Групування артикулів на аркуші зліва (замість окремих гугл-таблиць) ---------- */
 function computeArticleGroups() {
-    const groups = {};
+    // спочатку збираємо всі рядки під "сирим" (як записано в таблиці) артикулом
+    const byRawArticle = {};
     searchData.forEach(x => {
         const art = x.article || "";
-        const prefix = art.length >= ARTICLE_GROUP_PREFIX_LEN ? art.slice(0, ARTICLE_GROUP_PREFIX_LEN) : (art || "—");
-        if (!groups[prefix]) groups[prefix] = [];
-        groups[prefix].push(x);
+        if (!byRawArticle[art]) byRawArticle[art] = [];
+        byRawArticle[art].push(x);
     });
-    const keys = Object.keys(groups).sort((a, b) => {
-        const na = parseFloat(a), nb = parseFloat(b);
-        if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
-        return a.localeCompare(b, 'uk', { numeric: true });
+
+    const rawKeys = Object.keys(byRawArticle);
+    const fullKeys = rawKeys.filter(a => a.length > SHORT_ARTICLE_MAX_LEN);
+    const shortKeys = rawKeys.filter(a => a.length > 0 && a.length <= SHORT_ARTICLE_MAX_LEN);
+
+    // повний артикул, що відповідає останнім 3 символам короткого коду
+    const fullByLast3 = {};
+    fullKeys.forEach(a => {
+        const last3 = a.slice(-3);
+        if (!fullByLast3[last3]) fullByLast3[last3] = a;
     });
-    return keys.map(k => ({ prefix: k, rows: groups[k] }));
+
+    const merged = {}; // canonical article -> rows[]
+    fullKeys.forEach(a => { merged[a] = [...byRawArticle[a]]; });
+    shortKeys.forEach(shortArt => {
+        const target = fullByLast3[shortArt];
+        const key = target || shortArt; // якщо немає повного відповідника — короткий стає своєю групою
+        if (!merged[key]) merged[key] = [];
+        merged[key] = merged[key].concat(byRawArticle[shortArt]);
+    });
+
+    const keys = Object.keys(merged).sort((a, b) => a.localeCompare(b, 'uk', { numeric: true }));
+    return keys.map(k => ({ article: k, rows: merged[k] }));
 }
 
 function renderGroupTable(container, rows) {
-    const sorted = [...rows].sort((a, b) => {
-        const byArt = a.article.localeCompare(b.article, 'uk', { numeric: true });
-        if (byArt !== 0) return byArt;
-        return a.station.localeCompare(b.station, 'uk', { numeric: true });
-    });
-    let h = '<table><thead><tr><th>Артикул</th><th>Матеріал</th><th>Станція</th><th>Адреса</th></tr></thead><tbody>';
+    const sorted = [...rows].sort((a, b) => a.station.localeCompare(b.station, 'uk', { numeric: true }));
+    let h = '<table><thead><tr><th>Матеріал</th><th>Станція</th><th>Адреса</th></tr></thead><tbody>';
     sorted.forEach(r => {
-        h += `<tr><td>${escapeHtml(r.article)}</td><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.station)}</td><td>${escapeHtml(r.address)}</td></tr>`;
+        h += `<tr><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.station)}</td><td>${escapeHtml(r.address)}</td></tr>`;
     });
     h += '</tbody></table>';
     container.innerHTML = h;
@@ -362,7 +377,7 @@ function buildArticleGroupPages() {
         pageEl.className = 'page table-page article-group-page';
         pageEl.innerHTML = `
             <div class="table-header">
-                <span class="table-title">Артикул ${escapeHtml(group.prefix)}…</span>
+                <span class="table-title">Артикул ${escapeHtml(group.article)}</span>
                 <span class="table-updated">${group.rows.length} зап. ${updatedLabel ? '• ' + updatedLabel : ''}</span>
             </div>
             <div class="table-scroll"><div class="group-table-content"></div></div>`;
