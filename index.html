@@ -294,12 +294,25 @@ tr:nth-child(even) td { background: #f9fafb; }
 /* ==================== ДЖЕРЕЛО ДАНИХ ====================
    Аркуші зліва більше НЕ тягнуться з окремих гугл-таблиць —
    вони будуються динамічно з тих самих даних, що і пошук.
-   Кожен ПОВНИЙ артикул — окрема сторінка; короткі (скорочені, до 3
-   символів) коди артикулів приєднуються до відповідного повного,
-   якщо збігаються з його останніми 3 символами (7340112 + 112 → 7340112). */
+
+   ЛОГІКА ГРУПУВАННЯ АРТИКУЛІВ (стовпчик C):
+   Унікальний артикул — це ПОВНИЙ номер (напр. 7340112, 7340113 і т.д.).
+   Якщо один і той самий матеріал стосується декількох повних артикулів,
+   у стовпчику C це записують скорочено через "/":
+       7340112/113/114/115/174/175
+   Це означає ШІСТЬ окремих повних артикулів:
+       7340112, 7340113, 7340114, 7340115, 7340174, 7340175
+   (перше число повне, решта — це останні 3 цифри, які "доклеюються"
+   до спільного префікса першого числа: 7340 + 113 = 7340113 і т.д.)
+
+   Кожен такий повний артикул отримує свою окрему сторінку зі списком
+   станцій/адрес, куди він застосовується — так само, як показує пошук.
+   Короткі коди самі по собі (окремим рядком, без "/") у цих даних не
+   зустрічаються — вони існують лише всередині складеного запису вище,
+   тож ніякого додаткового "домержування" не потрібно: досатньо просто
+   розгорнути кожен рядок і згрупувати рядки за повним артикулом. */
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
-const SHORT_ARTICLE_MAX_LEN = 3; // артикули довжиною до 3 символів вважаються скороченими
 /* ================================================================ */
 
 let TOTAL_PAGES = 2; // сторінка очікування + пошук; аркуші груп додаються динамічно
@@ -319,112 +332,71 @@ const dotsEl = document.getElementById('page-dots');
 const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 
-/* ---------- Окремі сторінки для кожного унікального артикулу з колонки C ---------- */
-function computeArticleGroups() {
-    /*
-     * Колонка C може містити:
-     * 7340112
-     * 7340112/113/114/115/174/175
-     * 7340113
-     * 113
-     *
-     * Складений запис 7340112/113/114/115/174/175
-     * означає шість окремих артикулів:
-     * 7340112, 7340113, 7340114, 7340115, 7340174, 7340175.
-     */
+/* ---------- Розбір складеного запису артикулу з колонки C ---------- */
+function normalizeArticlePart(part) {
+    return String(part || "").trim().replace(/\s+/g, "");
+}
 
+// "7340112/113/114/115/174/175" -> ["7340112","7340113","7340114","7340115","7340174","7340175"]
+// "7340112"                     -> ["7340112"]
+function expandArticleValue(raw) {
+    raw = String(raw || "").trim();
+    if (!raw) return [];
+
+    const parts = raw
+        .split("/")
+        .map(normalizeArticlePart)
+        .filter(Boolean);
+
+    if (!parts.length) return [];
+
+    // Звичайний одиночний артикул — нічого розгортати.
+    if (parts.length === 1) {
+        return [parts[0]];
+    }
+
+    const first = parts[0];
+    const result = [first];
+
+    // Для 7340112 (7 цифр): префікс = перші 4 цифри = "7340",
+    // далі кожне коротке число (до 3 цифр) доклеюється до префікса:
+    // 113 -> 7340113, 114 -> 7340114, 174 -> 7340174 і т.д.
+    let prefix = "";
+    if (/^\d+$/.test(first) && first.length >= 3) {
+        prefix = first.slice(0, -3);
+    }
+
+    for (let i = 1; i < parts.length; i++) {
+        const part = parts[i];
+
+        if (/^\d{1,3}$/.test(part) && prefix) {
+            result.push(prefix + part.padStart(3, "0"));
+        } else {
+            // Не число (чи вже повний код) — залишаємо як є.
+            result.push(part);
+        }
+    }
+
+    return [...new Set(result)];
+}
+
+/* ---------- Групування рядків за повним артикулом ---------- */
+function computeArticleGroups() {
     const groups = {};
 
-    function normalizeArticlePart(part) {
-        return String(part || "").trim().replace(/\s+/g, "");
-    }
-
-    function expandArticleValue(raw) {
-        raw = String(raw || "").trim();
-        if (!raw) return [];
-
-        const parts = raw
-            .split("/")
-            .map(normalizeArticlePart)
-            .filter(Boolean);
-
-        if (!parts.length) return [];
-
-        // Звичайний одиночний артикул.
-        if (parts.length === 1) {
-            return [parts[0]];
-        }
-
-        const first = parts[0];
-        const result = [first];
-
-        // Для 7340112:
-        // prefix = 7340
-        // 113 -> 7340113
-        // 114 -> 7340114
-        // 115 -> 7340115
-        // 174 -> 7340174
-        // 175 -> 7340175
-        let prefix = "";
-
-        if (/^\d+$/.test(first) && first.length >= 3) {
-            prefix = first.slice(0, -3);
-        }
-
-        for (let i = 1; i < parts.length; i++) {
-            const part = parts[i];
-
-            if (/^\d{1,3}$/.test(part) && prefix) {
-                result.push(prefix + part.padStart(3, "0"));
-            } else {
-                result.push(part);
-            }
-        }
-
-        return [...new Set(result)];
-    }
-
-    // Розкладаємо кожен рядок колонки C на всі артикули,
-    // які містяться в цьому рядку.
+    // Кожен рядок може стосуватись кількох повних артикулів одразу
+    // (якщо в колонці C складений запис через "/").
     searchData.forEach(row => {
         const articles = expandArticleValue(row.article);
 
         articles.forEach(article => {
             if (!article) return;
-
-            if (!groups[article]) {
-                groups[article] = [];
-            }
-
+            if (!groups[article]) groups[article] = [];
             groups[article].push(row);
         });
     });
 
-    /*
-     * Короткий запис 113 прив'язується до 7340113,
-     * 114 -> 7340114 і т.д.
-     */
-    const fullArticles = Object.keys(groups).filter(article =>
-        /^\d+$/.test(article) && article.length > 3
-    );
-
-    const shortArticles = Object.keys(groups).filter(article =>
-        /^\d{1,3}$/.test(article)
-    );
-
-    shortArticles.forEach(shortArticle => {
-        const normalizedShort = shortArticle.padStart(3, "0");
-
-        const targets = fullArticles.filter(fullArticle =>
-            fullArticle.endsWith(normalizedShort)
-        );
-
-        targets.forEach(target => {
-            groups[target].push(...groups[shortArticle]);
-        });
-    });
-
-    // Прибираємо дублікати рядків.
+    // Прибираємо дублікати рядків усередині кожної групи.
     Object.keys(groups).forEach(article => {
         const seen = new Set();
 
@@ -444,25 +416,9 @@ function computeArticleGroups() {
         });
     });
 
-    /*
-     * Якщо існує повний артикул 7340113,
-     * окрему сторінку "113" не створюємо.
-     */
-    const keys = Object.keys(groups)
-        .filter(article => {
-            if (/^\d{1,3}$/.test(article)) {
-                return !fullArticles.some(full =>
-                    full.endsWith(article.padStart(3, "0"))
-                );
-            }
-            return true;
-        })
-        .sort((a, b) =>
-            a.localeCompare(b, "uk", {
-                numeric: true,
-                sensitivity: "base"
-            })
-        );
+    const keys = Object.keys(groups).sort((a, b) =>
+        a.localeCompare(b, "uk", { numeric: true, sensitivity: "base" })
+    );
 
     return keys.map(article => ({
         article,
