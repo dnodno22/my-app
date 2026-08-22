@@ -337,8 +337,20 @@ function normalizeArticlePart(part) {
     return String(part || "").trim().replace(/\s+/g, "");
 }
 
+// Базовий артикул завжди складається з 7 цифр. Якщо після цих 7 цифр
+// іде щось ще (додаткові цифри, букви — будь-що, напр. "734011202А"),
+// це вважається тим самим артикулом "7340112", а "02А" — просто
+// суфіксом/варіантом, який не впливає на групування по сторінках.
+function getArticleBase(code) {
+    if (/^\d{7}/.test(code) && code.length > 7) {
+        return code.slice(0, 7);
+    }
+    return code;
+}
+
 // "7340112/113/114/115/174/175" -> ["7340112","7340113","7340114","7340115","7340174","7340175"]
 // "7340112"                     -> ["7340112"]
+// "734011202А"                  -> ["7340112"]  (суфікс "02А" ігнорується при групуванні)
 function expandArticleValue(raw) {
     raw = String(raw || "").trim();
     if (!raw) return [];
@@ -350,12 +362,12 @@ function expandArticleValue(raw) {
 
     if (!parts.length) return [];
 
-    // Звичайний одиночний артикул — нічого розгортати.
+    // Звичайний одиночний артикул — нічого розгортати, лише привести до бази.
     if (parts.length === 1) {
-        return [parts[0]];
+        return [getArticleBase(parts[0])];
     }
 
-    const first = parts[0];
+    const first = getArticleBase(parts[0]);
     const result = [first];
 
     // Для 7340112 (7 цифр): префікс = перші 4 цифри = "7340",
@@ -372,8 +384,8 @@ function expandArticleValue(raw) {
         if (/^\d{1,3}$/.test(part) && prefix) {
             result.push(prefix + part.padStart(3, "0"));
         } else {
-            // Не число (чи вже повний код) — залишаємо як є.
-            result.push(part);
+            // Не коротке число (чи вже повний код із можливим суфіксом) — приводимо до бази.
+            result.push(getArticleBase(part));
         }
     }
 
