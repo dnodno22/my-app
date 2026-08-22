@@ -319,47 +319,191 @@ const dotsEl = document.getElementById('page-dots');
 const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 
-/* ---------- Групування артикулів на аркуші зліва (замість окремих гугл-таблиць) ---------- */
+/* ---------- Окремі сторінки для кожного унікального артикулу з колонки C ---------- */
 function computeArticleGroups() {
-    // спочатку збираємо всі рядки під "сирим" (як записано в таблиці) артикулом
-    const byRawArticle = {};
-    searchData.forEach(x => {
-        const art = x.article || "";
-        if (!byRawArticle[art]) byRawArticle[art] = [];
-        byRawArticle[art].push(x);
+    /*
+     * Колонка C може містити:
+     * 7340112
+     * 7340112/113/114/115/174/175
+     * 7340113
+     * 113
+     *
+     * Складений запис 7340112/113/114/115/174/175
+     * означає шість окремих артикулів:
+     * 7340112, 7340113, 7340114, 7340115, 7340174, 7340175.
+     */
+
+    const groups = {};
+
+    function normalizeArticlePart(part) {
+        return String(part || "").trim().replace(/\s+/g, "");
+    }
+
+    function expandArticleValue(raw) {
+        raw = String(raw || "").trim();
+        if (!raw) return [];
+
+        const parts = raw
+            .split("/")
+            .map(normalizeArticlePart)
+            .filter(Boolean);
+
+        if (!parts.length) return [];
+
+        // Звичайний одиночний артикул.
+        if (parts.length === 1) {
+            return [parts[0]];
+        }
+
+        const first = parts[0];
+        const result = [first];
+
+        // Для 7340112:
+        // prefix = 7340
+        // 113 -> 7340113
+        // 114 -> 7340114
+        // 115 -> 7340115
+        // 174 -> 7340174
+        // 175 -> 7340175
+        let prefix = "";
+
+        if (/^\d+$/.test(first) && first.length >= 3) {
+            prefix = first.slice(0, -3);
+        }
+
+        for (let i = 1; i < parts.length; i++) {
+            const part = parts[i];
+
+            if (/^\d{1,3}$/.test(part) && prefix) {
+                result.push(prefix + part.padStart(3, "0"));
+            } else {
+                result.push(part);
+            }
+        }
+
+        return [...new Set(result)];
+    }
+
+    // Розкладаємо кожен рядок колонки C на всі артикули,
+    // які містяться в цьому рядку.
+    searchData.forEach(row => {
+        const articles = expandArticleValue(row.article);
+
+        articles.forEach(article => {
+            if (!article) return;
+
+            if (!groups[article]) {
+                groups[article] = [];
+            }
+
+            groups[article].push(row);
+        });
     });
 
-    const rawKeys = Object.keys(byRawArticle);
-    const fullKeys = rawKeys.filter(a => a.length > SHORT_ARTICLE_MAX_LEN);
-    const shortKeys = rawKeys.filter(a => a.length > 0 && a.length <= SHORT_ARTICLE_MAX_LEN);
+    /*
+     * Короткий запис 113 прив'язується до 7340113,
+     * 114 -> 7340114 і т.д.
+     */
+    const fullArticles = Object.keys(groups).filter(article =>
+        /^\d+$/.test(article) && article.length > 3
+    );
 
-    // повний артикул, що відповідає останнім 3 символам короткого коду
-    const fullByLast3 = {};
-    fullKeys.forEach(a => {
-        const last3 = a.slice(-3);
-        if (!fullByLast3[last3]) fullByLast3[last3] = a;
+    const shortArticles = Object.keys(groups).filter(article =>
+        /^\d{1,3}$/.test(article)
+    );
+
+    shortArticles.forEach(shortArticle => {
+        const normalizedShort = shortArticle.padStart(3, "0");
+
+        const targets = fullArticles.filter(fullArticle =>
+            fullArticle.endsWith(normalizedShort)
+        );
+
+        targets.forEach(target => {
+            groups[target].push(...groups[shortArticle]);
+        });
     });
 
-    const merged = {}; // canonical article -> rows[]
-    fullKeys.forEach(a => { merged[a] = [...byRawArticle[a]]; });
-    shortKeys.forEach(shortArt => {
-        const target = fullByLast3[shortArt];
-        const key = target || shortArt; // якщо немає повного відповідника — короткий стає своєю групою
-        if (!merged[key]) merged[key] = [];
-        merged[key] = merged[key].concat(byRawArticle[shortArt]);
+    // Прибираємо дублікати рядків.
+    Object.keys(groups).forEach(article => {
+        const seen = new Set();
+
+        groups[article] = groups[article].filter(row => {
+            const key = [
+                row.station,
+                row.material,
+                row.article,
+                row.colD,
+                row.address
+            ].join("|||");
+
+            if (seen.has(key)) return false;
+
+            seen.add(key);
+            return true;
+        });
     });
 
-    const keys = Object.keys(merged).sort((a, b) => a.localeCompare(b, 'uk', { numeric: true }));
-    return keys.map(k => ({ article: k, rows: merged[k] }));
+    /*
+     * Якщо існує повний артикул 7340113,
+     * окрему сторінку "113" не створюємо.
+     */
+    const keys = Object.keys(groups)
+        .filter(article => {
+            if (/^\d{1,3}$/.test(article)) {
+                return !fullArticles.some(full =>
+                    full.endsWith(article.padStart(3, "0"))
+                );
+            }
+            return true;
+        })
+        .sort((a, b) =>
+            a.localeCompare(b, "uk", {
+                numeric: true,
+                sensitivity: "base"
+            })
+        );
+
+    return keys.map(article => ({
+        article,
+        rows: groups[article]
+    }));
 }
 
-function renderGroupTable(container, rows) {
-    const sorted = [...rows].sort((a, b) => a.station.localeCompare(b.station, 'uk', { numeric: true }));
-    let h = '<table><thead><tr><th>Матеріал</th><th>Станція</th><th>Адреса</th></tr></thead><tbody>';
+function renderGroupTable(container, rows, targetArticle) {
+    const sorted = [...rows].sort((a, b) =>
+        a.station.localeCompare(b.station, "uk", { numeric: true })
+    );
+
+    let h = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Артикул</th>
+                    <th>Матеріал</th>
+                    <th>Станція</th>
+                    <th>Адреса</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
     sorted.forEach(r => {
-        h += `<tr><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.station)}</td><td>${escapeHtml(r.address)}</td></tr>`;
+        h += `
+            <tr>
+                <td>${escapeHtml(targetArticle)}</td>
+                <td>${escapeHtml(r.material)}</td>
+                <td>${escapeHtml(r.station)}</td>
+                <td>${escapeHtml(r.address)}</td>
+            </tr>
+        `;
     });
-    h += '</tbody></table>';
+
+    h += `
+            </tbody>
+        </table>
+    `;
+
     container.innerHTML = h;
 }
 
@@ -382,7 +526,11 @@ function buildArticleGroupPages() {
             </div>
             <div class="table-scroll"><div class="group-table-content"></div></div>`;
         pagesEl.appendChild(pageEl);
-        renderGroupTable(pageEl.querySelector('.group-table-content'), group.rows);
+        renderGroupTable(
+            pageEl.querySelector('.group-table-content'),
+            group.rows,
+            group.article
+        );
     });
 
     TOTAL_PAGES = 2 + articleGroups.length;
