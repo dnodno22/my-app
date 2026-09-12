@@ -195,6 +195,56 @@ input#input {
     word-break: break-word;
 }
 
+/* ==================== ПАНЕЛЬ ПЕРЕДМОНТАЖУ ==================== */
+.premontage-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.premontage-nav-btn {
+    border: none;
+    background: #eef2ff;
+    color: #4338ca;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+}
+.premontage-nav-btn:active { background: #e0e7ff; }
+.premontage-close-btn {
+    background: #fff7e0;
+    color: #b45309;
+    margin-left: auto;
+}
+.premontage-close-btn:active { background: #fdeeca; }
+.premontage-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 14px;
+}
+.premontage-btn-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+.premontage-item-btn {
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #111;
+    font-weight: 700;
+    font-size: 15px;
+    border-radius: 14px;
+    padding: 16px 10px;
+    text-align: center;
+    cursor: pointer;
+    white-space: normal;
+    word-break: break-word;
+}
+.premontage-item-btn:active { background: #eef2ff; }
+
 /* HIGHLIGHT */
 mark.hl {
     background: #fde047;
@@ -241,10 +291,8 @@ mark.hl {
 
 /* TABLE PAGES */
 .table-page { background: #fff; }
-.table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
-.table-header:active { background: #f3f4f6; }
-.table-title { font-weight: 700; font-size: 16px; color: #111; display: inline-flex; align-items: center; gap: 6px; }
-.table-title .search-hint-icon { font-size: 13px; opacity: 0.55; }
+.table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; flex-shrink: 0; display: flex; justify-content: space-between; align-items: baseline; }
+.table-title { font-weight: 700; font-size: 16px; color: #111; }
 .table-updated { font-size: 11px; color: #9ca3af; }
 .table-scroll { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
 table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
@@ -256,46 +304,6 @@ tr:nth-child(even) td { background: #f9fafb; }
 .page-dots.visible { opacity: 1; }
 .dot { width: 5px; height: 5px; border-radius: 50%; background: #d1d5db; }
 .dot.active { background: #374151; transform: scale(1.4); }
-
-/* ==================== ПОШУК АРТИКУЛУ (спливаюче вікно на бічних сторінках) ==================== */
-.article-picker-overlay {
-    position: fixed; inset: 0; background: rgba(17,17,17,0.4);
-    z-index: 50; display: flex; align-items: flex-start; justify-content: center;
-    opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
-    touch-action: none;
-}
-.article-picker-overlay.visible { opacity: 1; pointer-events: auto; }
-.article-picker-panel {
-    background: #fff; width: calc(100% - 32px); max-width: 480px;
-    margin-top: calc(16px + env(safe-area-inset-top));
-    border-radius: 18px; max-height: 72vh; display: flex; flex-direction: column;
-    overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
-    transform: translateY(-10px) scale(0.98); transition: transform 0.2s ease;
-}
-.article-picker-overlay.visible .article-picker-panel { transform: translateY(0) scale(1); }
-.article-picker-head {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 16px 8px;
-}
-.article-picker-head span { font-weight: 700; font-size: 15px; color: #111; }
-.article-picker-close {
-    border: none; background: #f1f5f9; color: #555; font-size: 15px;
-    width: 28px; height: 28px; border-radius: 50%; cursor: pointer; line-height: 1;
-}
-.article-picker-close:active { background: #e5e7eb; }
-.article-picker-input {
-    margin: 4px 16px 10px; padding: 12px 14px; border: 1px solid #e5e7eb;
-    border-radius: 12px; font-size: 16px; outline: none; background: #f9fafb; color: #111;
-}
-.article-picker-list { overflow-y: auto; padding: 0 10px 14px; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
-.article-picker-item {
-    padding: 13px 10px; border-radius: 10px; font-size: 15px; font-weight: 700; color: #111;
-    display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-}
-.article-picker-item:active { background: #f3f4f6; }
-.article-picker-item.current { background: #eef2ff; }
-.article-picker-item .cnt { font-size: 12px; color: #9ca3af; font-weight: 500; white-space: nowrap; margin-left: 10px; }
-.article-picker-empty { text-align: center; padding: 24px; color: #aaa; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -333,18 +341,6 @@ tr:nth-child(even) td { background: #f9fafb; }
 
 <div class="page-dots" id="page-dots"></div>
 
-<!-- Спливаюче вікно швидкого пошуку артикулу (відкривається тапом на заголовок бічної сторінки) -->
-<div class="article-picker-overlay" id="article-picker-overlay">
-    <div class="article-picker-panel">
-        <div class="article-picker-head">
-            <span>Пошук артикулу</span>
-            <button class="article-picker-close" id="article-picker-close">✕</button>
-        </div>
-        <input id="article-picker-input" class="article-picker-input" placeholder="Введіть артикул...">
-        <div id="article-picker-list" class="article-picker-list"></div>
-    </div>
-</div>
-
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ====================
    Аркуші зліва більше НЕ тягнуться з окремих гугл-таблиць —
@@ -360,13 +356,12 @@ tr:nth-child(even) td { background: #f9fafb; }
    (перше число повне, решта — це останні 3 цифри, які "доклеюються"
    до спільного префікса першого числа: 7340 + 113 = 7340113 і т.д.)
 
-   Базовий артикул завжди складається з 7 цифр — якщо після них ідуть
-   ще якісь цифри/букви (напр. "734011202А"), це той самий артикул
-   "7340112", а хвіст — просто суфікс/варіант, що ігнорується при
-   групуванні по сторінках (див. getArticleBase()).
-
    Кожен такий повний артикул отримує свою окрему сторінку зі списком
-   станцій/адрес, куди він застосовується — так само, як показує пошук. */
+   станцій/адрес, куди він застосовується — так само, як показує пошук.
+   Короткі коди самі по собі (окремим рядком, без "/") у цих даних не
+   зустрічаються — вони існують лише всередині складеного запису вище,
+   тож ніякого додаткового "домержування" не потрібно: досатньо просто
+   розгорнути кожен рядок і згрупувати рядки за повним артикулом. */
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -378,16 +373,16 @@ let searchData = [];
 let pageWidthPercent = 100 / TOTAL_PAGES;
 let articleGroups = [];
 
+// Стан панелі "Передмонтаж": null = вимкнено (звичайний пошук);
+// {level:'articles'} -> {level:'names', article} -> {level:'materials', article, name}
+let premontageView = null;
+
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
 const waitlistBox = document.getElementById('waitlist-result');
 const kbWrapper = document.getElementById('kb-wrapper');
 const pagesEl = document.getElementById('pages');
 const dotsEl = document.getElementById('page-dots');
-const pickerOverlay = document.getElementById('article-picker-overlay');
-const pickerInput = document.getElementById('article-picker-input');
-const pickerList = document.getElementById('article-picker-list');
-const pickerClose = document.getElementById('article-picker-close');
 
 const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
@@ -548,8 +543,8 @@ function buildArticleGroupPages() {
         const pageEl = document.createElement('div');
         pageEl.className = 'page table-page article-group-page';
         pageEl.innerHTML = `
-            <div class="table-header" data-role="open-picker">
-                <span class="table-title">Артикул ${escapeHtml(group.article)} <span class="search-hint-icon">🔍</span></span>
+            <div class="table-header">
+                <span class="table-title">Артикул ${escapeHtml(group.article)}</span>
                 <span class="table-updated">${group.rows.length} зап. ${updatedLabel ? '• ' + updatedLabel : ''}</span>
             </div>
             <div class="table-scroll"><div class="group-table-content"></div></div>`;
@@ -581,64 +576,6 @@ function buildArticleGroupPages() {
     pagesEl.style.transform = `translateX(-${currentPage * pageWidthPercent}%)`;
     requestAnimationFrame(() => { pagesEl.style.transition = ''; });
 }
-
-/* ==================== ПОШУК АРТИКУЛУ (спливаюче вікно) ====================
-   Тап на заголовок "Артикул ХХХХХХХ" на бічній сторінці відкриває вікно
-   з полем пошуку і списком УСІХ завантажених артикулів. Тап по пункту
-   списку одразу перегортає на відповідну сторінку. */
-function renderPickerList(query) {
-    const q = query.trim().toLowerCase();
-    const items = articleGroups
-        .map((g, idx) => ({ article: g.article, count: g.rows.length, pageIdx: 2 + idx }))
-        .filter(it => !q || it.article.toLowerCase().includes(q));
-
-    if (!items.length) {
-        pickerList.innerHTML = '<div class="article-picker-empty">Не знайдено</div>';
-        return;
-    }
-
-    pickerList.innerHTML = items.map(it => `
-        <div class="article-picker-item${it.pageIdx === currentPage ? ' current' : ''}" data-page-idx="${it.pageIdx}">
-            <span>${escapeHtml(it.article)}</span>
-            <span class="cnt">${it.count} зап.</span>
-        </div>
-    `).join('');
-}
-
-function openArticlePicker() {
-    pickerOverlay.classList.add('visible');
-    pickerInput.value = '';
-    renderPickerList('');
-    setTimeout(() => pickerInput.focus(), 50);
-}
-
-function closeArticlePicker() {
-    pickerOverlay.classList.remove('visible');
-    pickerInput.blur();
-}
-
-pickerInput.addEventListener('input', () => renderPickerList(pickerInput.value));
-
-pickerList.addEventListener('click', (e) => {
-    const item = e.target.closest('.article-picker-item');
-    if (!item) return;
-    const pageIdx = parseInt(item.dataset.pageIdx, 10);
-    closeArticlePicker();
-    goToPage(pageIdx);
-});
-
-pickerClose.addEventListener('click', closeArticlePicker);
-
-pickerOverlay.addEventListener('click', (e) => {
-    if (e.target === pickerOverlay) closeArticlePicker();
-});
-
-// Делегування кліку на заголовок "Артикул ..." на будь-якій бічній сторінці
-pagesEl.addEventListener('click', (e) => {
-    if (e.target.closest('[data-role="open-picker"]')) {
-        openArticlePicker();
-    }
-});
 
 /* ---------- Клавіатура (сторінка пошуку) ---------- */
 
@@ -767,6 +704,18 @@ document.getElementById('kb-wrapper').addEventListener('click', (e) => {
     const btn = e.target.closest('.btn');
     if (!btn) return;
     e.stopPropagation();
+
+    // Кнопка "передмонтаж" відкриває окрему панель вибору замість звичайного пошуку
+    if (btn.dataset.v === "передмонтаж") {
+        enterPremontageMode();
+        return;
+    }
+
+    // Будь-яка інша кнопка клавіатури повертає у звичайний режим пошуку
+    if (premontageView) {
+        premontageView = null;
+    }
+
     if (btn.dataset.del) {
         input.value = "";
         lastInputFromCarousel = false;
@@ -808,7 +757,11 @@ function fetchSearchData() {
         localStorage.setItem(CACHE_KEY_SEARCH_TIME, Date.now().toString());
         parseSearchCSV(t);
         buildArticleGroupPages();
-        if (input.value) search();
+        if (premontageView) {
+            renderPremontageView();
+        } else if (input.value) {
+            search();
+        }
     })
     .catch(() => {});
 }
@@ -1041,6 +994,174 @@ function mergeAbbreviatedArticles(articleMap) {
     return merged;
 }
 
+// ==================== ПАНЕЛЬ ПЕРЕДМОНТАЖУ ====================
+// У колонці приміток (colD) деякі рядки позначені як "ПередмонтажXXX",
+// де XXX — це останні символи (зазвичай 3 цифри) артикулу, до якого
+// цей передмонтаж стосується (та ж логіка суфіксів, що й у mergeAbbreviatedArticles).
+// Приклад: примітка "Передмонтаж008" стосується артикулу, що закінчується на "008" (напр. 7340008).
+
+// Розпізнає примітку виду "Передмонтаж..." і повертає {raw, suffix} або null, якщо це не передмонтаж.
+function extractPremontageInfo(colDValue) {
+    const raw = String(colDValue || "").trim();
+    if (!raw) return null;
+    const m = raw.match(/^передмонтаж\s*(.*)$/i);
+    if (!m) return null;
+    const suffix = m[1].trim();
+    if (!suffix) return null;
+    return { raw, suffix };
+}
+
+// Усі рядки даних, що мають примітку "Передмонтаж..."
+function getPremontageRows() {
+    return searchData
+        .map(row => ({ row, info: extractPremontageInfo(row.colD) }))
+        .filter(x => x.info !== null);
+}
+
+// Чи закінчується повний артикул на заданий суфікс (без урахування регістру)
+function articleMatchesSuffix(fullArticle, suffix) {
+    if (!fullArticle || !suffix) return false;
+    if (fullArticle.length < suffix.length) return false;
+    return fullArticle.slice(-suffix.length).toLowerCase() === suffix.toLowerCase();
+}
+
+// Список повних артикулів (з уже побудованих articleGroups), для яких є хоч один передмонтаж
+function computePremontageArticleList() {
+    const rows = getPremontageRows();
+    const fullArticles = articleGroups.map(g => g.article);
+    const found = new Set();
+    rows.forEach(({ info }) => {
+        fullArticles.forEach(full => {
+            if (articleMatchesSuffix(full, info.suffix)) found.add(full);
+        });
+    });
+    return [...found].sort((a, b) => a.localeCompare(b, 'uk', { numeric: true, sensitivity: 'base' }));
+}
+
+// Список назв передмонтажів (як записано в примітці) для обраного артикулу
+function computePremontageNamesForArticle(article) {
+    const rows = getPremontageRows();
+    const names = new Set();
+    rows.forEach(({ info }) => {
+        if (articleMatchesSuffix(article, info.suffix)) names.add(info.raw);
+    });
+    return [...names].sort((a, b) => a.localeCompare(b, 'uk', { numeric: true, sensitivity: 'base' }));
+}
+
+// Матеріали (рядки), що належать конкретному передмонтажу (за точним текстом примітки)
+function computeMaterialsForPremontageName(name) {
+    const target = String(name || "").trim().toLowerCase();
+    return searchData.filter(row => String(row.colD || "").trim().toLowerCase() === target);
+}
+
+function enterPremontageMode() {
+    input.value = "";
+    premontageView = { level: 'articles' };
+    renderPremontageView();
+}
+
+function renderPremontageView() {
+    if (!premontageView) return;
+    let html = '<div class="premontage-toolbar">';
+    if (premontageView.level !== 'articles') {
+        html += '<button class="premontage-nav-btn" data-nav="back">← Назад</button>';
+    }
+    html += '<button class="premontage-nav-btn premontage-close-btn" data-nav="close">✕ Пошук</button>';
+    html += '</div>';
+
+    if (premontageView.level === 'articles') {
+        const articles = computePremontageArticleList();
+        html += '<div class="premontage-title">Передмонтаж — оберіть артикул</div>';
+        if (!articles.length) {
+            html += '<div style="text-align:center; padding:40px; color:#aaa;">Немає даних про передмонтаж</div>';
+        } else {
+            html += '<div class="premontage-btn-grid">';
+            articles.forEach(a => {
+                html += `<button class="premontage-item-btn" data-nav="article" data-article="${escapeHtml(a)}">${renderArticleNumber(a, "", false, true)}</button>`;
+            });
+            html += '</div>';
+        }
+    } else if (premontageView.level === 'names') {
+        const names = computePremontageNamesForArticle(premontageView.article);
+        html += `<div class="premontage-title">Артикул ${escapeHtml(premontageView.article)} — передмонтажі</div>`;
+        if (!names.length) {
+            html += '<div style="text-align:center; padding:40px; color:#aaa;">Немає передмонтажів для цього артикулу</div>';
+        } else {
+            html += '<div class="premontage-btn-grid">';
+            names.forEach(n => {
+                html += `<button class="premontage-item-btn" data-nav="name" data-name="${escapeHtml(n)}">${escapeHtml(n)}</button>`;
+            });
+            html += '</div>';
+        }
+    } else if (premontageView.level === 'materials') {
+        const rows = computeMaterialsForPremontageName(premontageView.name);
+        html += `<div class="premontage-title">${escapeHtml(premontageView.name)} — матеріали</div>`;
+        if (!rows.length) {
+            html += '<div style="text-align:center; padding:40px; color:#aaa;">Матеріалів не знайдено</div>';
+        } else {
+            const grouped = {};
+            rows.forEach(x => {
+                const matKey = x.material + "|" + x.address;
+                if (!grouped[matKey]) grouped[matKey] = {};
+                if (!grouped[matKey][x.article]) grouped[matKey][x.article] = new Set();
+                grouped[matKey][x.article].add(x.station);
+            });
+            for (let matKey in grouped) {
+                const [matName, matAddr] = matKey.split("|");
+                html += `<div class="result-card">
+                    <div class="result-top">
+                        <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
+                        <span class="result-address-new">${escapeHtml(matAddr)}</span>
+                    </div>`;
+                for (let art in grouped[matKey]) {
+                    const stationHtmlArr = [...grouped[matKey][art]].map(st => escapeHtml(st));
+                    const stationsHtml = buildStationsHtml(stationHtmlArr);
+                    html += `<div class="article-row">
+                        <span class="article-number">${renderArticleNumber(art, "", false, true)}</span>
+                        <span class="article-stations">${stationsHtml}</span>
+                    </div>`;
+                }
+                html += `</div>`;
+            }
+        }
+    }
+
+    resultBox.innerHTML = html;
+}
+
+// Кліки по кнопках навігації всередині панелі передмонтажу
+resultBox.addEventListener('click', (e) => {
+    const navBtn = e.target.closest('[data-nav]');
+    if (!navBtn || !premontageView) return;
+    const nav = navBtn.dataset.nav;
+
+    if (nav === 'close') {
+        premontageView = null;
+        resultBox.innerHTML = "";
+        if (input.value) search();
+        return;
+    }
+    if (nav === 'back') {
+        if (premontageView.level === 'materials') {
+            premontageView = { level: 'names', article: premontageView.article };
+        } else if (premontageView.level === 'names') {
+            premontageView = { level: 'articles' };
+        }
+        renderPremontageView();
+        return;
+    }
+    if (nav === 'article') {
+        premontageView = { level: 'names', article: navBtn.dataset.article };
+        renderPremontageView();
+        return;
+    }
+    if (nav === 'name') {
+        premontageView = { level: 'materials', article: premontageView.article, name: navBtn.dataset.name };
+        renderPremontageView();
+        return;
+    }
+});
+
 function search() {
     const v = input.value.toLowerCase();
     if (!v) { resultBox.innerHTML = ""; return; }
@@ -1186,10 +1307,6 @@ let pageDragStartX = 0, pageDragStartY = 0, pageDragBasePage = 0;
 let pageDragging = false, pageMoved = false, pageDragPxWidth = 0;
 
 document.addEventListener('touchstart', e => {
-    // Поки відкрите спливаюче вікно пошуку артикулу — не чіпаємо перегортання сторінок,
-    // щоб можна було нормально скролити список і торкатись поля вводу.
-    if (pickerOverlay.classList.contains('visible')) { pageDragging = false; return; }
-
     pageDragStartX = e.touches[0].clientX;
     pageDragStartY = e.touches[0].clientY;
     pageDragBasePage = currentPage;
