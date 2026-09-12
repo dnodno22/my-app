@@ -995,23 +995,24 @@ function mergeAbbreviatedArticles(articleMap) {
 }
 
 // ==================== ПАНЕЛЬ ПЕРЕДМОНТАЖУ ====================
-// У колонці приміток (colD) деякі рядки позначені як "ПередмонтажXXX",
-// де XXX — це останні символи (зазвичай 3 цифри) артикулу, до якого
-// цей передмонтаж стосується (та ж логіка суфіксів, що й у mergeAbbreviatedArticles).
-// Приклад: примітка "Передмонтаж008" стосується артикулу, що закінчується на "008" (напр. 7340008).
-
-// Розпізнає примітку виду "Передмонтаж..." і повертає {raw, suffix} або null, якщо це не передмонтаж.
+// У колонці приміток (colD) реальні матеріали передмонтажу підписані як
+// <Назва><суфіксАртикулу>, наприклад "KLS038" -> name="KLS", suffix="038".
+// Суфікс — це останні цифри повного артикулу (та ж логіка, що й у mergeAbbreviatedArticles).
+// Службові примітки без цифр (стр, мм, ts, sp) та загальне слово "Передмонтаж"
+// без власної назви сюди не потрапляють — вони не є назвою передмонтажу.
 function extractPremontageInfo(colDValue) {
     const raw = String(colDValue || "").trim();
     if (!raw) return null;
-    const m = raw.match(/^передмонтаж\s*(.*)$/i);
+    const m = raw.match(/^(\D+?)(\d{2,4})$/u);
     if (!m) return null;
-    const suffix = m[1].trim();
-    if (!suffix) return null;
-    return { raw, suffix };
+    const name = m[1].trim();
+    const suffix = m[2];
+    if (!name || !suffix) return null;
+    if (name.toLowerCase() === "передмонтаж") return null; // загальна службова мітка, не назва
+    return { raw, name, suffix };
 }
 
-// Усі рядки даних, що мають примітку "Передмонтаж..."
+// Усі рядки даних, що мають підпис передмонтажу (напр. "KLS038")
 function getPremontageRows() {
     return searchData
         .map(row => ({ row, info: extractPremontageInfo(row.colD) }))
@@ -1038,20 +1039,17 @@ function computePremontageArticleList() {
     return [...found].sort((a, b) => a.localeCompare(b, 'uk', { numeric: true, sensitivity: 'base' }));
 }
 
-// Список назв передмонтажів (як записано в примітці) для обраного артикулу
+// Список передмонтажів для обраного артикулу: raw ("KLS038") — для пошуку,
+// name ("KLS") — те, що показуємо на кнопці.
 function computePremontageNamesForArticle(article) {
     const rows = getPremontageRows();
-    const names = new Set();
+    const found = new Map(); // raw -> name
     rows.forEach(({ info }) => {
-        if (articleMatchesSuffix(article, info.suffix)) names.add(info.raw);
+        if (articleMatchesSuffix(article, info.suffix)) found.set(info.raw, info.name);
     });
-    return [...names].sort((a, b) => a.localeCompare(b, 'uk', { numeric: true, sensitivity: 'base' }));
-}
-
-// Матеріали (рядки), що належать конкретному передмонтажу (за точним текстом примітки)
-function computeMaterialsForPremontageName(name) {
-    const target = String(name || "").trim().toLowerCase();
-    return searchData.filter(row => String(row.colD || "").trim().toLowerCase() === target);
+    return [...found.entries()]
+        .map(([raw, name]) => ({ raw, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'uk', { numeric: true, sensitivity: 'base' }));
 }
 
 function enterPremontageMode() {
@@ -1089,40 +1087,9 @@ function renderPremontageView() {
         } else {
             html += '<div class="premontage-btn-grid">';
             names.forEach(n => {
-                html += `<button class="premontage-item-btn" data-nav="name" data-name="${escapeHtml(n)}">${escapeHtml(n)}</button>`;
+                html += `<button class="premontage-item-btn" data-nav="name" data-name="${escapeHtml(n.raw)}">${escapeHtml(n.name)}</button>`;
             });
             html += '</div>';
-        }
-    } else if (premontageView.level === 'materials') {
-        const rows = computeMaterialsForPremontageName(premontageView.name);
-        html += `<div class="premontage-title">${escapeHtml(premontageView.name)} — матеріали</div>`;
-        if (!rows.length) {
-            html += '<div style="text-align:center; padding:40px; color:#aaa;">Матеріалів не знайдено</div>';
-        } else {
-            const grouped = {};
-            rows.forEach(x => {
-                const matKey = x.material + "|" + x.address;
-                if (!grouped[matKey]) grouped[matKey] = {};
-                if (!grouped[matKey][x.article]) grouped[matKey][x.article] = new Set();
-                grouped[matKey][x.article].add(x.station);
-            });
-            for (let matKey in grouped) {
-                const [matName, matAddr] = matKey.split("|");
-                html += `<div class="result-card">
-                    <div class="result-top">
-                        <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
-                        <span class="result-address-new">${escapeHtml(matAddr)}</span>
-                    </div>`;
-                for (let art in grouped[matKey]) {
-                    const stationHtmlArr = [...grouped[matKey][art]].map(st => escapeHtml(st));
-                    const stationsHtml = buildStationsHtml(stationHtmlArr);
-                    html += `<div class="article-row">
-                        <span class="article-number">${renderArticleNumber(art, "", false, true)}</span>
-                        <span class="article-stations">${stationsHtml}</span>
-                    </div>`;
-                }
-                html += `</div>`;
-            }
         }
     }
 
@@ -1142,9 +1109,7 @@ resultBox.addEventListener('click', (e) => {
         return;
     }
     if (nav === 'back') {
-        if (premontageView.level === 'materials') {
-            premontageView = { level: 'names', article: premontageView.article };
-        } else if (premontageView.level === 'names') {
+        if (premontageView.level === 'names') {
             premontageView = { level: 'articles' };
         }
         renderPremontageView();
@@ -1156,8 +1121,13 @@ resultBox.addEventListener('click', (e) => {
         return;
     }
     if (nav === 'name') {
-        premontageView = { level: 'materials', article: premontageView.article, name: navBtn.dataset.name };
-        renderPremontageView();
+        // Назва передмонтажу (напр. "KLS038") підставляється у пошук так само,
+        // якби її ввели вручну — і показуються звичайні картки матеріалів.
+        const name = navBtn.dataset.name;
+        premontageView = null;
+        input.value = name.toLowerCase();
+        lastInputFromCarousel = false;
+        search();
         return;
     }
 });
