@@ -245,6 +245,53 @@ input#input {
 }
 .premontage-item-btn:active { background: #eef2ff; }
 
+.premontage-search-input {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 16px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #111;
+    outline: none;
+    margin-bottom: 14px;
+}
+
+.wire-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.wire-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+.wire-name {
+    font-weight: 800;
+    font-size: 16px;
+    color: #111;
+    flex-shrink: 0;
+}
+.wire-code {
+    font-size: 13px;
+    color: #6b7280;
+    flex: 1;
+    text-align: center;
+}
+.wire-location {
+    font-weight: 700;
+    font-size: 14px;
+    color: #059669;
+    text-align: right;
+    white-space: nowrap;
+}
+
 /* HIGHLIGHT */
 mark.hl {
     background: #fde047;
@@ -995,28 +1042,28 @@ function mergeAbbreviatedArticles(articleMap) {
 }
 
 // ==================== ПАНЕЛЬ ПЕРЕДМОНТАЖУ ====================
-// У колонці приміток (colD) реальні матеріали передмонтажу підписані як
-// <Назва><суфіксАртикулу>, наприклад "KLS038" -> name="KLS", suffix="038".
-// Суфікс — це останні цифри повного артикулу (та ж логіка, що й у mergeAbbreviatedArticles).
-// Службові примітки без цифр (стр, мм, ts, sp) та загальне слово "Передмонтаж"
-// без власної назви сюди не потрапляють — вони не є назвою передмонтажу.
-function extractPremontageInfo(colDValue) {
+// Структура даних для передмонтажу (ті самі 5 колонок searchData, але з іншим змістом):
+//   colD    — тег "ПередмонтажXXX", де XXX = останні цифри артикулу (той самий
+//             принцип суфіксів, що й у mergeAbbreviatedArticles). Один і той самий
+//             тег повторюється у всіх рядків-проводів, що належать цьому артикулу.
+//   article — назва конкретного провода, напр. "KLS4", "HDEV1", "KS_28".
+//             Літерна частина ("KLS", "HDEV", "KS") — це категорія передмонтажу,
+//             цифра в кінці — просто порядковий номер провода в категорії.
+//   material— власний числовий код провода (напр. 15713574).
+//   address — розташування/пін провода (напр. "C 07 03 03").
+
+// Розпізнає тег "ПередмонтажXXX" і повертає суфікс (XXX) або null.
+function extractPremontageSuffix(colDValue) {
     const raw = String(colDValue || "").trim();
-    if (!raw) return null;
-    const m = raw.match(/^(\D+?)(\d{2,4})$/u);
-    if (!m) return null;
-    const name = m[1].trim();
-    const suffix = m[2];
-    if (!name || !suffix) return null;
-    if (name.toLowerCase() === "передмонтаж") return null; // загальна службова мітка, не назва
-    return { raw, name, suffix };
+    const m = raw.match(/^передмонтаж\s*(\d+)/i);
+    return m ? m[1] : null;
 }
 
-// Усі рядки даних, що мають підпис передмонтажу (напр. "KLS038")
+// Усі рядки-проводи, позначені як частина якогось передмонтажу
 function getPremontageRows() {
     return searchData
-        .map(row => ({ row, info: extractPremontageInfo(row.colD) }))
-        .filter(x => x.info !== null);
+        .map(row => ({ row, suffix: extractPremontageSuffix(row.colD) }))
+        .filter(x => x.suffix !== null);
 }
 
 // Чи закінчується повний артикул на заданий суфікс (без урахування регістру)
@@ -1026,30 +1073,47 @@ function articleMatchesSuffix(fullArticle, suffix) {
     return fullArticle.slice(-suffix.length).toLowerCase() === suffix.toLowerCase();
 }
 
+// Розбиває назву провода (напр. "KLS4", "KS_28", "HDEV10") на категорію ("KLS", "KS", "HDEV")
+// та порядковий номер у категорії ("4", "28", "10") — категорія відкидає кінцеві "_"/пробіли.
+function splitWireName(name) {
+    const raw = String(name || "").trim();
+    const m = raw.match(/^(.*?)(\d+)$/);
+    if (!m) return { category: raw, number: "" };
+    const category = m[1].replace(/[\s_]+$/, "") || raw;
+    return { category, number: m[2] };
+}
+
 // Список повних артикулів (з уже побудованих articleGroups), для яких є хоч один передмонтаж
 function computePremontageArticleList() {
     const rows = getPremontageRows();
     const fullArticles = articleGroups.map(g => g.article);
     const found = new Set();
-    rows.forEach(({ info }) => {
+    rows.forEach(({ suffix }) => {
         fullArticles.forEach(full => {
-            if (articleMatchesSuffix(full, info.suffix)) found.add(full);
+            if (articleMatchesSuffix(full, suffix)) found.add(full);
         });
     });
     return [...found].sort((a, b) => a.localeCompare(b, 'uk', { numeric: true, sensitivity: 'base' }));
 }
 
-// Список передмонтажів для обраного артикулу: raw ("KLS038") — для пошуку,
-// name ("KLS") — те, що показуємо на кнопці.
-function computePremontageNamesForArticle(article) {
+// Список категорій проводів (KLS, LDS, HDEV, RDS, KS...) для обраного артикулу
+function computePremontageCategoriesForArticle(article) {
     const rows = getPremontageRows();
-    const found = new Map(); // raw -> name
-    rows.forEach(({ info }) => {
-        if (articleMatchesSuffix(article, info.suffix)) found.set(info.raw, info.name);
+    const categories = new Set();
+    rows.forEach(({ row, suffix }) => {
+        if (!articleMatchesSuffix(article, suffix)) return;
+        const { category } = splitWireName(row.article);
+        if (category) categories.add(category);
     });
-    return [...found.entries()]
-        .map(([raw, name]) => ({ raw, name }))
-        .sort((a, b) => a.name.localeCompare(b.name, 'uk', { numeric: true, sensitivity: 'base' }));
+    return [...categories].sort((a, b) => a.localeCompare(b, 'uk', { numeric: true, sensitivity: 'base' }));
+}
+
+// Список проводів обраної категорії для обраного артикулу
+function computeWiresForCategory(article, category) {
+    const rows = getPremontageRows()
+        .filter(({ row, suffix }) => articleMatchesSuffix(article, suffix) && splitWireName(row.article).category === category)
+        .map(({ row }) => row);
+    return rows.sort((a, b) => a.article.localeCompare(b.article, 'uk', { numeric: true, sensitivity: 'base' }));
 }
 
 function enterPremontageMode() {
@@ -1066,6 +1130,7 @@ function renderPremontageView() {
     }
     html += '<button class="premontage-nav-btn premontage-close-btn" data-nav="close">✕ Пошук</button>';
     html += '</div>';
+    html += '<input type="text" id="premontage-search-input" class="premontage-search-input" placeholder="Пошук..." autocomplete="off">';
 
     if (premontageView.level === 'articles') {
         const articles = computePremontageArticleList();
@@ -1075,19 +1140,36 @@ function renderPremontageView() {
         } else {
             html += '<div class="premontage-btn-grid">';
             articles.forEach(a => {
-                html += `<button class="premontage-item-btn" data-nav="article" data-article="${escapeHtml(a)}">${renderArticleNumber(a, "", false, true)}</button>`;
+                html += `<button class="premontage-item-btn" data-nav="article" data-article="${escapeHtml(a)}" data-filter="${escapeHtml(a.toLowerCase())}">${renderArticleNumber(a, "", false, true)}</button>`;
             });
             html += '</div>';
         }
-    } else if (premontageView.level === 'names') {
-        const names = computePremontageNamesForArticle(premontageView.article);
+    } else if (premontageView.level === 'categories') {
+        const categories = computePremontageCategoriesForArticle(premontageView.article);
         html += `<div class="premontage-title">Артикул ${escapeHtml(premontageView.article)} — передмонтажі</div>`;
-        if (!names.length) {
+        if (!categories.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Немає передмонтажів для цього артикулу</div>';
         } else {
             html += '<div class="premontage-btn-grid">';
-            names.forEach(n => {
-                html += `<button class="premontage-item-btn" data-nav="name" data-name="${escapeHtml(n.raw)}">${escapeHtml(n.name)}</button>`;
+            categories.forEach(c => {
+                html += `<button class="premontage-item-btn" data-nav="category" data-category="${escapeHtml(c)}" data-filter="${escapeHtml(c.toLowerCase())}">${escapeHtml(c)}</button>`;
+            });
+            html += '</div>';
+        }
+    } else if (premontageView.level === 'wires') {
+        const wires = computeWiresForCategory(premontageView.article, premontageView.category);
+        html += `<div class="premontage-title">${escapeHtml(premontageView.category)} — проводи</div>`;
+        if (!wires.length) {
+            html += '<div style="text-align:center; padding:40px; color:#aaa;">Проводів не знайдено</div>';
+        } else {
+            html += '<div class="wire-list">';
+            wires.forEach(w => {
+                const filterKey = (w.article + " " + w.material + " " + w.address).toLowerCase();
+                html += `<div class="wire-row" data-filter="${escapeHtml(filterKey)}">
+                    <span class="wire-name">${escapeHtml(w.article)}</span>
+                    <span class="wire-code">${escapeHtml(w.material)}</span>
+                    <span class="wire-location">${escapeHtml(w.address)}</span>
+                </div>`;
             });
             html += '</div>';
         }
@@ -1095,6 +1177,21 @@ function renderPremontageView() {
 
     resultBox.innerHTML = html;
 }
+
+// Фільтрує вже відрендерені кнопки/рядки без перебудови HTML — зберігає фокус і курсор у полі пошуку
+function filterPremontageItems(filterText) {
+    const v = String(filterText || "").trim().toLowerCase();
+    resultBox.querySelectorAll('[data-filter]').forEach(el => {
+        el.classList.toggle('hidden', v.length > 0 && !el.dataset.filter.includes(v));
+    });
+}
+
+// Введення тексту в поле пошуку панелі передмонтажу
+resultBox.addEventListener('input', (e) => {
+    if (e.target.id === 'premontage-search-input') {
+        filterPremontageItems(e.target.value);
+    }
+});
 
 // Кліки по кнопках навігації всередині панелі передмонтажу
 resultBox.addEventListener('click', (e) => {
@@ -1109,25 +1206,22 @@ resultBox.addEventListener('click', (e) => {
         return;
     }
     if (nav === 'back') {
-        if (premontageView.level === 'names') {
+        if (premontageView.level === 'wires') {
+            premontageView = { level: 'categories', article: premontageView.article };
+        } else if (premontageView.level === 'categories') {
             premontageView = { level: 'articles' };
         }
         renderPremontageView();
         return;
     }
     if (nav === 'article') {
-        premontageView = { level: 'names', article: navBtn.dataset.article };
+        premontageView = { level: 'categories', article: navBtn.dataset.article };
         renderPremontageView();
         return;
     }
-    if (nav === 'name') {
-        // Назва передмонтажу (напр. "KLS038") підставляється у пошук так само,
-        // якби її ввели вручну — і показуються звичайні картки матеріалів.
-        const name = navBtn.dataset.name;
-        premontageView = null;
-        input.value = name.toLowerCase();
-        lastInputFromCarousel = false;
-        search();
+    if (nav === 'category') {
+        premontageView = { level: 'wires', article: premontageView.article, category: navBtn.dataset.category };
+        renderPremontageView();
         return;
     }
 });
@@ -1309,7 +1403,7 @@ document.addEventListener('touchend', e => {
 
     if (!pageMoved) {
         // це був тап, а не перетягування — стара логіка показу/приховання клавіатури
-        if (currentPage === SEARCH_PAGE_INDEX && !kbWrapper.contains(e.target) && !e.target.closest('.select-btn')) {
+        if (currentPage === SEARCH_PAGE_INDEX && !kbWrapper.contains(e.target) && !e.target.closest('.select-btn') && !e.target.closest('[data-nav]') && e.target.id !== 'premontage-search-input') {
             const willHide = !kbWrapper.classList.contains('hidden');
             kbWrapper.classList.toggle('hidden');
             if (willHide) hideCarousel();
