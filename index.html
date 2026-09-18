@@ -1,3 +1,34 @@
+Перейти до основного вмісту
+Ctrl+J
+
+
+
+прибери кнопочки які появилися на клаівіатурі і зроби перелистування коли я із глибини кнопок повертаюся
+
+
+Працювало протягом 2m 52s
+Готово. Ось що змінено:
+
+1. Прибрано кнопочки з клавіатури
+Видалено ряд швидких кнопок (sp, ts, стр, мм, передмонтаж) над цифровою клавіатурою. Залишилася лише звичайна сітка з цифрами, «с» і ⌫.
+
+2. Перелистування при виході з глибини
+Коли ви всередині сторінки «Артикули» (обрали артикул → дію → тощо):
+
+Звичайний свайп — один крок назад по рівнях (як було).
+Сильний свайп (приблизно більше половини екрана) — одразу виходить з усієї глибини на список артикулів і якщо жест тягне на сусідню сторінку (пошук / обрані), то робить перелистування туди жодним додатковим свайпом.
+Файл збережено як:
+
+
+
+
+
+
+search-app.html
+
+
+
+Файли
 <!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -332,25 +363,6 @@ mark.hl {
 .btn:active { background: #F7F7F7; transform: scale(.96); }
 .btn-special { background: #f1f5f9; }
 
-.kb-quick-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
-}
-.btn-quick {
-    flex: 1;
-    padding: 10px 2px;
-    font-size: 13px;
-    font-weight: 700;
-    background: #eef2ff;
-    color: #4338ca;
-    border-color: #c7d2fe;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.btn-quick:active { background: #e0e7ff; }
-
 /* TABLE PAGES */
 .table-page { background: #fff; }
 .table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; flex-shrink: 0; display: flex; justify-content: space-between; align-items: baseline; }
@@ -381,13 +393,6 @@ tr:nth-child(even) td { background: #f9fafb; }
         <div class="search-header"><input id="input" readonly></div>
         <div class="scroll-area"><div id="result"></div></div>
         <div id="kb-wrapper" class="kb-container">
-            <div id="kb-quick-row" class="kb-quick-row">
-                <button class="btn btn-quick" data-v="sp">sp</button>
-                <button class="btn btn-quick" data-v="ts">ts</button>
-                <button class="btn btn-quick" data-v="стр">стр</button>
-                <button class="btn btn-quick" data-v="мм">мм</button>
-                <button class="btn btn-quick" data-v="передмонтаж">передмонтаж</button>
-            </div>
             <div id="kb1" class="kb-grid">
                 <button class="btn" data-v="1">1</button>
                 <button class="btn" data-v="2">2</button>
@@ -639,27 +644,15 @@ function refreshArticleGroups() {
 
 /* ---------- Клавіатура (сторінка пошуку) ---------- */
 
-let lastInputFromCarousel = false;
 document.getElementById('kb-wrapper').addEventListener('click', (e) => {
     const btn = e.target.closest('.btn');
     if (!btn) return;
     e.stopPropagation();
 
-    // "передмонтаж" — це завжди пошук у межах конкретного артикулу, тому
-    // швидка кнопка просто відкриває сторінку з вибором артикулу.
-    if (btn.classList.contains('btn-quick') && btn.dataset.v === "передмонтаж") {
-        kbWrapper.classList.add('hidden');
-        pagesEl.style.transition = '';
-        goToPage(ARTICLES_PAGE_INDEX);
-        return;
-    }
-
     if (btn.dataset.del) {
         input.value = "";
-        lastInputFromCarousel = false;
     } else if (btn.dataset.v !== undefined) {
         input.value += btn.dataset.v;
-        lastInputFromCarousel = btn.classList.contains('btn-quick');
     }
     search();
 });
@@ -1157,85 +1150,52 @@ function search() {
     searchCardKeys = [];
     searchResultLookup = {};
 
-    if (lastInputFromCarousel) {
-        // СТАРЕ групування (як шукалось через карусель раніше): спочатку артикул,
-        // під ним — матеріал+адреса, і станції. Відображення — у новому дизайні карток.
-        const grouped = {};
-        filtered.forEach(x => {
-            if (!grouped[x.article]) grouped[x.article] = {};
-            const matKey = x.material + "|" + x.address;
-            if (!grouped[x.article][matKey]) grouped[x.article][matKey] = new Set();
-            grouped[x.article][matKey].add(x.station);
-        });
-        for (let art in grouped) {
+    // Групуємо по матеріалу (+адреса), щоб не повторювати
+    // назву матеріалу для кожного артикула окремо. Дизайн карток — як на скріншоті.
+    const grouped = {};
+    filtered.forEach(x => {
+        const matKey = x.material + "|" + x.address;
+        if (!grouped[matKey]) grouped[matKey] = {};
+        if (!grouped[matKey][x.article]) grouped[matKey][x.article] = new Set();
+        grouped[matKey][x.article].add(x.station);
+    });
+    for (let matKey in grouped) {
+        const [matName, matAddr] = matKey.split("|");
+        const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
+        const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
+
+        const mergedArticles = mergeAbbreviatedArticles(grouped[matKey]);
+
+        const articlesPlain = {};
+        for (let art in mergedArticles) articlesPlain[art] = [...mergedArticles[art]];
+        searchResultLookup[matKey] = { material: matName, address: matAddr, articles: articlesPlain };
+        const cardIdx = searchCardKeys.push(matKey) - 1;
+        const selected = isInWaitlist(matKey);
+
+        html += `<div class="result-card">
+            <div class="result-top">
+                <span class="result-material-badge"><span class="box-icon">📦</span>${matHtml}</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="result-address-new">${addrHtml}</span>
+                    <button class="select-btn${selected ? ' selected' : ''}" data-idx="${cardIdx}">${selected ? '★' : '☆'}</button>
+                </div>
+            </div>`;
+        for (let art in mergedArticles) {
             const artHtml = renderArticleNumber(art, v, isNumOnly, isSpecialSearch);
-            html += `<div class="result-card">
-                <div class="result-top">
-                    <span class="result-material-badge"><span class="box-icon">📦</span>${artHtml}</span>
-                </div>`;
-            let first = true;
-            for (let matKey in grouped[art]) {
-                const [matName, matAddr] = matKey.split("|");
-                const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
-                const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
-                const stationHtmlArr = [...grouped[art][matKey]]
-                    .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly));
-                const stationsHtml = buildStationsHtml(stationHtmlArr);
-                html += `<div class="article-row"${first ? ' style="border-top:none;padding-top:0;"' : ''}>
-                    <span class="article-number">${matHtml}</span>
-                    <span class="article-stations">${addrHtml}<br>${stationsHtml}</span>
-                </div>`;
-                first = false;
-            }
-            html += `</div>`;
+            const stationHtmlArr = [...mergedArticles[art]]
+                .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly));
+            const stationsHtml = buildStationsHtml(stationHtmlArr);
+            html += `<div class="article-row">
+                <span class="article-number">${artHtml}</span>
+                <span class="article-stations">${stationsHtml}</span>
+            </div>`;
         }
-    } else {
-        // НОВЕ групування: групуємо по матеріалу (+адреса), щоб не повторювати
-        // назву матеріалу для кожного артикула окремо. Дизайн карток — як на скріншоті.
-        const grouped = {};
-        filtered.forEach(x => {
-            const matKey = x.material + "|" + x.address;
-            if (!grouped[matKey]) grouped[matKey] = {};
-            if (!grouped[matKey][x.article]) grouped[matKey][x.article] = new Set();
-            grouped[matKey][x.article].add(x.station);
-        });
-        for (let matKey in grouped) {
-            const [matName, matAddr] = matKey.split("|");
-            const matHtml = isSpecialSearch ? escapeHtml(matName) : highlight(matName, v, isNumOnly);
-            const addrHtml = isSpecialSearch ? escapeHtml(matAddr) : highlight(matAddr, v, isNumOnly);
-
-            const mergedArticles = mergeAbbreviatedArticles(grouped[matKey]);
-
-            const articlesPlain = {};
-            for (let art in mergedArticles) articlesPlain[art] = [...mergedArticles[art]];
-            searchResultLookup[matKey] = { material: matName, address: matAddr, articles: articlesPlain };
-            const cardIdx = searchCardKeys.push(matKey) - 1;
-            const selected = isInWaitlist(matKey);
-
-            html += `<div class="result-card">
-                <div class="result-top">
-                    <span class="result-material-badge"><span class="box-icon">📦</span>${matHtml}</span>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span class="result-address-new">${addrHtml}</span>
-                        <button class="select-btn${selected ? ' selected' : ''}" data-idx="${cardIdx}">${selected ? '★' : '☆'}</button>
-                    </div>
-                </div>`;
-            for (let art in mergedArticles) {
-                const artHtml = renderArticleNumber(art, v, isNumOnly, isSpecialSearch);
-                const stationHtmlArr = [...mergedArticles[art]]
-                    .map(st => isSpecialSearch ? escapeHtml(st) : highlight(st, v, isNumOnly));
-                const stationsHtml = buildStationsHtml(stationHtmlArr);
-                html += `<div class="article-row">
-                    <span class="article-number">${artHtml}</span>
-                    <span class="article-stations">${stationsHtml}</span>
-                </div>`;
-            }
-            html += `</div>`;
-        }
+        html += `</div>`;
     }
 
     resultBox.innerHTML = html;
 }
+
 
 /* ---------- Дата останнього оновлення (для аркушів з групами артикулів) ---------- */
 function formatDate(ts) {
@@ -1316,11 +1276,34 @@ document.addEventListener('touchend', e => {
         return;
     }
 
-    // Свайп у будь-яку сторону "вглиб" сторінки артикулів = крок назад по рівнях
+    // Свайп у будь-яку сторону "вглиб" сторінки артикулів = крок назад по рівнях.
+    // Якщо свайп сильний (більше половини екрану) — виходимо з усієї глибини
+    // і одразу робимо перелистування на сусідню сторінку (якщо свайп туди веде).
     if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
         const dx = e.changedTouches[0].clientX - pageDragStartX;
         if (Math.abs(dx) > 40) {
-            popArticlesPageLevel();
+            const strongSwipe = Math.abs(dx) > pageDragPxWidth * 0.45;
+            if (strongSwipe) {
+                // Повністю виходимо з вкладених рівнів
+                while (articlesPageStack.length > 1) {
+                    articlesPageStack.pop();
+                }
+                renderArticlesPage();
+            } else {
+                popArticlesPageLevel();
+            }
+
+            // Після повернення на верхній рівень — дозволяємо перелистування сторінок
+            if (articlesPageStack.length === 1) {
+                let livePos = pageDragBasePage - dx / pageDragPxWidth;
+                livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
+                const target = Math.round(livePos);
+                if (target !== currentPage) {
+                    pagesEl.style.transition = '';
+                    goToPage(target);
+                    return;
+                }
+            }
         }
         return;
     }
@@ -1356,3 +1339,4 @@ scrollAreaEl.addEventListener('scroll', () => {
 </script>
 </body>
 </html>
+прибери кнопочки які появилися на клаівіатурі і зроби перелистування коли я із глибини кнопок повертаюся - Grok
