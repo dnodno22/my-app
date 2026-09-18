@@ -120,6 +120,33 @@ input#input {
 .select-btn.selected { color: #FFC400; }
 .select-btn:active { transform: scale(.9); }
 
+.article-choice-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+.article-choice-main {
+    flex: 1;
+    min-width: 0;
+}
+.article-favorite-btn {
+    width: 54px;
+    min-width: 54px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #9ca3af;
+    border-radius: 14px;
+    font-size: 22px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.article-favorite-btn.selected {
+    color: #FFC400;
+    background: #fffaf0;
+    border-color: #f3d37a;
+}
+.article-favorite-btn:active { transform: scale(.96); }
+
 .waitlist-actions-row {
     display: flex;
     gap: 8px;
@@ -244,18 +271,6 @@ input#input {
     word-break: break-word;
 }
 .premontage-item-btn:active { background: #eef2ff; }
-
-.premontage-search-input {
-    width: 100%;
-    padding: 12px 14px;
-    font-size: 16px;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
-    background: #f9fafb;
-    color: #111;
-    outline: none;
-    margin-bottom: 14px;
-}
 
 .wire-list {
     display: flex;
@@ -457,6 +472,8 @@ for (let i = 0; i < TOTAL_PAGES; i++) {
     dotsEl.appendChild(d);
 }
 dotsEl.classList.add('visible');
+// На старті відкриваємо саме сторінку пошуку, а не першу бічну сторінку.
+pagesEl.style.transform = `translateX(-${currentPage * pageWidthPercent}%)`;
 
 /* ---------- Розбір складеного запису артикулу з колонки C ---------- */
 function normalizeArticlePart(part) {
@@ -562,6 +579,55 @@ function computeArticleGroups() {
         article,
         rows: groups[article]
     }));
+}
+
+// ==================== ОБРАНІ АРТИКУЛИ ====================
+// Зберігаються окремо від "Обраних матеріалів" у localStorage.
+const CACHE_KEY_ARTICLE_FAVORITES = "articleFavorites";
+
+function loadArticleFavorites() {
+    try {
+        const value = JSON.parse(localStorage.getItem(CACHE_KEY_ARTICLE_FAVORITES) || "[]");
+        return Array.isArray(value) ? value.map(String) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveArticleFavorites(list) {
+    localStorage.setItem(CACHE_KEY_ARTICLE_FAVORITES, JSON.stringify([...new Set(list.map(String))]));
+}
+
+function isArticleFavorite(article) {
+    return loadArticleFavorites().includes(String(article));
+}
+
+function toggleArticleFavorite(article) {
+    const art = String(article || "");
+    if (!art) return false;
+
+    const list = loadArticleFavorites();
+    const idx = list.indexOf(art);
+    if (idx >= 0) {
+        list.splice(idx, 1);
+        saveArticleFavorites(list);
+        return false;
+    }
+
+    // Додаємо в кінець. Під час відображення всі обрані все одно йдуть першими.
+    list.push(art);
+    saveArticleFavorites(list);
+    return true;
+}
+
+function sortArticlesWithFavorites(articles) {
+    const favorites = new Set(loadArticleFavorites());
+    return [...articles].sort((a, b) => {
+        const aFav = favorites.has(String(a));
+        const bFav = favorites.has(String(b));
+        if (aFav !== bFav) return aFav ? -1 : 1;
+        return String(a).localeCompare(String(b), "uk", { numeric: true, sensitivity: "base" });
+    });
 }
 
 // Перебудовує список артикулів (для сторінки "Артикули") з поточних searchData.
@@ -936,17 +1002,20 @@ function renderArticlesPage() {
         html += '<button class="premontage-nav-btn" data-anav="back">← Назад</button>';
     }
     html += '</div>';
-    html += '<input type="text" id="articles-search-input" class="premontage-search-input" placeholder="Пошук..." autocomplete="off">';
 
     if (state.level === 'articles') {
         html += '<div class="premontage-title">Оберіть артикул</div>';
-        const articles = articleGroups.map(g => g.article);
+        const articles = sortArticlesWithFavorites(articleGroups.map(g => g.article));
         if (!articles.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Немає даних</div>';
         } else {
             html += '<div class="premontage-btn-grid">';
             articles.forEach(a => {
-                html += `<button class="premontage-item-btn" data-anav="article" data-article="${escapeHtml(a)}" data-filter="${escapeHtml(a.toLowerCase())}">${renderArticleNumber(a, "", false, true)}</button>`;
+                const favorite = isArticleFavorite(a);
+                html += `<div class="article-choice-row" data-filter="${escapeHtml(a.toLowerCase())}">
+                    <button class="premontage-item-btn article-choice-main" data-anav="article" data-article="${escapeHtml(a)}">${renderArticleNumber(a, "", false, true)}</button>
+                    <button class="article-favorite-btn${favorite ? ' selected' : ''}" data-anav="article-favorite" data-article="${escapeHtml(a)}" aria-label="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}" title="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}">${favorite ? '★' : '☆'}</button>
+                </div>`;
             });
             html += '</div>';
         }
@@ -954,7 +1023,7 @@ function renderArticlesPage() {
         html += `<div class="premontage-title">Артикул ${escapeHtml(state.article)}</div>`;
         html += '<div class="premontage-btn-grid">';
         ARTICLE_ACTION_KEYS.forEach(k => {
-            html += `<button class="premontage-item-btn" data-anav="action" data-action="${escapeHtml(k)}" data-filter="${escapeHtml(k.toLowerCase())}">${escapeHtml(k)}</button>`;
+            html += `<button class="premontage-item-btn" data-anav="action" data-action="${escapeHtml(k)}">${escapeHtml(k)}</button>`;
         });
         html += '</div>';
     } else if (state.level === 'results') {
@@ -973,8 +1042,7 @@ function renderArticlesPage() {
                 const [matName, matAddr] = matKey.split("|");
                 const stationHtmlArr = [...grouped[matKey]].map(st => escapeHtml(st));
                 const stationsHtml = buildStationsHtml(stationHtmlArr);
-                const filterKey = (matName + " " + matAddr).toLowerCase();
-                html += `<div class="result-card" data-filter="${escapeHtml(filterKey)}">
+                html += `<div class="result-card">
                     <div class="result-top">
                         <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
                         <span class="result-address-new">${escapeHtml(matAddr)}</span>
@@ -993,7 +1061,7 @@ function renderArticlesPage() {
         } else {
             html += '<div class="premontage-btn-grid">';
             categories.forEach(c => {
-                html += `<button class="premontage-item-btn" data-anav="category" data-category="${escapeHtml(c)}" data-filter="${escapeHtml(c.toLowerCase())}">${escapeHtml(c)}</button>`;
+                html += `<button class="premontage-item-btn" data-anav="category" data-category="${escapeHtml(c)}">${escapeHtml(c)}</button>`;
             });
             html += '</div>';
         }
@@ -1008,8 +1076,7 @@ function renderArticlesPage() {
                 const wireName = String(w.material || "").trim();
                 const note = String(w.colD || "").trim();
                 const address = String(w.address || "").trim();
-                const filterKey = (wireName + " " + note + " " + address + " " + w.article).toLowerCase();
-                html += `<div class="wire-row" data-filter="${escapeHtml(filterKey)}">
+                html += `<div class="wire-row">
                     <span class="wire-name">${escapeHtml(wireName)}</span>
                     ${note ? `<span class="wire-code">${escapeHtml(note)}</span>` : ''}
                     <span class="wire-location">${escapeHtml(address)}</span>
@@ -1022,23 +1089,7 @@ function renderArticlesPage() {
     container.innerHTML = html;
 }
 
-// Фільтрує вже відрендерені кнопки/рядки без перебудови HTML — зберігає фокус і курсор у полі пошуку
-function filterArticlesPageItems(filterText) {
-    const v = String(filterText || "").trim().toLowerCase();
-    const container = document.getElementById('articles-page-content');
-    if (!container) return;
-    container.querySelectorAll('[data-filter]').forEach(el => {
-        el.classList.toggle('hidden', v.length > 0 && !el.dataset.filter.includes(v));
-    });
-}
-
 const articlesPageContent = document.getElementById('articles-page-content');
-
-articlesPageContent.addEventListener('input', (e) => {
-    if (e.target.id === 'articles-search-input') {
-        filterArticlesPageItems(e.target.value);
-    }
-});
 
 articlesPageContent.addEventListener('click', (e) => {
     if (e.target.closest('[data-anav="back"]')) {
@@ -1049,6 +1100,12 @@ articlesPageContent.addEventListener('click', (e) => {
     if (!btn) return;
     const nav = btn.dataset.anav;
     const current = articlesPageStack[articlesPageStack.length - 1];
+
+    if (nav === 'article-favorite') {
+        toggleArticleFavorite(btn.dataset.article);
+        renderArticlesPage();
+        return;
+    }
 
     if (nav === 'article') {
         articlesPageStack.push({ level: 'actions', article: btn.dataset.article });
@@ -1253,7 +1310,7 @@ document.addEventListener('touchend', e => {
 
     if (!pageMoved) {
         // це був тап, а не перетягування — стара логіка показу/приховання клавіатури
-        if (currentPage === SEARCH_PAGE_INDEX && !kbWrapper.contains(e.target) && !e.target.closest('.select-btn') && !e.target.closest('[data-anav]') && e.target.id !== 'articles-search-input') {
+        if (currentPage === SEARCH_PAGE_INDEX && !kbWrapper.contains(e.target) && !e.target.closest('.select-btn') && !e.target.closest('[data-anav]')) {
             kbWrapper.classList.toggle('hidden');
         }
         return;
