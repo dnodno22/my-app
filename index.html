@@ -1035,9 +1035,8 @@ function renderArticlesPage() {
         if (!rows.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
         } else if (state.action === 'sp') {
-            // sp: назва = число на 158 (не зелене), адреса — зеленим справа
-            const seen = new Set();
-            const items = [];
+            // sp: назва = число на 158, адреса зеленим, станції справа
+            const grouped = {};
             rows.forEach(x => {
                 const mat = String(x.material || "").trim();
                 const m = mat.match(/158\d+/);
@@ -1045,20 +1044,28 @@ function renderArticlesPage() {
                 const num = m[0];
                 const st = String(x.station || "").trim();
                 const addr = String(x.address || "").trim();
-                const key = num + "|" + st + "|" + addr;
-                if (seen.has(key)) return;
-                seen.add(key);
-                items.push({ num, st, addr });
+                const key = num + "|" + addr;
+                if (!grouped[key]) grouped[key] = { num, addr, stations: new Set() };
+                if (st) grouped[key].stations.add(st);
             });
-            items.sort((a, b) => a.num.localeCompare(b.num, 'uk', { numeric: true }));
+            const items = Object.values(grouped).sort((a, b) =>
+                a.num.localeCompare(b.num, 'uk', { numeric: true })
+            );
             if (!items.length) {
                 html += '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
             } else {
                 items.forEach(item => {
+                    const stationHtmlArr = [...item.stations]
+                        .sort((a, b) => String(a).localeCompare(String(b), 'uk', { numeric: true }))
+                        .map(st => escapeHtml(st));
+                    const stationsHtml = buildStationsHtml(stationHtmlArr);
                     html += `<div class="result-card">
                         <div class="result-top">
                             <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(item.num)}</span>
                             <span class="result-address-new">${escapeHtml(item.addr)}</span>
+                        </div>
+                        <div class="article-row" style="border-top:none; padding-top:0; justify-content:flex-end;">
+                            <span class="article-stations">${stationsHtml}</span>
                         </div>
                     </div>`;
                 });
@@ -1387,7 +1394,7 @@ document.addEventListener('touchmove', e => {
         pagesEl.style.transition = 'none'; // під час драгу — без анімації, їде за пальцем
     }
 
-    // Сторінки їдуть точно за пальцем (обрані ↔ пошук ↔ кнопки)
+    // Сторінки їдуть точно за пальцем
     let livePos = pageDragBasePage - dx / pageDragPxWidth;
     livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
     pagesEl.style.transform = `translateX(-${livePos * pageWidthPercent}%)`;
@@ -1405,32 +1412,46 @@ document.addEventListener('touchend', e => {
         return;
     }
 
-    // Достатній свайп = 25% ширини екрану; напрямок визначає сусідню сторінку
     const SWIPE_THRESHOLD = pageDragPxWidth * 0.25;
     const dx = e.changedTouches[0].clientX - pageDragStartX;
 
-    // Повертаємо плавну анімацію доїзду
-    pagesEl.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-
-    // Вглиб: достатній свайп → попередній рівень, лишаємось на сторінці артикулів
-    if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
+    // Вглиб: достатній свайп → попередній рівень; сторінка лишається «Артикули»
+    // і плавно доїжджає на місце (без відскоку)
+    if (pageDragBasePage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
         if (Math.abs(dx) >= SWIPE_THRESHOLD) {
             popArticlesPageLevel();
         }
-        goToPage(ARTICLES_PAGE_INDEX);
+        // з поточної позиції пальця — плавно на сторінку артикулів
+        pagesEl.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        currentPage = ARTICLES_PAGE_INDEX;
+        pagesEl.style.transform = `translateX(-${ARTICLES_PAGE_INDEX * pageWidthPercent}%)`;
+        for (let i = 0; i < TOTAL_PAGES; i++) {
+            document.getElementById('dot' + i).classList.toggle('active', i === ARTICLES_PAGE_INDEX);
+        }
         return;
     }
 
-    // Основні сторінки: або повернення на поточну, або крок на сусідню (без стрибка посередині)
-    if (Math.abs(dx) < SWIPE_THRESHOLD) {
-        goToPage(pageDragBasePage);
-        return;
+    // Визначаємо цільову сторінку: достатній жест → сусідня в напрямку свайпу
+    let target = pageDragBasePage;
+    if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+        const dir = dx > 0 ? -1 : 1; // вправо → попередня, вліво → наступна
+        target = Math.max(0, Math.min(TOTAL_PAGES - 1, pageDragBasePage + dir));
     }
 
-    // dx > 0 (палець вправо) → попередня; dx < 0 → наступна
-    const dir = dx > 0 ? -1 : 1;
-    const target = Math.max(0, Math.min(TOTAL_PAGES - 1, pageDragBasePage + dir));
-    goToPage(target);
+    // З тієї позиції, де відпустили палець — далі САМА доїжджає до цілі (без повернення назад)
+    pagesEl.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    currentPage = target;
+    pagesEl.style.transform = `translateX(-${target * pageWidthPercent}%)`;
+    for (let i = 0; i < TOTAL_PAGES; i++) {
+        document.getElementById('dot' + i).classList.toggle('active', i === target);
+    }
+    if (target === SEARCH_PAGE_INDEX) {
+        kbWrapper.classList.remove('hidden');
+    } else {
+        kbWrapper.classList.add('hidden');
+        if (target === 0) renderWaitlistPage();
+        else if (target === ARTICLES_PAGE_INDEX) renderArticlesPage();
+    }
 }, {passive:true});
 
 // Свайп вгору по знайденому тексту (результатах пошуку) — ховає клавіатуру одразу на початку руху
