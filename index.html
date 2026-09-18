@@ -255,7 +255,7 @@ input#input {
 .premontage-btn-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 8px;
 }
 .premontage-item-btn {
     border: 1px solid #e5e7eb;
@@ -264,7 +264,7 @@ input#input {
     font-weight: 700;
     font-size: 15px;
     border-radius: 14px;
-    padding: 16px 10px;
+    padding: 12px 8px;
     text-align: center;
     cursor: pointer;
     white-space: normal;
@@ -993,6 +993,9 @@ function popArticlesPageLevel() {
 function renderArticlesPage() {
     const container = document.getElementById('articles-page-content');
     if (!container) return;
+    // Скидаємо зсув після перетягування назад
+    container.style.transition = '';
+    container.style.transform = '';
     const state = articlesPageStack[articlesPageStack.length - 1];
 
     let html = '<div class="premontage-toolbar">';
@@ -1029,7 +1032,61 @@ function renderArticlesPage() {
         html += `<div class="premontage-title">${escapeHtml(state.action)} — артикул ${escapeHtml(state.article)}</div>`;
         if (!rows.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
+        } else if (state.action === 'ts' || state.action === 'sp') {
+            // ts/sp: якщо на одній і тій самій станції — показуємо станцію лише один раз
+            const byStation = {};
+            rows.forEach(x => {
+                const st = String(x.station || "").trim() || "—";
+                if (!byStation[st]) byStation[st] = [];
+                const mat = String(x.material || "").trim();
+                const addr = String(x.address || "").trim();
+                const key = mat + "|" + addr;
+                if (!byStation[st].some(item => item.key === key)) {
+                    byStation[st].push({ key, mat, addr });
+                }
+            });
+            const stationKeys = Object.keys(byStation).sort((a, b) =>
+                a.localeCompare(b, 'uk', { numeric: true, sensitivity: 'base' })
+            );
+            stationKeys.forEach(st => {
+                html += `<div class="result-card">
+                    <div class="result-top">
+                        <span class="result-material-badge"><span class="box-icon">📍</span>Станція ${escapeHtml(st)}</span>
+                    </div>`;
+                byStation[st].forEach((item, i) => {
+                    html += `<div class="article-row"${i === 0 ? ' style="border-top:none; padding-top:0;"' : ''}>
+                        <span class="article-number">${escapeHtml(item.mat)}</span>
+                        <span class="article-stations">${escapeHtml(item.addr)}</span>
+                    </div>`;
+                });
+                html += `</div>`;
+            });
+        } else if (state.action === 'стр') {
+            // стр: номер станції завжди справа
+            const grouped = {};
+            rows.forEach(x => {
+                const matKey = x.material + "|" + x.address;
+                if (!grouped[matKey]) grouped[matKey] = new Set();
+                grouped[matKey].add(x.station);
+            });
+            for (let matKey in grouped) {
+                const [matName, matAddr] = matKey.split("|");
+                const stationHtmlArr = [...grouped[matKey]]
+                    .sort((a, b) => String(a).localeCompare(String(b), 'uk', { numeric: true }))
+                    .map(st => escapeHtml(st));
+                const stationsHtml = buildStationsHtml(stationHtmlArr);
+                html += `<div class="result-card">
+                    <div class="result-top">
+                        <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
+                        <span class="result-address-new">${escapeHtml(matAddr)}</span>
+                    </div>
+                    <div class="article-row" style="border-top:none; padding-top:0; justify-content:flex-end;">
+                        <span class="article-stations">${stationsHtml}</span>
+                    </div>
+                </div>`;
+            }
         } else {
+            // мм та інші
             const grouped = {};
             rows.forEach(x => {
                 const matKey = x.material + "|" + x.address;
@@ -1045,7 +1102,7 @@ function renderArticlesPage() {
                         <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
                         <span class="result-address-new">${escapeHtml(matAddr)}</span>
                     </div>
-                    <div class="article-row" style="border-top:none; padding-top:0;">
+                    <div class="article-row" style="border-top:none; padding-top:0; justify-content:flex-end;">
                         <span class="article-stations">${stationsHtml}</span>
                     </div>
                 </div>`;
@@ -1100,27 +1157,21 @@ function renderArticlesPage() {
         if (!wires.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Проводів не знайдено</div>';
         } else {
-            // Та сама логіка карток, як у пошуку: матеріал + адреса
-            const grouped = {};
+            // Станцію вже обрано — показуємо лише назву провода і адресу
+            const seen = new Set();
             wires.forEach(x => {
-                const matKey = x.material + "|" + x.address;
-                if (!grouped[matKey]) grouped[matKey] = new Set();
-                grouped[matKey].add(x.station);
-            });
-            for (let matKey in grouped) {
-                const [matName, matAddr] = matKey.split("|");
-                const stationHtmlArr = [...grouped[matKey]].map(st => escapeHtml(st));
-                const stationsHtml = buildStationsHtml(stationHtmlArr);
+                const matName = String(x.material || "").trim();
+                const matAddr = String(x.address || "").trim();
+                const key = matName + "|" + matAddr;
+                if (seen.has(key)) return;
+                seen.add(key);
                 html += `<div class="result-card">
                     <div class="result-top">
                         <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
                         <span class="result-address-new">${escapeHtml(matAddr)}</span>
                     </div>
-                    <div class="article-row" style="border-top:none; padding-top:0;">
-                        <span class="article-stations">${stationsHtml}</span>
-                    </div>
                 </div>`;
-            }
+            });
         }
     }
 
@@ -1302,14 +1353,24 @@ document.addEventListener('touchmove', e => {
         if (Math.abs(dy) > Math.abs(dx)) { pageDragging = false; return; }
         if (Math.abs(dx) < 6) return; // невелике тремтіння пальця — ще не рахуємо як драг
         pageMoved = true;
-        // Якщо ми "вглиб" на сторінці артикулів (обрали артикул/дію) — цей свайп
-        // означає крок НАЗАД по рівнях, а не перегортання сторінок; самі сторінки
-        // при цьому візуально не рухаються, чекаємо лише відпускання пальця.
-        if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) return;
-        pagesEl.style.transition = 'none'; // під час руху пальця — без анімації, живе слідування
+        pagesEl.style.transition = 'none';
+        if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
+            // Вглиб: живе перетягування контенту (не миттєве перемикання)
+            const content = document.getElementById('articles-page-content');
+            if (content) content.style.transition = 'none';
+        }
     }
 
-    if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) return;
+    // Вглиб на артикулах — тягнемо сам контент за пальцем
+    if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
+        const content = document.getElementById('articles-page-content');
+        if (content) {
+            // Обмежуємо зсув, щоб відчувався «гумовий» край
+            const limited = Math.max(-pageDragPxWidth * 0.35, Math.min(pageDragPxWidth * 0.35, dx));
+            content.style.transform = `translateX(${limited}px)`;
+        }
+        return;
+    }
 
     let livePos = pageDragBasePage - dx / pageDragPxWidth;
     livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
@@ -1332,10 +1393,36 @@ document.addEventListener('touchend', e => {
     const SWIPE_THRESHOLD = pageDragPxWidth * 0.22;
     const dx = e.changedTouches[0].clientX - pageDragStartX;
 
-    // Свайп "вглиб" сторінки артикулів = один крок назад (однакова сила, що й перелистування).
+    // Свайп "вглиб" — живе перетягування контенту, потім крок назад або повернення.
     if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
+        const content = document.getElementById('articles-page-content');
         if (Math.abs(dx) >= SWIPE_THRESHOLD) {
-            popArticlesPageLevel();
+            // Доїжджаємо вбік, потім міняємо рівень
+            if (content) {
+                content.style.transition = 'transform 0.2s ease-out';
+                content.style.transform = `translateX(${dx > 0 ? pageDragPxWidth * 0.4 : -pageDragPxWidth * 0.4}px)`;
+                setTimeout(() => {
+                    popArticlesPageLevel();
+                    if (content) {
+                        content.style.transition = 'none';
+                        content.style.transform = '';
+                    }
+                }, 180);
+            } else {
+                popArticlesPageLevel();
+            }
+        } else {
+            // Слабкий жест — плавно повертаємо контент на місце
+            if (content) {
+                content.style.transition = 'transform 0.2s ease-out';
+                content.style.transform = 'translateX(0)';
+                setTimeout(() => {
+                    if (content) {
+                        content.style.transition = '';
+                        content.style.transform = '';
+                    }
+                }, 200);
+            }
         }
         return;
     }
@@ -1378,4 +1465,3 @@ scrollAreaEl.addEventListener('scroll', () => {
 </script>
 </body>
 </html>
-Remove keyboard buttons and add page flip on back navigation - Grok
