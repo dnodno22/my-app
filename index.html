@@ -317,6 +317,25 @@ mark.hl {
 .btn:active { background: #F7F7F7; transform: scale(.96); }
 .btn-special { background: #f1f5f9; }
 
+.kb-quick-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.btn-quick {
+    flex: 1;
+    padding: 10px 2px;
+    font-size: 13px;
+    font-weight: 700;
+    background: #eef2ff;
+    color: #4338ca;
+    border-color: #c7d2fe;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.btn-quick:active { background: #e0e7ff; }
+
 /* TABLE PAGES */
 .table-page { background: #fff; }
 .table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; flex-shrink: 0; display: flex; justify-content: space-between; align-items: baseline; }
@@ -347,6 +366,13 @@ tr:nth-child(even) td { background: #f9fafb; }
         <div class="search-header"><input id="input" readonly></div>
         <div class="scroll-area"><div id="result"></div></div>
         <div id="kb-wrapper" class="kb-container">
+            <div id="kb-quick-row" class="kb-quick-row">
+                <button class="btn btn-quick" data-v="sp">sp</button>
+                <button class="btn btn-quick" data-v="ts">ts</button>
+                <button class="btn btn-quick" data-v="стр">стр</button>
+                <button class="btn btn-quick" data-v="мм">мм</button>
+                <button class="btn btn-quick" data-v="передмонтаж">передмонтаж</button>
+            </div>
             <div id="kb1" class="kb-grid">
                 <button class="btn" data-v="1">1</button>
                 <button class="btn" data-v="2">2</button>
@@ -553,11 +579,21 @@ document.getElementById('kb-wrapper').addEventListener('click', (e) => {
     if (!btn) return;
     e.stopPropagation();
 
+    // "передмонтаж" — це завжди пошук у межах конкретного артикулу, тому
+    // швидка кнопка просто відкриває сторінку з вибором артикулу.
+    if (btn.classList.contains('btn-quick') && btn.dataset.v === "передмонтаж") {
+        kbWrapper.classList.add('hidden');
+        pagesEl.style.transition = '';
+        goToPage(ARTICLES_PAGE_INDEX);
+        return;
+    }
+
     if (btn.dataset.del) {
         input.value = "";
         lastInputFromCarousel = false;
     } else if (btn.dataset.v !== undefined) {
         input.value += btn.dataset.v;
+        lastInputFromCarousel = btn.classList.contains('btn-quick');
     }
     search();
 });
@@ -827,65 +863,50 @@ function mergeAbbreviatedArticles(articleMap) {
 }
 
 // ==================== СТОРІНКА "АРТИКУЛИ" ====================
-// Структура даних для передмонтажу (ті самі 5 колонок searchData, але з іншим змістом):
-//   colD    — тег "ПередмонтажXXX", де XXX = останні цифри артикулу (той самий
-//             принцип суфіксів, що й у mergeAbbreviatedArticles). Один і той самий
-//             тег повторюється у всіх рядків-проводів, що належать цьому артикулу.
-//   article — назва конкретного провода, напр. "KLS4", "HDEV1", "KS_28".
-//             Літерна частина ("KLS", "HDEV", "KS") — це категорія передмонтажу,
-//             цифра в кінці — просто порядковий номер провода в категорії.
-//   material— власний числовий код провода (напр. 15713574).
-//   address — розташування/пін провода (напр. "C 07 03 03").
-
-// Розпізнає тег "ПередмонтажXXX" і повертає суфікс (XXX) або null.
-function extractPremontageSuffix(colDValue) {
-    const raw = String(colDValue || "").trim();
-    const m = raw.match(/^передмонтаж\s*(\d+)/i);
-    return m ? m[1] : null;
+// Передмонтажні рядки вже є в основній таблиці з тими самими 5 колонками:
+// A = назва передмонтажу (KLS, LDS, KNDS ...)
+// B = матеріал / назва провода
+// C = артикул
+// D = примітка / номер
+// E = адреса
+//
+// Артикул перевіряється безпосередньо по колонці C. Однаковий KNDS
+// для різних артикулів тому не змішується.
+function isPremontageName(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return false;
+    return /^[A-Za-zА-Яа-яІіЇїЄєҐґ][A-Za-zА-Яа-яІіЇїЄєҐґ0-9_-]*$/.test(raw);
 }
 
-// Усі рядки-проводи, позначені як частина якогось передмонтажу
 function getPremontageRows() {
-    return searchData
-        .map(row => ({ row, suffix: extractPremontageSuffix(row.colD) }))
-        .filter(x => x.suffix !== null);
+    return searchData.filter(row => isPremontageName(row.station) && row.article);
 }
 
-// Чи закінчується повний артикул на заданий суфікс (без урахування регістру)
-function articleMatchesSuffix(fullArticle, suffix) {
-    if (!fullArticle || !suffix) return false;
-    if (fullArticle.length < suffix.length) return false;
-    return fullArticle.slice(-suffix.length).toLowerCase() === suffix.toLowerCase();
+function premontageArticleMatches(row, article) {
+    if (!row || !article) return false;
+    return expandArticleValue(row.article).includes(String(article).trim());
 }
 
-// Розбиває назву провода (напр. "KLS4", "KS_28", "HDEV10") на категорію ("KLS", "KS", "HDEV")
-// та порядковий номер у категорії ("4", "28", "10") — категорія відкидає кінцеві "_"/пробіли.
-function splitWireName(name) {
-    const raw = String(name || "").trim();
-    const m = raw.match(/^(.*?)(\d+)$/);
-    if (!m) return { category: raw, number: "" };
-    const category = m[1].replace(/[\s_]+$/, "") || raw;
-    return { category, number: m[2] };
-}
-
-// Список категорій проводів (KLS, LDS, HDEV, RDS, KS...) для обраного артикулу
 function computePremontageCategoriesForArticle(article) {
-    const rows = getPremontageRows();
     const categories = new Set();
-    rows.forEach(({ row, suffix }) => {
-        if (!articleMatchesSuffix(article, suffix)) return;
-        const { category } = splitWireName(row.article);
-        if (category) categories.add(category);
+    getPremontageRows().forEach(row => {
+        if (!premontageArticleMatches(row, article)) return;
+        const name = String(row.station || "").trim();
+        if (name) categories.add(name);
     });
-    return [...categories].sort((a, b) => a.localeCompare(b, 'uk', { numeric: true, sensitivity: 'base' }));
+    return [...categories].sort((a, b) =>
+        a.localeCompare(b, 'uk', { numeric: true, sensitivity: 'base' })
+    );
 }
 
-// Список проводів обраної категорії для обраного артикулу
 function computeWiresForCategory(article, category) {
-    const rows = getPremontageRows()
-        .filter(({ row, suffix }) => articleMatchesSuffix(article, suffix) && splitWireName(row.article).category === category)
-        .map(({ row }) => row);
-    return rows.sort((a, b) => a.article.localeCompare(b.article, 'uk', { numeric: true, sensitivity: 'base' }));
+    const wantedCategory = String(category || "").trim().toLowerCase();
+    return getPremontageRows()
+        .filter(row => premontageArticleMatches(row, article) &&
+            String(row.station || "").trim().toLowerCase() === wantedCategory)
+        .sort((a, b) => String(a.material || "").localeCompare(
+            String(b.material || ""), 'uk', { numeric: true, sensitivity: 'base' }
+        ));
 }
 
 // Рядки для звичайної спецкнопки (sp/ts/стр/мм): збігається артикул (з урахуванням
@@ -984,11 +1005,14 @@ function renderArticlesPage() {
         } else {
             html += '<div class="wire-list">';
             wires.forEach(w => {
-                const filterKey = (w.article + " " + w.material + " " + w.address).toLowerCase();
+                const wireName = String(w.material || "").trim();
+                const note = String(w.colD || "").trim();
+                const address = String(w.address || "").trim();
+                const filterKey = (wireName + " " + note + " " + address + " " + w.article).toLowerCase();
                 html += `<div class="wire-row" data-filter="${escapeHtml(filterKey)}">
-                    <span class="wire-name">${escapeHtml(w.article)}</span>
-                    <span class="wire-code">${escapeHtml(w.material)}</span>
-                    <span class="wire-location">${escapeHtml(w.address)}</span>
+                    <span class="wire-name">${escapeHtml(wireName)}</span>
+                    ${note ? `<span class="wire-code">${escapeHtml(note)}</span>` : ''}
+                    <span class="wire-location">${escapeHtml(address)}</span>
                 </div>`;
             });
             html += '</div>';
