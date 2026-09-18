@@ -1035,7 +1035,7 @@ function renderArticlesPage() {
         if (!rows.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
         } else if (state.action === 'sp') {
-            // sp: залишаємо число що починається на 158, акцент зеленим (як адреса в пошуку)
+            // sp: назва = число на 158 (не зелене), адреса — зеленим справа
             const seen = new Set();
             const items = [];
             rows.forEach(x => {
@@ -1048,7 +1048,7 @@ function renderArticlesPage() {
                 const key = num + "|" + st + "|" + addr;
                 if (seen.has(key)) return;
                 seen.add(key);
-                items.push({ num, st, addr, mat });
+                items.push({ num, st, addr });
             });
             items.sort((a, b) => a.num.localeCompare(b.num, 'uk', { numeric: true }));
             if (!items.length) {
@@ -1057,8 +1057,8 @@ function renderArticlesPage() {
                 items.forEach(item => {
                     html += `<div class="result-card">
                         <div class="result-top">
-                            <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(item.mat)}</span>
-                            <span class="result-address-new">${escapeHtml(item.num)}</span>
+                            <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(item.num)}</span>
+                            <span class="result-address-new">${escapeHtml(item.addr)}</span>
                         </div>
                     </div>`;
                 });
@@ -1384,10 +1384,10 @@ document.addEventListener('touchmove', e => {
         if (Math.abs(dy) > Math.abs(dx)) { pageDragging = false; return; }
         if (Math.abs(dx) < 6) return; // невелике тремтіння пальця — ще не рахуємо як драг
         pageMoved = true;
-        pagesEl.style.transition = 'none'; // живе слідування всюди однаково
+        pagesEl.style.transition = 'none'; // під час драгу — без анімації, їде за пальцем
     }
 
-    // Однакове живе перетягування сторінок (як до «Обраних» і до кнопок)
+    // Сторінки їдуть точно за пальцем (обрані ↔ пошук ↔ кнопки)
     let livePos = pageDragBasePage - dx / pageDragPxWidth;
     livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
     pagesEl.style.transform = `translateX(-${livePos * pageWidthPercent}%)`;
@@ -1405,34 +1405,31 @@ document.addEventListener('touchend', e => {
         return;
     }
 
-    // Єдина середня сила свайпу всюди (~22% ширини екрану).
-    const SWIPE_THRESHOLD = pageDragPxWidth * 0.22;
+    // Достатній свайп = 25% ширини екрану; напрямок визначає сусідню сторінку
+    const SWIPE_THRESHOLD = pageDragPxWidth * 0.25;
     const dx = e.changedTouches[0].clientX - pageDragStartX;
 
-    // Вглиб на артикулах: достатній свайп = повернення на попередній рівень
-    // (візуально те саме перетягування, що й між основними сторінками)
+    // Повертаємо плавну анімацію доїзду
+    pagesEl.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+
+    // Вглиб: достатній свайп → попередній рівень, лишаємось на сторінці артикулів
     if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
-        pagesEl.style.transition = '';
         if (Math.abs(dx) >= SWIPE_THRESHOLD) {
             popArticlesPageLevel();
         }
-        // Завжди залишаємось на сторінці артикулів після жесту «назад»
         goToPage(ARTICLES_PAGE_INDEX);
         return;
     }
 
-    // Перелистування основних сторінок — та сама сила і те саме перетягування
+    // Основні сторінки: або повернення на поточну, або крок на сусідню (без стрибка посередині)
     if (Math.abs(dx) < SWIPE_THRESHOLD) {
-        pagesEl.style.transition = '';
-        goToPage(currentPage);
+        goToPage(pageDragBasePage);
         return;
     }
 
-    let livePos = pageDragBasePage - dx / pageDragPxWidth;
-    livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
-    const target = Math.round(livePos);
-
-    pagesEl.style.transition = '';
+    // dx > 0 (палець вправо) → попередня; dx < 0 → наступна
+    const dir = dx > 0 ? -1 : 1;
+    const target = Math.max(0, Math.min(TOTAL_PAGES - 1, pageDragBasePage + dir));
     goToPage(target);
 }, {passive:true});
 
