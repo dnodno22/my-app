@@ -951,6 +951,7 @@ function computeArticleActionResults(article, key) {
 // ==================== ПРОВОДИ (станції 152 / 153 / 157) ====================
 // Проводи — це матеріали, що починаються на 152, 153 або 157.
 // Передмонтаж сюди не входить (станції з літерами відфільтровуються).
+// Якщо в примітці (colD) щось заповнено — рядок не вважається проводом.
 function isWireMaterial(material) {
     return /^15[237]/.test(String(material || "").trim());
 }
@@ -959,6 +960,7 @@ function getWireRowsForArticle(article) {
     return searchData.filter(row => {
         if (!expandArticleValue(row.article).includes(String(article).trim())) return false;
         if (isPremontageName(row.station)) return false; // передмонтаж не входить
+        if (String(row.colD || "").trim()) return false; // є примітка — не провід
         return isWireMaterial(row.material);
     });
 }
@@ -1032,8 +1034,37 @@ function renderArticlesPage() {
         html += `<div class="premontage-title">${escapeHtml(state.action)} — артикул ${escapeHtml(state.article)}</div>`;
         if (!rows.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
-        } else if (state.action === 'ts' || state.action === 'sp') {
-            // ts/sp: якщо на одній і тій самій станції — показуємо станцію лише один раз
+        } else if (state.action === 'sp') {
+            // sp: залишаємо число що починається на 158, акцент зеленим (як адреса в пошуку)
+            const seen = new Set();
+            const items = [];
+            rows.forEach(x => {
+                const mat = String(x.material || "").trim();
+                const m = mat.match(/158\d+/);
+                if (!m) return;
+                const num = m[0];
+                const st = String(x.station || "").trim();
+                const addr = String(x.address || "").trim();
+                const key = num + "|" + st + "|" + addr;
+                if (seen.has(key)) return;
+                seen.add(key);
+                items.push({ num, st, addr, mat });
+            });
+            items.sort((a, b) => a.num.localeCompare(b.num, 'uk', { numeric: true }));
+            if (!items.length) {
+                html += '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
+            } else {
+                items.forEach(item => {
+                    html += `<div class="result-card">
+                        <div class="result-top">
+                            <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(item.mat)}</span>
+                            <span class="result-address-new">${escapeHtml(item.num)}</span>
+                        </div>
+                    </div>`;
+                });
+            }
+        } else if (state.action === 'ts') {
+            // ts: якщо на одній і тій самій станції — показуємо станцію лише один раз
             const byStation = {};
             rows.forEach(x => {
                 const st = String(x.station || "").trim() || "—";
@@ -1353,25 +1384,10 @@ document.addEventListener('touchmove', e => {
         if (Math.abs(dy) > Math.abs(dx)) { pageDragging = false; return; }
         if (Math.abs(dx) < 6) return; // невелике тремтіння пальця — ще не рахуємо як драг
         pageMoved = true;
-        pagesEl.style.transition = 'none';
-        if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
-            // Вглиб: живе перетягування контенту (не миттєве перемикання)
-            const content = document.getElementById('articles-page-content');
-            if (content) content.style.transition = 'none';
-        }
+        pagesEl.style.transition = 'none'; // живе слідування всюди однаково
     }
 
-    // Вглиб на артикулах — тягнемо сам контент за пальцем
-    if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
-        const content = document.getElementById('articles-page-content');
-        if (content) {
-            // Обмежуємо зсув, щоб відчувався «гумовий» край
-            const limited = Math.max(-pageDragPxWidth * 0.35, Math.min(pageDragPxWidth * 0.35, dx));
-            content.style.transform = `translateX(${limited}px)`;
-        }
-        return;
-    }
-
+    // Однакове живе перетягування сторінок (як до «Обраних» і до кнопок)
     let livePos = pageDragBasePage - dx / pageDragPxWidth;
     livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
     pagesEl.style.transform = `translateX(-${livePos * pageWidthPercent}%)`;
@@ -1393,43 +1409,20 @@ document.addEventListener('touchend', e => {
     const SWIPE_THRESHOLD = pageDragPxWidth * 0.22;
     const dx = e.changedTouches[0].clientX - pageDragStartX;
 
-    // Свайп "вглиб" — живе перетягування контенту, потім крок назад або повернення.
+    // Вглиб на артикулах: достатній свайп = повернення на попередній рівень
+    // (візуально те саме перетягування, що й між основними сторінками)
     if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
-        const content = document.getElementById('articles-page-content');
+        pagesEl.style.transition = '';
         if (Math.abs(dx) >= SWIPE_THRESHOLD) {
-            // Доїжджаємо вбік, потім міняємо рівень
-            if (content) {
-                content.style.transition = 'transform 0.2s ease-out';
-                content.style.transform = `translateX(${dx > 0 ? pageDragPxWidth * 0.4 : -pageDragPxWidth * 0.4}px)`;
-                setTimeout(() => {
-                    popArticlesPageLevel();
-                    if (content) {
-                        content.style.transition = 'none';
-                        content.style.transform = '';
-                    }
-                }, 180);
-            } else {
-                popArticlesPageLevel();
-            }
-        } else {
-            // Слабкий жест — плавно повертаємо контент на місце
-            if (content) {
-                content.style.transition = 'transform 0.2s ease-out';
-                content.style.transform = 'translateX(0)';
-                setTimeout(() => {
-                    if (content) {
-                        content.style.transition = '';
-                        content.style.transform = '';
-                    }
-                }, 200);
-            }
+            popArticlesPageLevel();
         }
+        // Завжди залишаємось на сторінці артикулів після жесту «назад»
+        goToPage(ARTICLES_PAGE_INDEX);
         return;
     }
 
-    // Перелистування основних сторінок — та сама середня сила.
+    // Перелистування основних сторінок — та сама сила і те саме перетягування
     if (Math.abs(dx) < SWIPE_THRESHOLD) {
-        // Занадто слабкий жест — повертаємось на поточну сторінку
         pagesEl.style.transition = '';
         goToPage(currentPage);
         return;
