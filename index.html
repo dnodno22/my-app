@@ -425,7 +425,7 @@ let articleGroups = [];
 //                                                    -> {level:'wire-stations', article} -> {level:'wire-results', article, station}
 // Свайп у будь-яку сторону на цій сторінці = крок назад (pop зі стеку), поки стек не дійде до 'articles'.
 let articlesPageStack = [{ level: 'articles' }];
-const ARTICLE_ACTION_KEYS = ["sp", "ts", "стр", "мм", "передмонтаж", "проводи"];
+const ARTICLE_ACTION_KEYS = ["розміщення", "sp", "ts", "стр", "мм", "передмонтаж", "проводи"];
 
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
@@ -985,6 +985,32 @@ function computeWiresForStation(article, station) {
         ));
 }
 
+// Усі матеріали на артикулі (для кнопки «розміщення»)
+function getAllMaterialsForArticle(article) {
+    return searchData.filter(row =>
+        expandArticleValue(row.article).includes(String(article).trim())
+    );
+}
+
+// Чи є дані для конкретної кнопки дії — якщо ні, кнопку не показуємо
+function articleHasAction(article, action) {
+    if (action === 'розміщення') {
+        return getAllMaterialsForArticle(article).length > 0;
+    }
+    if (action === 'передмонтаж') {
+        return computePremontageCategoriesForArticle(article).length > 0;
+    }
+    if (action === 'проводи') {
+        return computeWireStationsForArticle(article).length > 0;
+    }
+    // sp / ts / стр / мм
+    return computeArticleActionResults(article, action).length > 0;
+}
+
+function getAvailableActionsForArticle(article) {
+    return ARTICLE_ACTION_KEYS.filter(k => articleHasAction(article, k));
+}
+
 function popArticlesPageLevel() {
     if (articlesPageStack.length > 1) {
         articlesPageStack.pop();
@@ -1024,16 +1050,47 @@ function renderArticlesPage() {
         }
     } else if (state.level === 'actions') {
         html += `<div class="premontage-title">Артикул ${escapeHtml(state.article)}</div>`;
-        html += '<div class="premontage-btn-grid">';
-        ARTICLE_ACTION_KEYS.forEach(k => {
-            html += `<button class="premontage-item-btn" data-anav="action" data-action="${escapeHtml(k)}">${escapeHtml(k)}</button>`;
-        });
-        html += '</div>';
+        const available = getAvailableActionsForArticle(state.article);
+        if (!available.length) {
+            html += '<div style="text-align:center; padding:40px; color:#aaa;">Немає даних для цього артикулу</div>';
+        } else {
+            html += '<div class="premontage-btn-grid">';
+            available.forEach(k => {
+                html += `<button class="premontage-item-btn" data-anav="action" data-action="${escapeHtml(k)}">${escapeHtml(k)}</button>`;
+            });
+            html += '</div>';
+        }
     } else if (state.level === 'results') {
-        const rows = computeArticleActionResults(state.article, state.action);
+        const rows = state.action === 'розміщення'
+            ? getAllMaterialsForArticle(state.article)
+            : computeArticleActionResults(state.article, state.action);
         html += `<div class="premontage-title">${escapeHtml(state.action)} — артикул ${escapeHtml(state.article)}</div>`;
         if (!rows.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
+        } else if (state.action === 'розміщення') {
+            // Усі матеріали на артикулі: матеріал + адреса + станції
+            const grouped = {};
+            rows.forEach(x => {
+                const matKey = x.material + "|" + x.address;
+                if (!grouped[matKey]) grouped[matKey] = new Set();
+                grouped[matKey].add(x.station);
+            });
+            for (let matKey in grouped) {
+                const [matName, matAddr] = matKey.split("|");
+                const stationHtmlArr = [...grouped[matKey]]
+                    .filter(Boolean)
+                    .map(st => escapeHtml(st));
+                const stationsHtml = buildStationsHtml(stationHtmlArr);
+                html += `<div class="result-card">
+                    <div class="result-top">
+                        <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
+                        <span class="result-address-new">${escapeHtml(matAddr)}</span>
+                    </div>
+                    <div class="article-row" style="border-top:none; padding-top:0; justify-content:flex-end;">
+                        <span class="article-stations">${stationsHtml}</span>
+                    </div>
+                </div>`;
+            }
         } else if (state.action === 'sp') {
             // sp: назва = число на 158, адреса зеленим, станції справа
             const grouped = {};
