@@ -422,9 +422,10 @@ let articleGroups = [];
 // Стек рівнів навігації на сторінці "Артикули":
 // {level:'articles'} -> {level:'actions', article} -> {level:'results', article, action}
 //                                                    -> {level:'premontage-categories', article} -> {level:'premontage-wires', article, category}
+//                                                    -> {level:'wire-stations', article} -> {level:'wire-results', article, station}
 // Свайп у будь-яку сторону на цій сторінці = крок назад (pop зі стеку), поки стек не дійде до 'articles'.
 let articlesPageStack = [{ level: 'articles' }];
-const ARTICLE_ACTION_KEYS = ["sp", "ts", "стр", "мм", "передмонтаж"];
+const ARTICLE_ACTION_KEYS = ["sp", "ts", "стр", "мм", "передмонтаж", "проводи"];
 
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
@@ -947,6 +948,41 @@ function computeArticleActionResults(article, key) {
     });
 }
 
+// ==================== ПРОВОДИ (станції 152 / 153 / 157) ====================
+// Проводи — це матеріали, що починаються на 152, 153 або 157.
+// Передмонтаж сюди не входить (станції з літерами відфільтровуються).
+function isWireMaterial(material) {
+    return /^15[237]/.test(String(material || "").trim());
+}
+
+function getWireRowsForArticle(article) {
+    return searchData.filter(row => {
+        if (!expandArticleValue(row.article).includes(String(article).trim())) return false;
+        if (isPremontageName(row.station)) return false; // передмонтаж не входить
+        return isWireMaterial(row.material);
+    });
+}
+
+function computeWireStationsForArticle(article) {
+    const stations = new Set();
+    getWireRowsForArticle(article).forEach(row => {
+        const st = String(row.station || "").trim();
+        if (st) stations.add(st);
+    });
+    return [...stations].sort((a, b) =>
+        a.localeCompare(b, 'uk', { numeric: true, sensitivity: 'base' })
+    );
+}
+
+function computeWiresForStation(article, station) {
+    const wanted = String(station || "").trim().toLowerCase();
+    return getWireRowsForArticle(article)
+        .filter(row => String(row.station || "").trim().toLowerCase() === wanted)
+        .sort((a, b) => String(a.material || "").localeCompare(
+            String(b.material || ""), 'uk', { numeric: true, sensitivity: 'base' }
+        ));
+}
+
 function popArticlesPageLevel() {
     if (articlesPageStack.length > 1) {
         articlesPageStack.pop();
@@ -1046,6 +1082,46 @@ function renderArticlesPage() {
             });
             html += '</div>';
         }
+    } else if (state.level === 'wire-stations') {
+        const stations = computeWireStationsForArticle(state.article);
+        html += `<div class="premontage-title">Артикул ${escapeHtml(state.article)} — станції з проводами</div>`;
+        if (!stations.length) {
+            html += '<div style="text-align:center; padding:40px; color:#aaa;">Немає станцій з проводами для цього артикулу</div>';
+        } else {
+            html += '<div class="premontage-btn-grid">';
+            stations.forEach(st => {
+                html += `<button class="premontage-item-btn" data-anav="wire-station" data-station="${escapeHtml(st)}">${escapeHtml(st)}</button>`;
+            });
+            html += '</div>';
+        }
+    } else if (state.level === 'wire-results') {
+        const wires = computeWiresForStation(state.article, state.station);
+        html += `<div class="premontage-title">Станція ${escapeHtml(state.station)} — проводи (артикул ${escapeHtml(state.article)})</div>`;
+        if (!wires.length) {
+            html += '<div style="text-align:center; padding:40px; color:#aaa;">Проводів не знайдено</div>';
+        } else {
+            // Та сама логіка карток, як у пошуку: матеріал + адреса
+            const grouped = {};
+            wires.forEach(x => {
+                const matKey = x.material + "|" + x.address;
+                if (!grouped[matKey]) grouped[matKey] = new Set();
+                grouped[matKey].add(x.station);
+            });
+            for (let matKey in grouped) {
+                const [matName, matAddr] = matKey.split("|");
+                const stationHtmlArr = [...grouped[matKey]].map(st => escapeHtml(st));
+                const stationsHtml = buildStationsHtml(stationHtmlArr);
+                html += `<div class="result-card">
+                    <div class="result-top">
+                        <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
+                        <span class="result-address-new">${escapeHtml(matAddr)}</span>
+                    </div>
+                    <div class="article-row" style="border-top:none; padding-top:0;">
+                        <span class="article-stations">${stationsHtml}</span>
+                    </div>
+                </div>`;
+            }
+        }
     }
 
     container.innerHTML = html;
@@ -1078,6 +1154,8 @@ articlesPageContent.addEventListener('click', (e) => {
         const action = btn.dataset.action;
         if (action === 'передмонтаж') {
             articlesPageStack.push({ level: 'premontage-categories', article: current.article });
+        } else if (action === 'проводи') {
+            articlesPageStack.push({ level: 'wire-stations', article: current.article });
         } else {
             articlesPageStack.push({ level: 'results', article: current.article, action });
         }
@@ -1086,6 +1164,11 @@ articlesPageContent.addEventListener('click', (e) => {
     }
     if (nav === 'category') {
         articlesPageStack.push({ level: 'premontage-wires', article: current.article, category: btn.dataset.category });
+        renderArticlesPage();
+        return;
+    }
+    if (nav === 'wire-station') {
+        articlesPageStack.push({ level: 'wire-results', article: current.article, station: btn.dataset.station });
         renderArticlesPage();
         return;
     }
@@ -1245,44 +1328,31 @@ document.addEventListener('touchend', e => {
         return;
     }
 
-    // Свайп у будь-яку сторону "вглиб" сторінки артикулів = крок назад по рівнях.
-    // Якщо свайп сильний (більше половини екрану) — виходимо з усієї глибини
-    // і одразу робимо перелистування на сусідню сторінку (якщо свайп туди веде).
-    if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
-        const dx = e.changedTouches[0].clientX - pageDragStartX;
-        if (Math.abs(dx) > 40) {
-            const strongSwipe = Math.abs(dx) > pageDragPxWidth * 0.45;
-            if (strongSwipe) {
-                // Повністю виходимо з вкладених рівнів
-                while (articlesPageStack.length > 1) {
-                    articlesPageStack.pop();
-                }
-                renderArticlesPage();
-            } else {
-                popArticlesPageLevel();
-            }
+    // Єдина середня сила свайпу всюди (~22% ширини екрану).
+    const SWIPE_THRESHOLD = pageDragPxWidth * 0.22;
+    const dx = e.changedTouches[0].clientX - pageDragStartX;
 
-            // Після повернення на верхній рівень — дозволяємо перелистування сторінок
-            if (articlesPageStack.length === 1) {
-                let livePos = pageDragBasePage - dx / pageDragPxWidth;
-                livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
-                const target = Math.round(livePos);
-                if (target !== currentPage) {
-                    pagesEl.style.transition = '';
-                    goToPage(target);
-                    return;
-                }
-            }
+    // Свайп "вглиб" сторінки артикулів = один крок назад (однакова сила, що й перелистування).
+    if (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
+        if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+            popArticlesPageLevel();
         }
         return;
     }
 
-    const dx = e.changedTouches[0].clientX - pageDragStartX;
+    // Перелистування основних сторінок — та сама середня сила.
+    if (Math.abs(dx) < SWIPE_THRESHOLD) {
+        // Занадто слабкий жест — повертаємось на поточну сторінку
+        pagesEl.style.transition = '';
+        goToPage(currentPage);
+        return;
+    }
+
     let livePos = pageDragBasePage - dx / pageDragPxWidth;
     livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
-    const target = Math.round(livePos); // доїжджаємо до найближчої сторінки
+    const target = Math.round(livePos);
 
-    pagesEl.style.transition = ''; // повертаємо CSS-анімацію для плавного доїзду
+    pagesEl.style.transition = '';
     goToPage(target);
 }, {passive:true});
 
@@ -1308,4 +1378,4 @@ scrollAreaEl.addEventListener('scroll', () => {
 </script>
 </body>
 </html>
-прибери кнопочки які появилися на клаівіатурі і зроби перелистування коли я із глибини кнопок повертаюся - Grok
+Remove keyboard buttons and add page flip on back navigation - Grok
