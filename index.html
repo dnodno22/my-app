@@ -1346,7 +1346,16 @@ function renderArticlesPage() {
     container.style.transition = '';
     container.style.transform = '';
     container.style.opacity = '';
-    container.innerHTML = buildArticlesLevelHtml(articlesPageStack.length - 1);
+    const pageArticlesEl = document.getElementById('page-articles');
+    if (pageArticlesEl) pageArticlesEl.classList.remove('articles-swiping');
+
+    const idx = articlesPageStack.length - 1;
+    const html = buildArticlesLevelHtml(idx);
+    container.innerHTML = html;
+    // Кеш HTML рівня — щоб свайп назад не перебудовував важкі таблиці під час жесту
+    if (articlesPageStack[idx]) {
+        articlesPageStack[idx].cachedHtml = html;
+    }
 }
 
 const articlesPageContent = document.getElementById('articles-page-content');
@@ -1639,37 +1648,49 @@ document.addEventListener('touchmove', e => {
         // Тепер це справжній горизонтальний свайп.
         pageMoved = true;
 
-        // Блокуємо нативний скрол/виділення тексту під час горизонтального жесту
-        // (інакше свайп не працює, коли палець на тексті/таблиці).
+        // Блокуємо нативний скрол/виділення під час горизонтального жесту
         try { e.preventDefault(); } catch (_) {}
 
-        // На внутрішніх сторінках — двопанельний блок (попередній | поточний),
-        // рух 1:1 за пальцем, як перехід на «Обрані» з головної.
         if (pageDragBasePage !== ARTICLES_PAGE_INDEX || articlesPageStack.length <= 1) {
             pagesEl.style.transition = 'none';
         } else {
-            // Ширина панелі = реальна ширина контенту, щоб не було стрибка
+            // Легкий dual-pane: поточний DOM переносимо як є (без перебудови таблиць),
+            // попередній рівень — з кешу. Це прибирає зависання на «розміщенні».
             const contentW = articlesPageContent.clientWidth || pageDragPxWidth;
             pageDragPxWidth = contentW;
 
-            const prevHtml = buildArticlesLevelHtml(articlesPageStack.length - 2);
-            const currentHtml = buildArticlesLevelHtml(articlesPageStack.length - 1);
-            articlesPageContent.innerHTML = `<div class="articles-drag-wrapper" id="articles-drag-wrapper">
-                <div class="articles-drag-pane">${prevHtml}</div>
-                <div class="articles-drag-pane">${currentHtml}</div>
-            </div>`;
+            const prevState = articlesPageStack[articlesPageStack.length - 2];
+            const prevHtml = (prevState && prevState.cachedHtml)
+                ? prevState.cachedHtml
+                : buildArticlesLevelHtml(articlesPageStack.length - 2);
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'articles-drag-wrapper';
+            wrapper.id = 'articles-drag-wrapper';
+
+            const prevPane = document.createElement('div');
+            prevPane.className = 'articles-drag-pane';
+            prevPane.innerHTML = prevHtml;
+
+            const currentPane = document.createElement('div');
+            currentPane.className = 'articles-drag-pane';
+            // Переносимо існуючі вузли — без повторного parse HTML
+            while (articlesPageContent.firstChild) {
+                currentPane.appendChild(articlesPageContent.firstChild);
+            }
+
+            wrapper.appendChild(prevPane);
+            wrapper.appendChild(currentPane);
+            articlesPageContent.appendChild(wrapper);
 
             const pageArticlesEl = document.getElementById('page-articles');
             if (pageArticlesEl) pageArticlesEl.classList.add('articles-swiping');
 
-            const wrapper = document.getElementById('articles-drag-wrapper');
-            if (wrapper) {
-                wrapper.style.transition = 'none';
-                wrapper.style.transform = `translateX(-${pageDragPxWidth}px)`;
-            }
+            wrapper.style.transition = 'none';
+            wrapper.style.transform = `translateX(-${pageDragPxWidth}px)`;
         }
     } else {
-        // Продовжуємо блокувати нативну поведінку, поки йде горизонтальний свайп
+        // Продовжуємо блокувати нативну поведінку під час горизонтального свайпу
         try { e.preventDefault(); } catch (_) {}
     }
 
