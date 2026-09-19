@@ -33,12 +33,18 @@ input#input {
     display: flex;
     align-items: flex-start;
     width: 200%;
+    will-change: transform;
 }
 .articles-drag-pane {
     width: 50%;
     flex: 0 0 50%;
     box-sizing: border-box;
     min-width: 0;
+    padding: 0;
+}
+/* Під час свайпу назад у підменю — без вертикального скролу, як на головних сторінках */
+#page-articles.articles-swiping .scroll-area {
+    overflow-y: hidden;
 }
 
 /* Забороняємо нативне виділення тексту на сторінці артикулів — інакше
@@ -1507,53 +1513,50 @@ const PAGE_SWIPE_START_PX = 14;
 
 function finishPageDrag(dx) {
     const SWIPE_THRESHOLD = Math.max(55, pageDragPxWidth * 0.20);
+    const pageArticlesEl = document.getElementById('page-articles');
 
-    // На внутрішніх рівнях сторінки "Артикули" горизонтальний свайп вправо
-    // поводиться ВІЗУАЛЬНО так само, як звичайне перегортання сторінок:
-    // попередній рівень знаходиться ліворуч, поточний — праворуч, і весь блок
-    // їде точно за пальцем. Після відпускання він або доїжджає до попереднього
-    // рівня, або повертається на своє місце, якщо жест недостатній.
+    // Підменю артикулів: візуально як свайп на «Обрані» (попередня панель зліва,
+    // поточна їде вправо за пальцем), технічно — pop на попередній рівень.
     if (pageDragBasePage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
         const wrapper = document.getElementById('articles-drag-wrapper');
         if (!wrapper) {
+            if (pageArticlesEl) pageArticlesEl.classList.remove('articles-swiping');
             renderArticlesPage();
             return;
         }
 
-        wrapper.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)';
+        let settled = false;
+        const settle = (goBack) => {
+            if (settled) return;
+            settled = true;
+            if (pageArticlesEl) pageArticlesEl.classList.remove('articles-swiping');
+            if (goBack) popArticlesPageLevel();
+            else renderArticlesPage();
+        };
 
-        // Повертаємося назад ТІЛЬКИ якщо свайп був недостатнім або був уліво.
-        // При достатньому свайпі вправо попередня сторінка доїжджає повністю
-        // на екран — без проміжного "відскоку" поточної сторінки.
+        // Та сама крива/час, що й у CSS #pages (головне перегортання)
+        wrapper.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+
         if (dx >= SWIPE_THRESHOLD) {
+            // Достатній свайп вправо → попередній рівень доїжджає на весь екран
             wrapper.style.transform = 'translateX(0px)';
-
-            const onDone = () => {
+            const onDone = (ev) => {
+                if (ev && ev.target !== wrapper) return;
                 wrapper.removeEventListener('transitionend', onDone);
-                popArticlesPageLevel();
+                settle(true);
             };
             wrapper.addEventListener('transitionend', onDone);
-
-            // Підстраховка, якщо transitionend не прийде.
-            setTimeout(() => {
-                if (articlesPageContent.contains(wrapper)) {
-                    popArticlesPageLevel();
-                }
-            }, 340);
+            setTimeout(() => settle(true), 400);
         } else {
+            // Слабкий / уліво → поточний рівень повертається на місце
             wrapper.style.transform = `translateX(-${pageDragPxWidth}px)`;
-
-            const onCancel = () => {
+            const onCancel = (ev) => {
+                if (ev && ev.target !== wrapper) return;
                 wrapper.removeEventListener('transitionend', onCancel);
-                renderArticlesPage();
+                settle(false);
             };
             wrapper.addEventListener('transitionend', onCancel);
-
-            setTimeout(() => {
-                if (articlesPageContent.contains(wrapper)) {
-                    renderArticlesPage();
-                }
-            }, 340);
+            setTimeout(() => settle(false), 400);
         }
         return;
     }
@@ -1564,7 +1567,7 @@ function finishPageDrag(dx) {
         target = Math.max(0, Math.min(TOTAL_PAGES - 1, pageDragBasePage + dir));
     }
 
-    pagesEl.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)';
+    pagesEl.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
     currentPage = target;
     pagesEl.style.transform = `translateX(-${target * pageWidthPercent}%)`;
 
@@ -1621,17 +1624,24 @@ document.addEventListener('touchmove', e => {
         // Тепер це справжній горизонтальний свайп.
         pageMoved = true;
 
-        // На внутрішніх сторінках рухаємо окремий двопанельний блок.
-        // Він з'являється тільки після того, як точно визначено горизонтальний свайп.
+        // На внутрішніх сторінках — двопанельний блок (попередній | поточний),
+        // рух 1:1 за пальцем, як перехід на «Обрані» з головної.
         if (pageDragBasePage !== ARTICLES_PAGE_INDEX || articlesPageStack.length <= 1) {
             pagesEl.style.transition = 'none';
         } else {
+            // Ширина панелі = реальна ширина контенту, щоб не було стрибка
+            const contentW = articlesPageContent.clientWidth || pageDragPxWidth;
+            pageDragPxWidth = contentW;
+
             const prevHtml = buildArticlesLevelHtml(articlesPageStack.length - 2);
             const currentHtml = buildArticlesLevelHtml(articlesPageStack.length - 1);
             articlesPageContent.innerHTML = `<div class="articles-drag-wrapper" id="articles-drag-wrapper">
                 <div class="articles-drag-pane">${prevHtml}</div>
                 <div class="articles-drag-pane">${currentHtml}</div>
             </div>`;
+
+            const pageArticlesEl = document.getElementById('page-articles');
+            if (pageArticlesEl) pageArticlesEl.classList.add('articles-swiping');
 
             const wrapper = document.getElementById('articles-drag-wrapper');
             if (wrapper) {
@@ -1648,8 +1658,8 @@ document.addEventListener('touchmove', e => {
         const wrapper = document.getElementById('articles-drag-wrapper');
         if (!wrapper) return;
 
-        // Як на основних сторінках: весь двопанельний блок їде 1:1 за пальцем.
-        // Попередній рівень відкривається зліва, поточний виїжджає вправо.
+        // 1:1 за пальцем: свайп вправо відкриває попередній рівень зліва
+        // (візуально як свайп на «Обрані» з пошуку)
         const visualDx = Math.max(0, Math.min(pageDragPxWidth, limitedDx));
         wrapper.style.transition = 'none';
         wrapper.style.transform = `translateX(${visualDx - pageDragPxWidth}px)`;
