@@ -27,7 +27,16 @@ input#input {
     background: #f9fafb; color: #111; caret-color: transparent; height: 60px;
 }
 
-.scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 16px 16px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 16px 16px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    /* Вертикаль — нативний скрол; горизонталь не перехоплює браузер → свайп працює і на тексті */
+    touch-action: pan-y;
+}
 
 .articles-drag-wrapper {
     display: flex;
@@ -42,18 +51,24 @@ input#input {
     min-width: 0;
     padding: 0;
 }
-/* Під час свайпу назад у підменю — без вертикального скролу, як на головних сторінках */
+/* Під час свайпу назад у підменю — повністю віддаємо жест нам */
 #page-articles.articles-swiping .scroll-area {
     overflow-y: hidden;
+    touch-action: none;
 }
 
-/* Забороняємо нативне виділення тексту на сторінці артикулів — інакше
-   мобільний браузер може перехопити свайп-жест як виділення тексту
-   (особливо помітно на щільних таблицях типу "розміщення"). */
+/* Забороняємо виділення тексту — інакше браузер краде горизонтальний свайп */
 #page-articles, #page-articles * {
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
+}
+#page-articles table,
+#page-articles td,
+#page-articles th,
+#page-articles .result-card,
+#page-articles .premontage-title {
+    touch-action: pan-y;
 }
 
 /* ==================== RESULT CARDS (NEW DESIGN) ==================== */
@@ -1624,6 +1639,10 @@ document.addEventListener('touchmove', e => {
         // Тепер це справжній горизонтальний свайп.
         pageMoved = true;
 
+        // Блокуємо нативний скрол/виділення тексту під час горизонтального жесту
+        // (інакше свайп не працює, коли палець на тексті/таблиці).
+        try { e.preventDefault(); } catch (_) {}
+
         // На внутрішніх сторінках — двопанельний блок (попередній | поточний),
         // рух 1:1 за пальцем, як перехід на «Обрані» з головної.
         if (pageDragBasePage !== ARTICLES_PAGE_INDEX || articlesPageStack.length <= 1) {
@@ -1649,6 +1668,9 @@ document.addEventListener('touchmove', e => {
                 wrapper.style.transform = `translateX(-${pageDragPxWidth}px)`;
             }
         }
+    } else {
+        // Продовжуємо блокувати нативну поведінку, поки йде горизонтальний свайп
+        try { e.preventDefault(); } catch (_) {}
     }
 
     const maxDelta = pageDragPxWidth;
@@ -1669,7 +1691,7 @@ document.addEventListener('touchmove', e => {
     let livePos = pageDragBasePage - limitedDx / pageDragPxWidth;
     livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
     pagesEl.style.transform = `translateX(-${livePos * pageWidthPercent}%)`;
-}, { passive: true });
+}, { passive: false });
 
 document.addEventListener('touchend', e => {
     if (!pageDragging) return;
