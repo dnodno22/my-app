@@ -27,7 +27,19 @@ input#input {
     background: #f9fafb; color: #111; caret-color: transparent; height: 60px;
 }
 
-.scroll-area { flex: 1; overflow-y: auto; padding: 8px 16px 16px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 16px 16px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+
+.articles-drag-wrapper {
+    display: flex;
+    align-items: flex-start;
+    width: 200%;
+}
+.articles-drag-pane {
+    width: 50%;
+    flex: 0 0 50%;
+    box-sizing: border-box;
+    min-width: 0;
+}
 
 /* ==================== RESULT CARDS (NEW DESIGN) ==================== */
 .result-card {
@@ -1018,17 +1030,12 @@ function popArticlesPageLevel() {
     }
 }
 
-function renderArticlesPage() {
-    const container = document.getElementById('articles-page-content');
-    if (!container) return;
-    // Скидаємо зсув після перетягування назад
-    container.style.transition = '';
-    container.style.transform = '';
-    container.style.opacity = '';
-    const state = articlesPageStack[articlesPageStack.length - 1];
+function buildArticlesLevelHtml(stateIndex) {
+    const state = articlesPageStack[stateIndex];
+    if (!state) return '';
 
     let html = '<div class="premontage-toolbar">';
-    if (articlesPageStack.length > 1) {
+    if (stateIndex > 0) {
         html += '<button class="premontage-nav-btn" data-anav="back">← Назад</button>';
     }
     html += '</div>';
@@ -1069,29 +1076,17 @@ function renderArticlesPage() {
         if (!rows.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
         } else if (state.action === 'розміщення') {
-            // Усі матеріали на артикулі: матеріал + адреса + станції
-            const grouped = {};
-            rows.forEach(x => {
-                const matKey = x.material + "|" + x.address;
-                if (!grouped[matKey]) grouped[matKey] = new Set();
-                grouped[matKey].add(x.station);
+            // Проста таблиця — копія стовпчиків з вихідної таблиці, без карток.
+            const sorted = [...rows].sort((a, b) => {
+                const byMat = String(a.material || "").localeCompare(String(b.material || ""), 'uk', { numeric: true, sensitivity: 'base' });
+                if (byMat !== 0) return byMat;
+                return String(a.station || "").localeCompare(String(b.station || ""), 'uk', { numeric: true, sensitivity: 'base' });
             });
-            for (let matKey in grouped) {
-                const [matName, matAddr] = matKey.split("|");
-                const stationHtmlArr = [...grouped[matKey]]
-                    .filter(Boolean)
-                    .map(st => escapeHtml(st));
-                const stationsHtml = buildStationsHtml(stationHtmlArr);
-                html += `<div class="result-card">
-                    <div class="result-top">
-                        <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
-                        <span class="result-address-new">${escapeHtml(matAddr)}</span>
-                    </div>
-                    <div class="article-row" style="border-top:none; padding-top:0; justify-content:flex-end;">
-                        <span class="article-stations">${stationsHtml}</span>
-                    </div>
-                </div>`;
-            }
+            html += '<table><thead><tr><th>Матеріал</th><th>Станція</th><th>Адреса</th></tr></thead><tbody>';
+            sorted.forEach(r => {
+                html += `<tr><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.station)}</td><td>${escapeHtml(r.address)}</td></tr>`;
+            });
+            html += '</tbody></table>';
         } else if (state.action === 'sp') {
             // sp: назва = число на 158, адреса зеленим, станції справа
             const grouped = {};
@@ -1271,7 +1266,17 @@ function renderArticlesPage() {
         }
     }
 
-    container.innerHTML = html;
+    return html;
+}
+
+function renderArticlesPage() {
+    const container = document.getElementById('articles-page-content');
+    if (!container) return;
+    // Скидаємо зсув після перетягування назад
+    container.style.transition = '';
+    container.style.transform = '';
+    container.style.opacity = '';
+    container.innerHTML = buildArticlesLevelHtml(articlesPageStack.length - 1);
 }
 
 const articlesPageContent = document.getElementById('articles-page-content');
@@ -1435,7 +1440,8 @@ function goToPage(n) {
    як звичайний свайп тягне сторінки одна за одною. */
 let pageDragStartX = 0, pageDragStartY = 0, pageDragBasePage = 0;
 let pageDragging = false, pageMoved = false, pageDragPxWidth = 0;
-let innerDragActive = false; // true = тягнемо articles-page-content, а не всю #pages
+let innerDragActive = false; // true = тягнемо двопанельний drag-wrapper, а не всю #pages
+let articlesDragWrapperEl = null;
 
 document.addEventListener('touchstart', e => {
     pageDragStartX = e.touches[0].clientX;
@@ -1458,18 +1464,29 @@ document.addEventListener('touchmove', e => {
         if (Math.abs(dx) < 6) return; // невелике тремтіння пальця — ще не рахуємо як драг
         pageMoved = true;
         if (innerDragActive) {
-            articlesPageContent.style.transition = 'none';
+            // Будуємо тимчасову двопанельну розмітку: попередній рівень зліва (поки
+            // прихований за екраном), поточний — справа (видно). Так само, як сторінки
+            // "Обране / Пошук / Артикули" стоять поруч одна за одною в #pages.
+            const prevHtml = buildArticlesLevelHtml(articlesPageStack.length - 2);
+            const currentHtml = buildArticlesLevelHtml(articlesPageStack.length - 1);
+            articlesPageContent.innerHTML = `<div class="articles-drag-wrapper" id="articles-drag-wrapper">
+                <div class="articles-drag-pane">${prevHtml}</div>
+                <div class="articles-drag-pane">${currentHtml}</div>
+            </div>`;
+            articlesDragWrapperEl = document.getElementById('articles-drag-wrapper');
+            articlesDragWrapperEl.style.transition = 'none';
+            articlesDragWrapperEl.style.transform = `translateX(-${pageDragPxWidth}px)`; // видно лише праву (поточну) панель
         } else {
             pagesEl.style.transition = 'none'; // під час драгу — без анімації, їде за пальцем
         }
     }
 
     if (innerDragActive) {
-        // Тягнемо лише вміст сторінки "Артикули" — сама сторінка нікуди не рухається,
-        // це те саме відчуття свайпу, що й між сторінками, але застосоване всередину.
-        const live = Math.max(-pageDragPxWidth, Math.min(pageDragPxWidth, dx));
-        articlesPageContent.style.transform = `translateX(${live}px)`;
-        articlesPageContent.style.opacity = String(Math.max(0.35, 1 - Math.abs(live) / pageDragPxWidth));
+        if (!articlesDragWrapperEl) return;
+        // Має сенс лише свайп вправо (назад до попереднього рівня) — попередній
+        // рівень підтягується сюди точно за пальцем, як сусідня сторінка.
+        const live = Math.max(0, Math.min(pageDragPxWidth, dx));
+        articlesDragWrapperEl.style.transform = `translateX(${live - pageDragPxWidth}px)`;
     } else {
         // Сторінки їдуть точно за пальцем
         let livePos = pageDragBasePage - dx / pageDragPxWidth;
@@ -1494,20 +1511,19 @@ document.addEventListener('touchend', e => {
     const dx = e.changedTouches[0].clientX - pageDragStartX;
 
     if (innerDragActive) {
-        if (Math.abs(dx) >= SWIPE_THRESHOLD) {
-            // Дотягнули — контент "доїжджає" вбік і зникає, після чого показуємо
-            // попередній рівень (той самий доїзд-до-найближчого-стану, що й на сторінках).
-            const flyTo = dx > 0 ? pageDragPxWidth : -pageDragPxWidth;
-            articlesPageContent.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
-            articlesPageContent.style.transform = `translateX(${flyTo}px)`;
-            articlesPageContent.style.opacity = '0';
-            setTimeout(() => { popArticlesPageLevel(); }, 200); // renderArticlesPage() скидає transform/opacity
+        if (!articlesDragWrapperEl) return;
+        articlesDragWrapperEl.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        if (dx >= SWIPE_THRESHOLD) {
+            // Дотягнули — попередній рівень сам доїжджає до кінця (повністю на місці),
+            // після чого фіксуємо стан (той самий "доїзд до найближчого стану", що й між сторінками).
+            articlesDragWrapperEl.style.transform = 'translateX(0px)';
+            setTimeout(() => { popArticlesPageLevel(); }, 300); // renderArticlesPage() прибере тимчасову розмітку
         } else {
-            // Не дотягнули — плавно повертаємо на місце (як недокінчений свайп між сторінками)
-            articlesPageContent.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s';
-            articlesPageContent.style.transform = 'translateX(0)';
-            articlesPageContent.style.opacity = '1';
+            // Не дотягнули — поточний рівень сам доїжджає назад на місце
+            articlesDragWrapperEl.style.transform = `translateX(-${pageDragPxWidth}px)`;
+            setTimeout(() => { renderArticlesPage(); }, 300);
         }
+        articlesDragWrapperEl = null;
         return;
     }
 
