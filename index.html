@@ -127,6 +127,15 @@ input#input {
     text-align: center;
     padding: 8px 0;
 }
+.page-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9ca3af;
+    text-align: center;
+    padding-bottom: 4px;
+}
 
 .select-btn {
     border: none;
@@ -375,12 +384,18 @@ tr:nth-child(even) td { background: #f9fafb; }
 <div id="pages">
     <!-- PAGE (waitlist): свайп управо від пошуку -->
     <div class="page" id="page-waitlist">
-        <div class="search-header"><div class="waitlist-title">⭐ Обрані матеріали</div></div>
+        <div class="search-header">
+            <div class="page-eyebrow">Обране</div>
+            <div class="waitlist-title">⭐ Обрані матеріали</div>
+        </div>
         <div class="scroll-area"><div id="waitlist-result"></div></div>
     </div>
     <!-- PAGE (search) -->
     <div class="page" id="page0">
-        <div class="search-header"><input id="input" readonly></div>
+        <div class="search-header">
+            <div class="page-eyebrow">Пошук</div>
+            <input id="input" readonly>
+        </div>
         <div class="scroll-area"><div id="result"></div></div>
         <div id="kb-wrapper" class="kb-container">
             <div id="kb1" class="kb-grid">
@@ -447,6 +462,20 @@ let articleGroups = [];
 // Свайп у будь-яку сторону на цій сторінці = крок назад (pop зі стеку), поки стек не дійде до 'articles'.
 let articlesPageStack = [{ level: 'articles' }];
 const ARTICLE_ACTION_KEYS = ["розміщення", "sp", "ts", "стр", "мм", "передмонтаж", "проводи"];
+// Читабельні назви кнопок дій (реальний пошук усе одно йде по коду з масиву вище —
+// це лише те, що бачить користувач на кнопці/в заголовку).
+const ACTION_LABELS = {
+    "розміщення": "📍 Розміщення",
+    "sp": "🔩 SP",
+    "ts": "🧷 TS",
+    "стр": "📏 СТР",
+    "мм": "📐 ММ",
+    "передмонтаж": "🧵 Передмонтаж",
+    "проводи": "⚡ Проводи"
+};
+function actionLabel(key) {
+    return ACTION_LABELS[key] || escapeHtml(key);
+}
 
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
@@ -1043,7 +1072,17 @@ function buildArticlesLevelHtml(stateIndex) {
     const state = articlesPageStack[stateIndex];
     if (!state) return '';
 
-    let html = '<div class="premontage-toolbar">';
+    // "Хлібні крихти" — показують, де саме користувач перебуває в ієрархії.
+    let crumb = 'Артикули';
+    if (state.article) crumb += ' › ' + state.article;
+    if (state.level === 'results') crumb += ' › ' + actionLabel(state.action);
+    if (state.level === 'premontage-categories') crumb += ' › ' + actionLabel('передмонтаж');
+    if (state.level === 'premontage-wires') crumb += ' › ' + actionLabel('передмонтаж') + ' › ' + state.category;
+    if (state.level === 'wire-stations') crumb += ' › ' + actionLabel('проводи');
+    if (state.level === 'wire-results') crumb += ' › ' + actionLabel('проводи') + ' › ' + state.station;
+
+    let html = `<div class="page-eyebrow" style="text-align:left;">${escapeHtml(crumb)}</div>`;
+    html += '<div class="premontage-toolbar">';
     if (stateIndex > 0) {
         html += '<button class="premontage-nav-btn" data-anav="back">← Назад</button>';
     }
@@ -1073,7 +1112,7 @@ function buildArticlesLevelHtml(stateIndex) {
         } else {
             html += '<div class="premontage-btn-grid">';
             available.forEach(k => {
-                html += `<button class="premontage-item-btn" data-anav="action" data-action="${escapeHtml(k)}">${escapeHtml(k)}</button>`;
+                html += `<button class="premontage-item-btn" data-anav="action" data-action="${escapeHtml(k)}">${actionLabel(k)}</button>`;
             });
             html += '</div>';
         }
@@ -1081,7 +1120,7 @@ function buildArticlesLevelHtml(stateIndex) {
         const rows = state.action === 'розміщення'
             ? getAllMaterialsForArticle(state.article)
             : computeArticleActionResults(state.article, state.action);
-        html += `<div class="premontage-title">${escapeHtml(state.action)} — артикул ${escapeHtml(state.article)}</div>`;
+        html += `<div class="premontage-title">${actionLabel(state.action)} — артикул ${escapeHtml(state.article)}</div>`;
         if (!rows.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
         } else if (state.action === 'розміщення') {
