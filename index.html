@@ -1508,23 +1508,52 @@ const PAGE_SWIPE_START_PX = 14;
 function finishPageDrag(dx) {
     const SWIPE_THRESHOLD = Math.max(55, pageDragPxWidth * 0.20);
 
-    // Усередині сторінки "Артикули" свайп повертає на попередній рівень
-    // стеку: KNDS -> Передмонтаж -> Артикул -> список артикулів.
-    // На кореневій сторінці артикулів залишається звичайний свайп
-    // між основними сторінками.
+    // На внутрішніх рівнях сторінки "Артикули" горизонтальний свайп вправо
+    // поводиться ВІЗУАЛЬНО так само, як звичайне перегортання сторінок:
+    // попередній рівень знаходиться ліворуч, поточний — праворуч, і весь блок
+    // їде точно за пальцем. Після відпускання він або доїжджає до попереднього
+    // рівня, або повертається на своє місце, якщо жест недостатній.
     if (pageDragBasePage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
-        const container = document.getElementById('articles-page-content');
-        if (Math.abs(dx) >= SWIPE_THRESHOLD) {
-            if (container) {
-                container.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
-                container.style.transform = `translateX(${dx > 0 ? '40px' : '-40px'})`;
-                container.style.opacity = '0';
-            }
-            popArticlesPageLevel();
-        } else if (container) {
-            container.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
-            container.style.transform = '';
-            container.style.opacity = '';
+        const wrapper = document.getElementById('articles-drag-wrapper');
+        if (!wrapper) {
+            renderArticlesPage();
+            return;
+        }
+
+        wrapper.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)';
+
+        // Повертаємося назад ТІЛЬКИ якщо свайп був недостатнім або був уліво.
+        // При достатньому свайпі вправо попередня сторінка доїжджає повністю
+        // на екран — без проміжного "відскоку" поточної сторінки.
+        if (dx >= SWIPE_THRESHOLD) {
+            wrapper.style.transform = 'translateX(0px)';
+
+            const onDone = () => {
+                wrapper.removeEventListener('transitionend', onDone);
+                popArticlesPageLevel();
+            };
+            wrapper.addEventListener('transitionend', onDone);
+
+            // Підстраховка, якщо transitionend не прийде.
+            setTimeout(() => {
+                if (articlesPageContent.contains(wrapper)) {
+                    popArticlesPageLevel();
+                }
+            }, 340);
+        } else {
+            wrapper.style.transform = `translateX(-${pageDragPxWidth}px)`;
+
+            const onCancel = () => {
+                wrapper.removeEventListener('transitionend', onCancel);
+                renderArticlesPage();
+            };
+            wrapper.addEventListener('transitionend', onCancel);
+
+            setTimeout(() => {
+                if (articlesPageContent.contains(wrapper)) {
+                    renderArticlesPage();
+                }
+            }, 340);
         }
         return;
     }
@@ -1592,10 +1621,23 @@ document.addEventListener('touchmove', e => {
         // Тепер це справжній горизонтальний свайп.
         pageMoved = true;
 
-        // На внутрішніх сторінках рухаємо тільки їхній контент,
-        // а не весь #pages. Так свайп не відкриває раптом Пошук/Обране.
+        // На внутрішніх сторінках рухаємо окремий двопанельний блок.
+        // Він з'являється тільки після того, як точно визначено горизонтальний свайп.
         if (pageDragBasePage !== ARTICLES_PAGE_INDEX || articlesPageStack.length <= 1) {
             pagesEl.style.transition = 'none';
+        } else {
+            const prevHtml = buildArticlesLevelHtml(articlesPageStack.length - 2);
+            const currentHtml = buildArticlesLevelHtml(articlesPageStack.length - 1);
+            articlesPageContent.innerHTML = `<div class="articles-drag-wrapper" id="articles-drag-wrapper">
+                <div class="articles-drag-pane">${prevHtml}</div>
+                <div class="articles-drag-pane">${currentHtml}</div>
+            </div>`;
+
+            const wrapper = document.getElementById('articles-drag-wrapper');
+            if (wrapper) {
+                wrapper.style.transition = 'none';
+                wrapper.style.transform = `translateX(-${pageDragPxWidth}px)`;
+            }
         }
     }
 
@@ -1603,13 +1645,14 @@ document.addEventListener('touchmove', e => {
     const limitedDx = Math.max(-maxDelta, Math.min(maxDelta, dx));
 
     if (pageDragBasePage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
-        const container = document.getElementById('articles-page-content');
-        if (container) {
-            const visualDx = Math.max(-140, Math.min(140, limitedDx * 0.35));
-            container.style.transition = 'none';
-            container.style.transform = `translateX(${visualDx}px)`;
-            container.style.opacity = String(1 - Math.min(0.35, Math.abs(limitedDx) / maxDelta * 0.35));
-        }
+        const wrapper = document.getElementById('articles-drag-wrapper');
+        if (!wrapper) return;
+
+        // Як на основних сторінках: весь двопанельний блок їде 1:1 за пальцем.
+        // Попередній рівень відкривається зліва, поточний виїжджає вправо.
+        const visualDx = Math.max(0, Math.min(pageDragPxWidth, limitedDx));
+        wrapper.style.transition = 'none';
+        wrapper.style.transform = `translateX(${visualDx - pageDragPxWidth}px)`;
         return;
     }
 
