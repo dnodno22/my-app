@@ -461,6 +461,8 @@ let articleGroups = [];
 //                                                    -> {level:'wire-stations', article} -> {level:'wire-results', article, station}
 // Свайп у будь-яку сторону на цій сторінці = крок назад (pop зі стеку), поки стек не дійде до 'articles'.
 let articlesPageStack = [{ level: 'articles' }];
+let suppressNextArticleClick = false;
+let innerSwipeTimer = null;
 const ARTICLE_ACTION_KEYS = ["розміщення", "sp", "ts", "стр", "мм", "передмонтаж", "проводи"];
 // Читабельні назви кнопок дій (реальний пошук усе одно йде по коду з масиву вище —
 // це лише те, що бачить користувач на кнопці/в заголовку).
@@ -1331,6 +1333,12 @@ function renderArticlesPage() {
 const articlesPageContent = document.getElementById('articles-page-content');
 
 articlesPageContent.addEventListener('click', (e) => {
+    if (suppressNextArticleClick) {
+        suppressNextArticleClick = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+    }
     if (e.target.closest('[data-anav="back"]')) {
         popArticlesPageLevel();
         return;
@@ -1477,119 +1485,166 @@ function goToPage(n) {
     }
 }
 
-/* Живе перегортання сторінок пальцем: під час руху контент їде точно
-   слідом за пальцем (можна проскролити відразу через кілька артикулів),
-   а при відпусканні сторінка сама доїжджає до НАЙБЛИЖЧОЇ сторінки —
-   тому не треба влучати точно, досить зупинитися "приблизно там".
-
-   ТОЙ САМИЙ жест (живий драг + доїзд до найближчого стану при відпусканні)
-   використовується і для повернення з глибини кнопок на сторінці
-   "Артикули": коли там відкрито щось глибше за список артикулів,
-   свайп тягне сам ВНУТРІШНІЙ контент (а не всю сторінку) — так само,
-   як звичайний свайп тягне сторінки одна за одною. */
+/* ---------- Надійна навігація свайпом ---------- */
 let pageDragStartX = 0, pageDragStartY = 0, pageDragBasePage = 0;
 let pageDragging = false, pageMoved = false, pageDragPxWidth = 0;
-let innerDragActive = false; // true = тягнемо двопанельний drag-wrapper, а не всю #pages
+let innerDragActive = false;
 let articlesDragWrapperEl = null;
 
+function finishInnerSwipe(goBack) {
+    if (innerSwipeTimer) {
+        clearTimeout(innerSwipeTimer);
+        innerSwipeTimer = null;
+    }
+
+    if (!articlesDragWrapperEl) {
+        if (goBack) popArticlesPageLevel();
+        else renderArticlesPage();
+        return;
+    }
+
+    const wrapper = articlesDragWrapperEl;
+    wrapper.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+    wrapper.style.transform = goBack
+        ? 'translateX(0px)'
+        : `translateX(-${pageDragPxWidth}px)`;
+
+    innerSwipeTimer = setTimeout(() => {
+        innerSwipeTimer = null;
+        articlesDragWrapperEl = null;
+
+        // Очищаємо тимчасову двопанельну розмітку тільки після завершення анімації.
+        if (goBack) {
+            popArticlesPageLevel();
+        } else {
+            renderArticlesPage();
+        }
+    }, 260);
+}
+
 document.addEventListener('touchstart', e => {
+    if (!e.touches || !e.touches.length) return;
+
+    // Не залишаємо старий таймер/тимчасовий DOM після нового жесту.
+    if (innerSwipeTimer) {
+        clearTimeout(innerSwipeTimer);
+        innerSwipeTimer = null;
+    }
+
     pageDragStartX = e.touches[0].clientX;
     pageDragStartY = e.touches[0].clientY;
     pageDragBasePage = currentPage;
     pageDragging = true;
     pageMoved = false;
     innerDragActive = (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1);
+    articlesDragWrapperEl = null;
     pageDragPxWidth = (pagesEl.parentElement ? pagesEl.parentElement.clientWidth : window.innerWidth) || window.innerWidth;
-}, {passive:true});
+}, { passive: true });
 
 document.addEventListener('touchmove', e => {
-    if (!pageDragging) return;
+    if (!pageDragging || !e.touches || !e.touches.length) return;
+
     const dx = e.touches[0].clientX - pageDragStartX;
     const dy = e.touches[0].clientY - pageDragStartY;
 
     if (!pageMoved) {
-        // якщо рух переважно вертикальний — це скрол (список/таблиця), а не перегортання сторінок
-        if (Math.abs(dy) > Math.abs(dx)) { pageDragging = false; return; }
-        if (Math.abs(dx) < 6) return; // невелике тремтіння пальця — ще не рахуємо як драг
+        // Вертикальний рух залишаємо звичайному скролу.
+        if (Math.abs(dy) > Math.abs(dx)) {
+            pageDragging = false;
+            return;
+        }
+
+        if (Math.abs(dx) < 8) return;
+
         pageMoved = true;
+
+        // Після горизонтального свайпу наступний synthetic click не повинен
+        // активувати кнопку під пальцем.
+        suppressNextArticleClick = (currentPage === ARTICLES_PAGE_INDEX);
+
         if (innerDragActive) {
-            // Будуємо тимчасову двопанельну розмітку: попередній рівень зліва (поки
-            // прихований за екраном), поточний — справа (видно). Так само, як сторінки
-            // "Обране / Пошук / Артикули" стоять поруч одна за одною в #pages.
-            const prevHtml = buildArticlesLevelHtml(articlesPageStack.length - 2);
-            const currentHtml = buildArticlesLevelHtml(articlesPageStack.length - 1);
-            articlesPageContent.innerHTML = `<div class="articles-drag-wrapper" id="articles-drag-wrapper">
-                <div class="articles-drag-pane">${prevHtml}</div>
-                <div class="articles-drag-pane">${currentHtml}</div>
-            </div>`;
+            const prevIndex = articlesPageStack.length - 2;
+            const currentIndex = articlesPageStack.length - 1;
+
+            // Створюємо дві панелі тільки один раз за один жест.
+            articlesPageContent.innerHTML = `
+                <div class="articles-drag-wrapper" id="articles-drag-wrapper">
+                    <div class="articles-drag-pane">${buildArticlesLevelHtml(prevIndex)}</div>
+                    <div class="articles-drag-pane">${buildArticlesLevelHtml(currentIndex)}</div>
+                </div>`;
+
             articlesDragWrapperEl = document.getElementById('articles-drag-wrapper');
+            if (!articlesDragWrapperEl) {
+                pageDragging = false;
+                pageMoved = false;
+                return;
+            }
+
             articlesDragWrapperEl.style.transition = 'none';
-            articlesDragWrapperEl.style.transform = `translateX(-${pageDragPxWidth}px)`; // видно лише праву (поточну) панель
+            articlesDragWrapperEl.style.transform = `translateX(-${pageDragPxWidth}px)`;
         } else {
-            pagesEl.style.transition = 'none'; // під час драгу — без анімації, їде за пальцем
+            pagesEl.style.transition = 'none';
         }
     }
 
     if (innerDragActive) {
         if (!articlesDragWrapperEl) return;
-        // Має сенс лише свайп вправо (назад до попереднього рівня) — попередній
-        // рівень підтягується сюди точно за пальцем, як сусідня сторінка.
+
+        // Назад працює тільки вправо.
+        // Для свайпу вліво поточна панель просто повертається на своє місце.
         const live = Math.max(0, Math.min(pageDragPxWidth, dx));
         articlesDragWrapperEl.style.transform = `translateX(${live - pageDragPxWidth}px)`;
     } else {
-        // Сторінки їдуть точно за пальцем
         let livePos = pageDragBasePage - dx / pageDragPxWidth;
         livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
         pagesEl.style.transform = `translateX(-${livePos * pageWidthPercent}%)`;
     }
-}, {passive:true});
+}, { passive: true });
 
 document.addEventListener('touchend', e => {
     if (!pageDragging) return;
     pageDragging = false;
 
     if (!pageMoved) {
-        // це був тап, а не перетягування — стара логіка показу/приховання клавіатури
-        if (currentPage === SEARCH_PAGE_INDEX && !kbWrapper.contains(e.target) && !e.target.closest('.select-btn') && !e.target.closest('[data-anav]')) {
+        // Тап — нічого зі свайп-навігацією не робимо.
+        if (!e.changedTouches || !e.changedTouches.length) return;
+
+        if (currentPage === SEARCH_PAGE_INDEX &&
+            !kbWrapper.contains(e.target) &&
+            !e.target.closest('.select-btn') &&
+            !e.target.closest('[data-anav]')) {
             kbWrapper.classList.toggle('hidden');
         }
         return;
     }
 
+    const dx = e.changedTouches && e.changedTouches.length
+        ? e.changedTouches[0].clientX - pageDragStartX
+        : 0;
+
     const SWIPE_THRESHOLD = pageDragPxWidth * 0.25;
-    const dx = e.changedTouches[0].clientX - pageDragStartX;
 
     if (innerDragActive) {
-        if (!articlesDragWrapperEl) return;
-        articlesDragWrapperEl.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        if (dx >= SWIPE_THRESHOLD) {
-            // Дотягнули — попередній рівень сам доїжджає до кінця (повністю на місці),
-            // після чого фіксуємо стан (той самий "доїзд до найближчого стану", що й між сторінками).
-            articlesDragWrapperEl.style.transform = 'translateX(0px)';
-            setTimeout(() => { popArticlesPageLevel(); }, 300); // renderArticlesPage() прибере тимчасову розмітку
-        } else {
-            // Не дотягнули — поточний рівень сам доїжджає назад на місце
-            articlesDragWrapperEl.style.transform = `translateX(-${pageDragPxWidth}px)`;
-            setTimeout(() => { renderArticlesPage(); }, 300);
-        }
-        articlesDragWrapperEl = null;
+        // Будь-який горизонтальний свайп із глибини:
+        // вправо з порогом = назад; інакше повертаємо поточний рівень.
+        finishInnerSwipe(dx >= SWIPE_THRESHOLD);
         return;
     }
 
-    // Визначаємо цільову сторінку: достатній жест → сусідня в напрямку свайпу
     let target = pageDragBasePage;
     if (Math.abs(dx) >= SWIPE_THRESHOLD) {
-        const dir = dx > 0 ? -1 : 1; // вправо → попередня, вліво → наступна
+        const dir = dx > 0 ? -1 : 1;
         target = Math.max(0, Math.min(TOTAL_PAGES - 1, pageDragBasePage + dir));
     }
 
-    // З тієї позиції, де відпустили палець — далі САМА доїжджає до цілі (без повернення назад)
     pagesEl.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
     currentPage = target;
     pagesEl.style.transform = `translateX(-${target * pageWidthPercent}%)`;
+
     for (let i = 0; i < TOTAL_PAGES; i++) {
         document.getElementById('dot' + i).classList.toggle('active', i === target);
     }
+
     if (target === SEARCH_PAGE_INDEX) {
         kbWrapper.classList.remove('hidden');
     } else {
@@ -1597,7 +1652,7 @@ document.addEventListener('touchend', e => {
         if (target === 0) renderWaitlistPage();
         else if (target === ARTICLES_PAGE_INDEX) renderArticlesPage();
     }
-}, {passive:true});
+}, { passive: true });
 
 // Свайп вгору по знайденому тексту (результатах пошуку) — ховає клавіатуру одразу на початку руху
 const scrollAreaEl = document.querySelector('#page0 .scroll-area');
