@@ -41,6 +41,15 @@ input#input {
     min-width: 0;
 }
 
+/* Забороняємо нативне виділення тексту на сторінці артикулів — інакше
+   мобільний браузер може перехопити свайп-жест як виділення тексту
+   (особливо помітно на щільних таблицях типу "розміщення"). */
+#page-articles, #page-articles * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
 /* ==================== RESULT CARDS (NEW DESIGN) ==================== */
 .result-card {
     background: #ffffff;
@@ -1048,16 +1057,16 @@ function buildArticlesLevelHtml(stateIndex) {
         } else {
             html += '<div class="premontage-btn-grid">';
             articles.forEach(a => {
-                const favorite = isArticleFavorite(a);
-                html += `<div class="article-choice-row" data-filter="${escapeHtml(a.toLowerCase())}">
-                    <button class="premontage-item-btn article-choice-main" data-anav="article" data-article="${escapeHtml(a)}">${renderArticleNumber(a, "", false, true)}</button>
-                    <button class="article-favorite-btn${favorite ? ' selected' : ''}" data-anav="article-favorite" data-article="${escapeHtml(a)}" aria-label="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}" title="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}">${favorite ? '★' : '☆'}</button>
-                </div>`;
+                html += `<button class="premontage-item-btn" data-anav="article" data-article="${escapeHtml(a)}">${renderArticleNumber(a, "", false, true)}</button>`;
             });
             html += '</div>';
         }
     } else if (state.level === 'actions') {
-        html += `<div class="premontage-title">Артикул ${escapeHtml(state.article)}</div>`;
+        const favorite = isArticleFavorite(state.article);
+        html += `<div class="premontage-title" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <span>Артикул ${escapeHtml(state.article)}</span>
+            <button class="article-favorite-btn${favorite ? ' selected' : ''}" data-anav="article-favorite" data-article="${escapeHtml(state.article)}" aria-label="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}" title="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}">${favorite ? '★' : '☆'}</button>
+        </div>`;
         const available = getAvailableActionsForArticle(state.article);
         if (!available.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Немає даних для цього артикулу</div>';
@@ -1076,15 +1085,16 @@ function buildArticlesLevelHtml(stateIndex) {
         if (!rows.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
         } else if (state.action === 'розміщення') {
-            // Проста таблиця — копія стовпчиків з вихідної таблиці, без карток.
+            // Проста таблиця — постанційно: спочатку сортуємо/групуємо по станції,
+            // потім по матеріалу. Порядок колонок: Станція, Матеріал, Адреса.
             const sorted = [...rows].sort((a, b) => {
-                const byMat = String(a.material || "").localeCompare(String(b.material || ""), 'uk', { numeric: true, sensitivity: 'base' });
-                if (byMat !== 0) return byMat;
-                return String(a.station || "").localeCompare(String(b.station || ""), 'uk', { numeric: true, sensitivity: 'base' });
+                const byStation = String(a.station || "").localeCompare(String(b.station || ""), 'uk', { numeric: true, sensitivity: 'base' });
+                if (byStation !== 0) return byStation;
+                return String(a.material || "").localeCompare(String(b.material || ""), 'uk', { numeric: true, sensitivity: 'base' });
             });
-            html += '<table><thead><tr><th>Матеріал</th><th>Станція</th><th>Адреса</th></tr></thead><tbody>';
+            html += '<table><thead><tr><th>Станція</th><th>Матеріал</th><th>Адреса</th></tr></thead><tbody>';
             sorted.forEach(r => {
-                html += `<tr><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.station)}</td><td>${escapeHtml(r.address)}</td></tr>`;
+                html += `<tr><td>${escapeHtml(r.station)}</td><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.address)}</td></tr>`;
             });
             html += '</tbody></table>';
         } else if (state.action === 'sp') {
