@@ -1024,6 +1024,7 @@ function renderArticlesPage() {
     // Скидаємо зсув після перетягування назад
     container.style.transition = '';
     container.style.transform = '';
+    container.style.opacity = '';
     const state = articlesPageStack[articlesPageStack.length - 1];
 
     let html = '<div class="premontage-toolbar">';
@@ -1425,9 +1426,16 @@ function goToPage(n) {
 /* Живе перегортання сторінок пальцем: під час руху контент їде точно
    слідом за пальцем (можна проскролити відразу через кілька артикулів),
    а при відпусканні сторінка сама доїжджає до НАЙБЛИЖЧОЇ сторінки —
-   тому не треба влучати точно, досить зупинитися "приблизно там". */
+   тому не треба влучати точно, досить зупинитися "приблизно там".
+
+   ТОЙ САМИЙ жест (живий драг + доїзд до найближчого стану при відпусканні)
+   використовується і для повернення з глибини кнопок на сторінці
+   "Артикули": коли там відкрито щось глибше за список артикулів,
+   свайп тягне сам ВНУТРІШНІЙ контент (а не всю сторінку) — так само,
+   як звичайний свайп тягне сторінки одна за одною. */
 let pageDragStartX = 0, pageDragStartY = 0, pageDragBasePage = 0;
 let pageDragging = false, pageMoved = false, pageDragPxWidth = 0;
+let innerDragActive = false; // true = тягнемо articles-page-content, а не всю #pages
 
 document.addEventListener('touchstart', e => {
     pageDragStartX = e.touches[0].clientX;
@@ -1435,6 +1443,7 @@ document.addEventListener('touchstart', e => {
     pageDragBasePage = currentPage;
     pageDragging = true;
     pageMoved = false;
+    innerDragActive = (currentPage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1);
     pageDragPxWidth = (pagesEl.parentElement ? pagesEl.parentElement.clientWidth : window.innerWidth) || window.innerWidth;
 }, {passive:true});
 
@@ -1448,13 +1457,25 @@ document.addEventListener('touchmove', e => {
         if (Math.abs(dy) > Math.abs(dx)) { pageDragging = false; return; }
         if (Math.abs(dx) < 6) return; // невелике тремтіння пальця — ще не рахуємо як драг
         pageMoved = true;
-        pagesEl.style.transition = 'none'; // під час драгу — без анімації, їде за пальцем
+        if (innerDragActive) {
+            articlesPageContent.style.transition = 'none';
+        } else {
+            pagesEl.style.transition = 'none'; // під час драгу — без анімації, їде за пальцем
+        }
     }
 
-    // Сторінки їдуть точно за пальцем
-    let livePos = pageDragBasePage - dx / pageDragPxWidth;
-    livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
-    pagesEl.style.transform = `translateX(-${livePos * pageWidthPercent}%)`;
+    if (innerDragActive) {
+        // Тягнемо лише вміст сторінки "Артикули" — сама сторінка нікуди не рухається,
+        // це те саме відчуття свайпу, що й між сторінками, але застосоване всередину.
+        const live = Math.max(-pageDragPxWidth, Math.min(pageDragPxWidth, dx));
+        articlesPageContent.style.transform = `translateX(${live}px)`;
+        articlesPageContent.style.opacity = String(Math.max(0.35, 1 - Math.abs(live) / pageDragPxWidth));
+    } else {
+        // Сторінки їдуть точно за пальцем
+        let livePos = pageDragBasePage - dx / pageDragPxWidth;
+        livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
+        pagesEl.style.transform = `translateX(-${livePos * pageWidthPercent}%)`;
+    }
 }, {passive:true});
 
 document.addEventListener('touchend', e => {
@@ -1472,18 +1493,20 @@ document.addEventListener('touchend', e => {
     const SWIPE_THRESHOLD = pageDragPxWidth * 0.25;
     const dx = e.changedTouches[0].clientX - pageDragStartX;
 
-    // Вглиб: достатній свайп → попередній рівень; сторінка лишається «Артикули»
-    // і плавно доїжджає на місце (без відскоку)
-    if (pageDragBasePage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
+    if (innerDragActive) {
         if (Math.abs(dx) >= SWIPE_THRESHOLD) {
-            popArticlesPageLevel();
-        }
-        // з поточної позиції пальця — плавно на сторінку артикулів
-        pagesEl.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        currentPage = ARTICLES_PAGE_INDEX;
-        pagesEl.style.transform = `translateX(-${ARTICLES_PAGE_INDEX * pageWidthPercent}%)`;
-        for (let i = 0; i < TOTAL_PAGES; i++) {
-            document.getElementById('dot' + i).classList.toggle('active', i === ARTICLES_PAGE_INDEX);
+            // Дотягнули — контент "доїжджає" вбік і зникає, після чого показуємо
+            // попередній рівень (той самий доїзд-до-найближчого-стану, що й на сторінках).
+            const flyTo = dx > 0 ? pageDragPxWidth : -pageDragPxWidth;
+            articlesPageContent.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+            articlesPageContent.style.transform = `translateX(${flyTo}px)`;
+            articlesPageContent.style.opacity = '0';
+            setTimeout(() => { popArticlesPageLevel(); }, 200); // renderArticlesPage() скидає transform/opacity
+        } else {
+            // Не дотягнули — плавно повертаємо на місце (як недокінчений свайп між сторінками)
+            articlesPageContent.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s';
+            articlesPageContent.style.transform = 'translateX(0)';
+            articlesPageContent.style.opacity = '1';
         }
         return;
     }
