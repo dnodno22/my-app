@@ -1508,6 +1508,27 @@ const PAGE_SWIPE_START_PX = 14;
 function finishPageDrag(dx) {
     const SWIPE_THRESHOLD = Math.max(55, pageDragPxWidth * 0.20);
 
+    // Усередині сторінки "Артикули" свайп повертає на попередній рівень
+    // стеку: KNDS -> Передмонтаж -> Артикул -> список артикулів.
+    // На кореневій сторінці артикулів залишається звичайний свайп
+    // між основними сторінками.
+    if (pageDragBasePage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
+        const container = document.getElementById('articles-page-content');
+        if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+            if (container) {
+                container.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
+                container.style.transform = `translateX(${dx > 0 ? '40px' : '-40px'})`;
+                container.style.opacity = '0';
+            }
+            popArticlesPageLevel();
+        } else if (container) {
+            container.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
+            container.style.transform = '';
+            container.style.opacity = '';
+        }
+        return;
+    }
+
     let target = pageDragBasePage;
     if (Math.abs(dx) >= SWIPE_THRESHOLD) {
         const dir = dx > 0 ? -1 : 1; // вправо -> попередня, вліво -> наступна
@@ -1555,7 +1576,6 @@ document.addEventListener('touchmove', e => {
     const dy = touch.clientY - pageDragStartY;
 
     // Спочатку визначаємо напрямок жесту.
-    // До цього моменту кнопки отримують звичайний тап.
     if (!pageMoved) {
         const absX = Math.abs(dx);
         const absY = Math.abs(dy);
@@ -1569,13 +1589,30 @@ document.addEventListener('touchmove', e => {
             return;
         }
 
-        // Лише тепер справді починаємо свайп сторінок.
+        // Тепер це справжній горизонтальний свайп.
         pageMoved = true;
-        pagesEl.style.transition = 'none';
+
+        // На внутрішніх сторінках рухаємо тільки їхній контент,
+        // а не весь #pages. Так свайп не відкриває раптом Пошук/Обране.
+        if (pageDragBasePage !== ARTICLES_PAGE_INDEX || articlesPageStack.length <= 1) {
+            pagesEl.style.transition = 'none';
+        }
     }
 
     const maxDelta = pageDragPxWidth;
     const limitedDx = Math.max(-maxDelta, Math.min(maxDelta, dx));
+
+    if (pageDragBasePage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1) {
+        const container = document.getElementById('articles-page-content');
+        if (container) {
+            const visualDx = Math.max(-140, Math.min(140, limitedDx * 0.35));
+            container.style.transition = 'none';
+            container.style.transform = `translateX(${visualDx}px)`;
+            container.style.opacity = String(1 - Math.min(0.35, Math.abs(limitedDx) / maxDelta * 0.35));
+        }
+        return;
+    }
+
     let livePos = pageDragBasePage - limitedDx / pageDragPxWidth;
     livePos = Math.max(0, Math.min(TOTAL_PAGES - 1, livePos));
     pagesEl.style.transform = `translateX(-${livePos * pageWidthPercent}%)`;
