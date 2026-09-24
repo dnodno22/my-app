@@ -398,7 +398,7 @@ th { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 12px 8px; position
 td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; color: #444; }
 tr:nth-child(even) td { background: #f9fafb; }
 
-.page-dots { position: fixed; bottom: calc(8px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; gap: 5px; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.2s ease; }
+.page-dots { position: fixed; bottom: calc(2px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; gap: 5px; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.2s ease; }
 .page-dots.visible { opacity: 1; }
 .dot { width: 5px; height: 5px; border-radius: 50%; background: #d1d5db; }
 .dot.active { background: #374151; transform: scale(1.4); }
@@ -1100,7 +1100,7 @@ function buildArticlesLevelHtml(stateIndex) {
     let html = '';
 
     if (state.level === 'articles') {
-        html += '<div class="premontage-title">Оберіть артикул</div>';
+        html += '<div class="premontage-title"></div>';
         const articles = sortArticlesWithFavorites(articleGroups.map(g => g.article));
         if (!articles.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Немає даних</div>';
@@ -1114,8 +1114,7 @@ function buildArticlesLevelHtml(stateIndex) {
         }
     } else if (state.level === 'actions') {
         const favorite = isArticleFavorite(state.article);
-        html += `<div class="premontage-title" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-            <span>Артикул ${escapeHtml(state.article)}</span>
+        html += `<div class="premontage-title" style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
             <button class="article-favorite-btn${favorite ? ' selected' : ''}" data-anav="article-favorite" data-article="${escapeHtml(state.article)}" aria-label="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}" title="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}">${favorite ? '★' : '☆'}</button>
         </div>`;
         const available = getAvailableActionsForArticle(state.article);
@@ -1132,7 +1131,7 @@ function buildArticlesLevelHtml(stateIndex) {
         const rows = state.action === 'розміщення'
             ? getAllMaterialsForArticle(state.article)
             : computeArticleActionResults(state.article, state.action);
-        html += `<div class="premontage-title">${actionLabel(state.action)}</div>`;
+        html += `<div class="premontage-title"></div>`;
         if (!rows.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
         } else if (state.action === 'розміщення') {
@@ -1262,7 +1261,7 @@ function buildArticlesLevelHtml(stateIndex) {
         }
     } else if (state.level === 'premontage-categories') {
         const categories = computePremontageCategoriesForArticle(state.article);
-        html += `<div class="premontage-title">${actionLabel('передмонтаж')}</div>`;
+        html += `<div class="premontage-title"></div>`;
         if (!categories.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Немає передмонтажів для цього артикулу</div>';
         } else {
@@ -1274,7 +1273,7 @@ function buildArticlesLevelHtml(stateIndex) {
         }
     } else if (state.level === 'premontage-wires') {
         const wires = computeWiresForCategory(state.article, state.category);
-        html += `<div class="premontage-title">${escapeHtml(state.category)}</div>`;
+        html += `<div class="premontage-title"></div>`;
         if (!wires.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Проводів не знайдено</div>';
         } else {
@@ -1293,7 +1292,7 @@ function buildArticlesLevelHtml(stateIndex) {
         }
     } else if (state.level === 'wire-stations') {
         const stations = computeWireStationsForArticle(state.article);
-        html += `<div class="premontage-title">${actionLabel('проводи')}</div>`;
+        html += `<div class="premontage-title"></div>`;
         if (!stations.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Немає станцій з проводами для цього артикулу</div>';
         } else {
@@ -1305,7 +1304,7 @@ function buildArticlesLevelHtml(stateIndex) {
         }
     } else if (state.level === 'wire-results') {
         const wires = computeWiresForStation(state.article, state.station);
-        html += `<div class="premontage-title">Станція ${escapeHtml(state.station)}</div>`;
+        html += `<div class="premontage-title"></div>`;
         if (!wires.length) {
             html += '<div style="text-align:center; padding:40px; color:#aaa;">Проводів не знайдено</div>';
         } else {
