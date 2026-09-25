@@ -148,15 +148,6 @@ input#input {
     text-align: center;
     padding: 8px 0;
 }
-.page-eyebrow {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #9ca3af;
-    text-align: center;
-    padding-bottom: 4px;
-}
 
 .select-btn {
     border: none;
@@ -397,11 +388,6 @@ table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
 th { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 12px 8px; position: sticky; top: 0; text-align: left; font-weight: 700; color: #333; }
 td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; color: #444; }
 tr:nth-child(even) td { background: #f9fafb; }
-
-.page-dots { position: fixed; bottom: calc(2px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; gap: 5px; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.2s ease; }
-.page-dots.visible { opacity: 1; }
-.dot { width: 5px; height: 5px; border-radius: 50%; background: #d1d5db; }
-.dot.active { background: #374151; transform: scale(1.4); }
 </style>
 </head>
 <body>
@@ -410,7 +396,6 @@ tr:nth-child(even) td { background: #f9fafb; }
     <!-- PAGE (waitlist): свайп управо від пошуку -->
     <div class="page" id="page-waitlist">
         <div class="search-header">
-            <div class="page-eyebrow">Обране</div>
             <div class="waitlist-title">⭐ Обрані матеріали</div>
         </div>
         <div class="scroll-area"><div id="waitlist-result"></div></div>
@@ -418,7 +403,6 @@ tr:nth-child(even) td { background: #f9fafb; }
     <!-- PAGE (search) -->
     <div class="page" id="page0">
         <div class="search-header">
-            <div class="page-eyebrow">Пошук</div>
             <input id="input" readonly>
         </div>
         <div class="scroll-area"><div id="result"></div></div>
@@ -444,8 +428,6 @@ tr:nth-child(even) td { background: #f9fafb; }
         <div class="scroll-area"><div id="articles-page-content"></div></div>
     </div>
 </div>
-
-<div class="page-dots" id="page-dots"></div>
 
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ====================
@@ -507,21 +489,13 @@ const resultBox = document.getElementById('result');
 const waitlistBox = document.getElementById('waitlist-result');
 const kbWrapper = document.getElementById('kb-wrapper');
 const pagesEl = document.getElementById('pages');
-const dotsEl = document.getElementById('page-dots');
 
 const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 
-// Кількість сторінок фіксована (3) — ширина і крапки виставляються один раз при завантаженні
+// Кількість сторінок фіксована (3) — ширина виставляється один раз при завантаженні
 document.querySelectorAll('.page').forEach(p => { p.style.width = pageWidthPercent + '%'; });
 pagesEl.style.width = (TOTAL_PAGES * 100) + '%';
-for (let i = 0; i < TOTAL_PAGES; i++) {
-    const d = document.createElement('div');
-    d.className = 'dot' + (i === currentPage ? ' active' : '');
-    d.id = 'dot' + i;
-    dotsEl.appendChild(d);
-}
-dotsEl.classList.add('visible');
 // На старті відкриваємо саме сторінку пошуку, а не першу бічну сторінку.
 pagesEl.style.transform = `translateX(-${currentPage * pageWidthPercent}%)`;
 
@@ -1280,11 +1254,9 @@ function buildArticlesLevelHtml(stateIndex) {
             html += '<div class="wire-list">';
             wires.forEach(w => {
                 const wireName = String(w.material || "").trim();
-                const note = String(w.colD || "").trim();
                 const address = String(w.address || "").trim();
                 html += `<div class="wire-row">
                     <span class="wire-name">${escapeHtml(wireName)}</span>
-                    ${note ? `<span class="wire-code">${escapeHtml(note)}</span>` : ''}
                     <span class="wire-location">${escapeHtml(address)}</span>
                 </div>`;
             });
@@ -1478,9 +1450,6 @@ function goToPage(n) {
     n = Math.max(0, Math.min(TOTAL_PAGES - 1, n));
     currentPage = n;
     pagesEl.style.transform = `translateX(-${n * pageWidthPercent}%)`;
-    for (let i = 0; i < TOTAL_PAGES; i++) {
-        document.getElementById('dot' + i).classList.toggle('active', i === n);
-    }
 
     if (n === SEARCH_PAGE_INDEX) {
         kbWrapper.classList.remove('hidden');
@@ -1580,10 +1549,6 @@ function finishPageDrag(dx) {
     pagesEl.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
     currentPage = target;
     pagesEl.style.transform = `translateX(-${target * pageWidthPercent}%)`;
-
-    for (let i = 0; i < TOTAL_PAGES; i++) {
-        document.getElementById('dot' + i).classList.toggle('active', i === target);
-    }
 
     if (target === SEARCH_PAGE_INDEX) {
         kbWrapper.classList.remove('hidden');
