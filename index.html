@@ -377,6 +377,16 @@ mark.hl {
 }
 .btn:active { background: #F7F7F7; transform: scale(.96); }
 .btn-special { background: #f1f5f9; }
+.btn-version {
+    background: #f1f5f9;
+    color: #9ca3af;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
 
 /* TABLE PAGES */
 .table-page { background: #fff; }
@@ -417,7 +427,7 @@ tr:nth-child(even) td { background: #f9fafb; }
                 <button class="btn" data-v="7">7</button>
                 <button class="btn" data-v="8">8</button>
                 <button class="btn" data-v="9">9</button>
-                <button class="btn" data-v="с">с</button>
+                <div class="btn btn-version" id="kb-version"></div>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -450,6 +460,11 @@ tr:nth-child(even) td { background: #f9fafb; }
    зустрічаються — вони існують лише всередині складеного запису вище,
    тож ніякого додаткового "домержування" не потрібно: досатньо просто
    розгорнути кожен рядок і згрупувати рядки за повним артикулом. */
+/* ==================== ВЕРСІЯ КОДУ ====================
+   Збільшується на 1 при КОЖНІЙ зміні коду (будь-яким AI/сесією, що редагує
+   цей файл) — щоб було видно, яка версія зараз відкрита, без порівняння файлів. */
+const CODE_VERSION = 1;
+
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -494,6 +509,9 @@ const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 
 // Кількість сторінок фіксована (3) — ширина виставляється один раз при завантаженні
+const kbVersionEl = document.getElementById('kb-version');
+if (kbVersionEl) kbVersionEl.textContent = 'v' + CODE_VERSION;
+
 document.querySelectorAll('.page').forEach(p => { p.style.width = pageWidthPercent + '%'; });
 pagesEl.style.width = (TOTAL_PAGES * 100) + '%';
 // На старті відкриваємо саме сторінку пошуку, а не першу бічну сторінку.
