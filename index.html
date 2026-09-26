@@ -71,18 +71,6 @@ input#input {
     touch-action: pan-y;
 }
 
-/* Суцільна біла "накривка" зони під статус-баром/чолкою — щоб iOS
-   не малював власний розмитий (blurred) фон під час скролу контенту
-   під нею. Не перехоплює дотики. */
-.status-bar-cover {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: env(safe-area-inset-top);
-    background: #ffffff;
-    z-index: 1000;
-    pointer-events: none;
-}
-
 /* ==================== RESULT CARDS (NEW DESIGN) ==================== */
 .result-card {
     background: #ffffff;
@@ -413,8 +401,6 @@ tr:nth-child(even) td { background: #f9fafb; }
 </style>
 </head>
 <body>
-
-<div class="status-bar-cover"></div>
 
 <div id="pages">
     <!-- PAGE (waitlist): свайп управо від пошуку -->
@@ -1099,14 +1085,6 @@ function popArticlesPageLevel() {
     }
 }
 
-// Назва передмонтажу в таблиці записана як код+цифри (напр. "KNDS038").
-// На кнопці показуємо лише літерний код без цифр — "KNDS".
-function formatPremontageCategoryLabel(rawName) {
-    const raw = String(rawName || "").trim();
-    const m = raw.match(/^[A-Za-zА-Яа-яІіЇїЄєҐґ]+/);
-    return m ? m[0] : raw;
-}
-
 function buildArticlesLevelHtml(stateIndex) {
     const state = articlesPageStack[stateIndex];
     if (!state) return '';
@@ -1128,8 +1106,7 @@ function buildArticlesLevelHtml(stateIndex) {
         }
     } else if (state.level === 'actions') {
         const favorite = isArticleFavorite(state.article);
-        html += `<div class="premontage-title" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-            <span>${renderArticleNumber(state.article, "", false, true)}</span>
+        html += `<div class="premontage-title" style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
             <button class="article-favorite-btn${favorite ? ' selected' : ''}" data-anav="article-favorite" data-article="${escapeHtml(state.article)}" aria-label="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}" title="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}">${favorite ? '★' : '☆'}</button>
         </div>`;
         const available = getAvailableActionsForArticle(state.article);
@@ -1282,16 +1259,7 @@ function buildArticlesLevelHtml(stateIndex) {
         } else {
             html += '<div class="premontage-btn-grid">';
             categories.forEach(c => {
-                const label = formatPremontageCategoryLabel(c);
-                const addresses = [...new Set(
-                    computeWiresForCategory(state.article, c)
-                        .map(w => String(w.address || "").trim())
-                        .filter(Boolean)
-                )];
-                const addressHtml = addresses.length
-                    ? `<div style="font-size:12px; font-weight:600; color:#059669; margin-top:4px;">${escapeHtml(addresses.join(', '))}</div>`
-                    : '';
-                html += `<button class="premontage-item-btn" data-anav="category" data-category="${escapeHtml(c)}">${escapeHtml(label)}${addressHtml}</button>`;
+                html += `<button class="premontage-item-btn" data-anav="category" data-category="${escapeHtml(c)}">${escapeHtml(c)}</button>`;
             });
             html += '</div>';
         }
