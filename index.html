@@ -16,7 +16,7 @@ html, body {
     background: #fff; touch-action: none;
 }
 
-#pages { display: flex; height: 100%; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); }
+#pages { display: flex; height: 100%; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); transform: translateX(-33.333333%); }
 .page { height: 100%; display: flex; flex-direction: column; overflow: hidden; position: relative; flex-shrink: 0; }
 
 /* SEARCH PAGE */
@@ -463,7 +463,7 @@ tr:nth-child(even) td { background: #f9fafb; }
 /* ==================== ВЕРСІЯ КОДУ ====================
    Збільшується на 1 при КОЖНІЙ зміні коду (будь-яким AI/сесією, що редагує
    цей файл) — щоб було видно, яка версія зараз відкрита, без порівняння файлів. */
-const CODE_VERSION = 2;
+const CODE_VERSION = 3;
 
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
@@ -711,29 +711,58 @@ function parseSearchCSV(t) {
     });
 }
 
-// 1. СПОЧАТКУ дивимось у кеш і одразу малюємо, якщо там щось є
-const cachedSearch = localStorage.getItem(CACHE_KEY_SEARCH);
-if (cachedSearch) {
-    parseSearchCSV(cachedSearch);
-    if (input.value) search();
-}
-refreshArticleGroups();
+/*
+   ШВИДКИЙ СТАРТ
+   --------------------------------
+   Головна сторінка показується першою.
+   Важкі операції запускаються тільки після того, як браузер
+   отримає можливість намалювати інтерфейс.
+*/
+function startBackgroundLoad() {
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            // 1. Спочатку швидко підхоплюємо кеш.
+            const cachedSearch = localStorage.getItem(CACHE_KEY_SEARCH);
 
-// 2. ПОТІМ у фоні тягнемо свіжі дані і тихо оновлюємо кеш + список + аркуші зліва
+            if (cachedSearch) {
+                parseSearchCSV(cachedSearch);
+                if (input.value) search();
+            }
+
+            // 2. Групування "Артикулів" — після показу головної.
+            setTimeout(() => {
+                refreshArticleGroups();
+            }, 0);
+
+            // 3. Свіжі дані Google Sheets — у фоні.
+            setTimeout(fetchSearchData, 100);
+        }, 0);
+    });
+}
+
+// Завантаження Google Sheets у фоні.
 function fetchSearchData() {
     const url1 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SEARCH_GID}&t=` + Date.now();
+
     fetch(url1)
-    .then(r => r.text())
-    .then(t => {
-        localStorage.setItem(CACHE_KEY_SEARCH, t);
-        localStorage.setItem(CACHE_KEY_SEARCH_TIME, Date.now().toString());
-        parseSearchCSV(t);
-        refreshArticleGroups();
-        if (input.value) search();
-    })
-    .catch(() => {});
+        .then(r => r.text())
+        .then(t => {
+            localStorage.setItem(CACHE_KEY_SEARCH, t);
+            localStorage.setItem(CACHE_KEY_SEARCH_TIME, Date.now().toString());
+            parseSearchCSV(t);
+
+            // Оновлюємо важку сторінку окремим завданням,
+            // щоб не блокувати інтерфейс.
+            setTimeout(() => {
+                refreshArticleGroups();
+            }, 0);
+
+            if (input.value) search();
+        })
+        .catch(() => {});
 }
-fetchSearchData();
+
+startBackgroundLoad();
 
 // Екранування HTML перед вставкою
 function escapeHtml(str) {
