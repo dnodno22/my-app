@@ -463,7 +463,7 @@ tr:nth-child(even) td { background: #f9fafb; }
 /* ==================== ВЕРСІЯ КОДУ ====================
    Збільшується на 1 при КОЖНІЙ зміні коду (будь-яким AI/сесією, що редагує
    цей файл) — щоб було видно, яка версія зараз відкрита, без порівняння файлів. */
-const CODE_VERSION = 1;
+const CODE_VERSION = 2;
 
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
@@ -482,6 +482,8 @@ let articleGroups = [];
 //                                                    -> {level:'premontage-categories', article} -> {level:'premontage-wires', article, category}
 //                                                    -> {level:'wire-stations', article} -> {level:'wire-results', article, station}
 // Свайп у будь-яку сторону на цій сторінці = крок назад (pop зі стеку), поки стек не дійде до 'articles'.
+// Кожен об'єкт рівня, після першого рендеру, отримує cachedHtml — щоб повернення
+// НАЗАД (pop) не перебудовувало HTML заново, а миттєво показувало вже готовий.
 let articlesPageStack = [{ level: 'articles' }];
 const ARTICLE_ACTION_KEYS = ["розміщення", "sp", "ts", "стр", "мм", "передмонтаж", "проводи"];
 // Читабельні назви кнопок дій (реальний пошук усе одно йде по коду з масиву вище —
@@ -674,9 +676,11 @@ function sortArticlesWithFavorites(articles) {
 
 // Перебудовує список артикулів (для сторінки "Артикули") з поточних searchData.
 // Викликається одразу після завантаження кешу і повторно після кожного свіжого фетчу.
+// Дані могли змінитись — тому скидаємо весь кеш HTML на стеку і примусово перебудовуємо.
 function refreshArticleGroups() {
     articleGroups = computeArticleGroups();
-    renderArticlesPage();
+    articlesPageStack.forEach(s => { delete s.cachedHtml; });
+    renderArticlesPage(true);
 }
 
 /* ---------- Клавіатура (сторінка пошуку) ---------- */
@@ -1319,7 +1323,11 @@ function buildArticlesLevelHtml(stateIndex) {
     return html;
 }
 
-function renderArticlesPage() {
+// forceRebuild = true пропускає кеш і завжди перебудовує HTML (потрібно, коли
+// дані чи стан (наприклад, обране) справді змінились). Без нього, якщо для
+// поточного рівня вже є cachedHtml (типово — при поверненні НАЗАД), він
+// використовується миттєво, без повторного виклику buildArticlesLevelHtml.
+function renderArticlesPage(forceRebuild) {
     const container = document.getElementById('articles-page-content');
     if (!container) return;
     // Скидаємо зсув після перетягування назад
@@ -1330,12 +1338,17 @@ function renderArticlesPage() {
     if (pageArticlesEl) pageArticlesEl.classList.remove('articles-swiping');
 
     const idx = articlesPageStack.length - 1;
-    const html = buildArticlesLevelHtml(idx);
-    container.innerHTML = html;
-    // Кеш HTML рівня — щоб свайп назад не перебудовував важкі таблиці під час жесту
-    if (articlesPageStack[idx]) {
-        articlesPageStack[idx].cachedHtml = html;
+    const state = articlesPageStack[idx];
+
+    let html;
+    if (!forceRebuild && state && state.cachedHtml) {
+        html = state.cachedHtml;
+    } else {
+        html = buildArticlesLevelHtml(idx);
+        if (state) state.cachedHtml = html;
     }
+
+    container.innerHTML = html;
 }
 
 const articlesPageContent = document.getElementById('articles-page-content');
@@ -1348,7 +1361,9 @@ articlesPageContent.addEventListener('click', (e) => {
 
     if (nav === 'article-favorite') {
         toggleArticleFavorite(btn.dataset.article);
-        renderArticlesPage();
+        // Стан "обраного" на ЦЬОМУ рівні змінився — примусово перебудовуємо,
+        // інакше показався б застарілий кеш зі старою зірочкою/порядком.
+        renderArticlesPage(true);
         return;
     }
 
