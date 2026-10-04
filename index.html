@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -73,16 +72,11 @@ input#input {
     touch-action: pan-y;
 }
 
-/* Відступ під крапочки тільки на сторінці "Артикули" */
-#page-articles .scroll-area {
-    padding-top: 32px;
-}
-
 /* ==================== КРАПОЧКИ ГЛИБИНИ АРТИКУЛІВ ==================== */
 
 .articles-dots {
-    position: absolute;
-    top: calc(8px + env(safe-area-inset-top));
+    position: fixed;
+    bottom: calc(8px + env(safe-area-inset-bottom));
     left: 0;
     right: 0;
     height: 18px;
@@ -92,7 +86,7 @@ input#input {
     justify-content: center;
     gap: 7px;
 
-    z-index: 20;
+    z-index: 30;
     pointer-events: none;
 }
 
@@ -506,7 +500,8 @@ mark.hl {
     background: #fff;
     border-top: 1px solid #e5e7eb;
     padding: 12px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    /* Extra space below 0-key for depth dots */
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
 }
 
 .kb-grid {
@@ -666,9 +661,6 @@ tr:nth-child(even) td {
     <!-- PAGE (артикули): свайп ліворуч від пошуку -->
     <div class="page" id="page-articles">
 
-        <!-- КРАПОЧКИ ГЛИБИНИ -->
-        <div class="articles-dots" id="articles-dots"></div>
-
         <div class="scroll-area">
             <div id="articles-page-content"></div>
         </div>
@@ -676,13 +668,16 @@ tr:nth-child(even) td {
 
 </div>
 
+<!-- КРАПОЧКИ ГЛИБИНИ (глобально: пошук + артикули) -->
+<div class="articles-dots" id="articles-dots"></div>
+
 <script>
 
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 
 /* ==================== ВЕРСІЯ КОДУ ==================== */
 
-const CODE_VERSION = 5;
+const CODE_VERSION = 6;
 
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
@@ -756,10 +751,13 @@ function renderArticlesDots() {
     if (!articlesDots) return;
 
     /*
-        Крапочки існують ТІЛЬКИ на сторінці "Артикули".
-        На пошуку та обраних матеріалах їх немає.
+        Крапочки показуємо на сторінках "Пошук" і "Артикули".
+        На "Обрані матеріали" їх немає.
     */
-    if (currentPage !== ARTICLES_PAGE_INDEX) {
+    if (
+        currentPage !== ARTICLES_PAGE_INDEX &&
+        currentPage !== SEARCH_PAGE_INDEX
+    ) {
         articlesDots.style.display = 'none';
         articlesDots.innerHTML = '';
         return;
@@ -4137,4 +4135,3 @@ renderArticlesDots();
 
 </body>
 </html>
-```
