@@ -463,7 +463,7 @@ tr:nth-child(even) td { background: #f9fafb; }
 /* ==================== ВЕРСІЯ КОДУ ====================
    Збільшується на 1 при КОЖНІЙ зміні коду (будь-яким AI/сесією, що редагує
    цей файл) — щоб було видно, яка версія зараз відкрита, без порівняння файлів. */
-const CODE_VERSION = 3;
+const CODE_VERSION = 4;
 
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
@@ -828,14 +828,10 @@ function toggleWaitlistItem(key, material, address, articlesPlain) {
     saveWaitlist(list);
     return idx < 0; // true = щойно додано, false = щойно прибрано
 }
-// Кнопка "обране" для карток на сторінках дій артикулу (sp/ts/стр/мм/проводи/розміщення).
-// Використовує ТУ САМУ логіку й формат ключа, що й кнопка обраного на сторінці пошуку.
-function resultFavButtonHtml(material, address, article, stations) {
-    const key = material + "|" + address;
-    const selected = isInWaitlist(key);
-    const stArr = stations ? [...stations] : [];
-    const articlesPlain = article ? { [article]: stArr } : {};
-    return `<button class="select-btn${selected ? ' selected' : ''}" data-anav="fav-toggle" data-key="${encodeURIComponent(key)}" data-material="${encodeURIComponent(material)}" data-address="${encodeURIComponent(address)}" data-articles="${encodeURIComponent(JSON.stringify(articlesPlain))}">${selected ? '★' : '☆'}</button>`;
+// Рядок результату (на сторінках дій артикулу) можна тапнути — назва матеріалу
+// підставляється в поле пошуку і виконується звичайний пошук по ній.
+function toSearchAttr(material) {
+    return `data-anav="to-search" data-material="${encodeURIComponent(material)}"`;
 }
 
 function setWaitlistComment(key, text) {
@@ -1148,9 +1144,9 @@ function buildArticlesLevelHtml(stateIndex) {
                 if (byStation !== 0) return byStation;
                 return String(a.material || "").localeCompare(String(b.material || ""), 'uk', { numeric: true, sensitivity: 'base' });
             });
-            html += '<table><thead><tr><th>Станція</th><th></th><th>Матеріал</th><th>Адреса</th></tr></thead><tbody>';
+            html += '<table><thead><tr><th>Станція</th><th>Матеріал</th><th>Адреса</th></tr></thead><tbody>';
             sorted.forEach(r => {
-                html += `<tr><td>${escapeHtml(r.station)}</td><td>${resultFavButtonHtml(r.material, r.address, state.article, [r.station])}</td><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.address)}</td></tr>`;
+                html += `<tr ${toSearchAttr(r.material)} style="cursor:pointer;"><td>${escapeHtml(r.station)}</td><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.address)}</td></tr>`;
             });
             html += '</tbody></table>';
         } else if (state.action === 'sp') {
@@ -1178,9 +1174,8 @@ function buildArticlesLevelHtml(stateIndex) {
                         .sort((a, b) => String(a).localeCompare(String(b), 'uk', { numeric: true }))
                         .map(st => escapeHtml(st));
                     const stationsHtml = buildStationsHtml(stationHtmlArr);
-                    html += `<div class="result-card">
+                    html += `<div class="result-card" ${toSearchAttr(item.num)} style="cursor:pointer;">
                         <div class="result-top">
-                            ${resultFavButtonHtml(item.num, item.addr, state.article, item.stations)}
                             <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(item.num)}</span>
                             <span class="result-address-new">${escapeHtml(item.addr)}</span>
                         </div>
@@ -1212,8 +1207,7 @@ function buildArticlesLevelHtml(stateIndex) {
                         <span class="result-material-badge"><span class="box-icon">📍</span>Станція ${escapeHtml(st)}</span>
                     </div>`;
                 byStation[st].forEach((item, i) => {
-                    html += `<div class="article-row"${i === 0 ? ' style="border-top:none; padding-top:0;"' : ''}>
-                        ${resultFavButtonHtml(item.mat, item.addr, state.article, [st])}
+                    html += `<div class="article-row" ${toSearchAttr(item.mat)} style="cursor:pointer;${i === 0 ? ' border-top:none; padding-top:0;' : ''}">
                         <span class="article-number">${escapeHtml(item.mat)}</span>
                         <span class="article-stations">${escapeHtml(item.addr)}</span>
                     </div>`;
@@ -1234,9 +1228,8 @@ function buildArticlesLevelHtml(stateIndex) {
                     .sort((a, b) => String(a).localeCompare(String(b), 'uk', { numeric: true }))
                     .map(st => escapeHtml(st));
                 const stationsHtml = buildStationsHtml(stationHtmlArr);
-                html += `<div class="result-card">
+                html += `<div class="result-card" ${toSearchAttr(matName)} style="cursor:pointer;">
                     <div class="result-top">
-                        ${resultFavButtonHtml(matName, matAddr, state.article, grouped[matKey])}
                         <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
                         <span class="result-address-new">${escapeHtml(matAddr)}</span>
                     </div>
@@ -1257,9 +1250,8 @@ function buildArticlesLevelHtml(stateIndex) {
                 const [matName, matAddr] = matKey.split("|");
                 const stationHtmlArr = [...grouped[matKey]].map(st => escapeHtml(st));
                 const stationsHtml = buildStationsHtml(stationHtmlArr);
-                html += `<div class="result-card">
+                html += `<div class="result-card" ${toSearchAttr(matName)} style="cursor:pointer;">
                     <div class="result-top">
-                        ${resultFavButtonHtml(matName, matAddr, state.article, grouped[matKey])}
                         <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
                         <span class="result-address-new">${escapeHtml(matAddr)}</span>
                     </div>
@@ -1291,7 +1283,7 @@ function buildArticlesLevelHtml(stateIndex) {
             wires.forEach(w => {
                 const wireName = String(w.material || "").trim();
                 const address = String(w.address || "").trim();
-                html += `<div class="wire-row">
+                html += `<div class="wire-row" ${toSearchAttr(wireName)} style="cursor:pointer;">
                     <span class="wire-name">${escapeHtml(wireName)}</span>
                     <span class="wire-location">${escapeHtml(address)}</span>
                 </div>`;
@@ -1324,9 +1316,8 @@ function buildArticlesLevelHtml(stateIndex) {
                 const key = matName + "|" + matAddr;
                 if (seen.has(key)) return;
                 seen.add(key);
-                html += `<div class="result-card">
+                html += `<div class="result-card" ${toSearchAttr(matName)} style="cursor:pointer;">
                     <div class="result-top">
-                        ${resultFavButtonHtml(matName, matAddr, state.article, state.station ? [state.station] : [])}
                         <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
                         <span class="result-address-new">${escapeHtml(matAddr)}</span>
                     </div>
@@ -1374,18 +1365,11 @@ articlesPageContent.addEventListener('click', (e) => {
     const nav = btn.dataset.anav;
     const current = articlesPageStack[articlesPageStack.length - 1];
 
-    if (nav === 'fav-toggle') {
-        const key = decodeURIComponent(btn.dataset.key || "");
+    if (nav === 'to-search') {
         const material = decodeURIComponent(btn.dataset.material || "");
-        const address = decodeURIComponent(btn.dataset.address || "");
-        let articlesPlain = {};
-        try { articlesPlain = JSON.parse(decodeURIComponent(btn.dataset.articles || "{}")); } catch (_) {}
-        const nowSelected = toggleWaitlistItem(key, material, address, articlesPlain);
-        btn.classList.toggle('selected', nowSelected);
-        btn.textContent = nowSelected ? '★' : '☆';
-        // Тримаємо кеш цього рівня в синхроні з щойно зміненою зіркою,
-        // щоб повернення/скасований свайп не показали застарілий стан.
-        if (current) current.cachedHtml = articlesPageContent.innerHTML;
+        input.value = material;
+        goToPage(SEARCH_PAGE_INDEX);
+        search();
         return;
     }
 
