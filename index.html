@@ -16,7 +16,7 @@ html, body {
     background: #fff; touch-action: none;
 }
 
-#pages { display: flex; height: 100%; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); transform: translateX(-33.333333%); }
+#pages { display: flex; height: 100%; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); }
 .page { height: 100%; display: flex; flex-direction: column; overflow: hidden; position: relative; flex-shrink: 0; }
 
 /* SEARCH PAGE */
@@ -711,58 +711,29 @@ function parseSearchCSV(t) {
     });
 }
 
-/*
-   ШВИДКИЙ СТАРТ
-   --------------------------------
-   Головна сторінка показується першою.
-   Важкі операції запускаються тільки після того, як браузер
-   отримає можливість намалювати інтерфейс.
-*/
-function startBackgroundLoad() {
-    requestAnimationFrame(() => {
-        setTimeout(() => {
-            // 1. Спочатку швидко підхоплюємо кеш.
-            const cachedSearch = localStorage.getItem(CACHE_KEY_SEARCH);
-
-            if (cachedSearch) {
-                parseSearchCSV(cachedSearch);
-                if (input.value) search();
-            }
-
-            // 2. Групування "Артикулів" — після показу головної.
-            setTimeout(() => {
-                refreshArticleGroups();
-            }, 0);
-
-            // 3. Свіжі дані Google Sheets — у фоні.
-            setTimeout(fetchSearchData, 100);
-        }, 0);
-    });
+// 1. СПОЧАТКУ дивимось у кеш і одразу малюємо, якщо там щось є
+const cachedSearch = localStorage.getItem(CACHE_KEY_SEARCH);
+if (cachedSearch) {
+    parseSearchCSV(cachedSearch);
+    if (input.value) search();
 }
+refreshArticleGroups();
 
-// Завантаження Google Sheets у фоні.
+// 2. ПОТІМ у фоні тягнемо свіжі дані і тихо оновлюємо кеш + список + аркуші зліва
 function fetchSearchData() {
     const url1 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SEARCH_GID}&t=` + Date.now();
-
     fetch(url1)
-        .then(r => r.text())
-        .then(t => {
-            localStorage.setItem(CACHE_KEY_SEARCH, t);
-            localStorage.setItem(CACHE_KEY_SEARCH_TIME, Date.now().toString());
-            parseSearchCSV(t);
-
-            // Оновлюємо важку сторінку окремим завданням,
-            // щоб не блокувати інтерфейс.
-            setTimeout(() => {
-                refreshArticleGroups();
-            }, 0);
-
-            if (input.value) search();
-        })
-        .catch(() => {});
+    .then(r => r.text())
+    .then(t => {
+        localStorage.setItem(CACHE_KEY_SEARCH, t);
+        localStorage.setItem(CACHE_KEY_SEARCH_TIME, Date.now().toString());
+        parseSearchCSV(t);
+        refreshArticleGroups();
+        if (input.value) search();
+    })
+    .catch(() => {});
 }
-
-startBackgroundLoad();
+fetchSearchData();
 
 // Екранування HTML перед вставкою
 function escapeHtml(str) {
@@ -857,6 +828,16 @@ function toggleWaitlistItem(key, material, address, articlesPlain) {
     saveWaitlist(list);
     return idx < 0; // true = щойно додано, false = щойно прибрано
 }
+// Кнопка "обране" для карток на сторінках дій артикулу (sp/ts/стр/мм/проводи/розміщення).
+// Використовує ТУ САМУ логіку й формат ключа, що й кнопка обраного на сторінці пошуку.
+function resultFavButtonHtml(material, address, article, stations) {
+    const key = material + "|" + address;
+    const selected = isInWaitlist(key);
+    const stArr = stations ? [...stations] : [];
+    const articlesPlain = article ? { [article]: stArr } : {};
+    return `<button class="select-btn${selected ? ' selected' : ''}" data-anav="fav-toggle" data-key="${encodeURIComponent(key)}" data-material="${encodeURIComponent(material)}" data-address="${encodeURIComponent(address)}" data-articles="${encodeURIComponent(JSON.stringify(articlesPlain))}">${selected ? '★' : '☆'}</button>`;
+}
+
 function setWaitlistComment(key, text) {
     const list = loadWaitlist();
     const idx = list.findIndex(item => item.key === key);
@@ -1167,9 +1148,9 @@ function buildArticlesLevelHtml(stateIndex) {
                 if (byStation !== 0) return byStation;
                 return String(a.material || "").localeCompare(String(b.material || ""), 'uk', { numeric: true, sensitivity: 'base' });
             });
-            html += '<table><thead><tr><th>Станція</th><th>Матеріал</th><th>Адреса</th></tr></thead><tbody>';
+            html += '<table><thead><tr><th>Станція</th><th></th><th>Матеріал</th><th>Адреса</th></tr></thead><tbody>';
             sorted.forEach(r => {
-                html += `<tr><td>${escapeHtml(r.station)}</td><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.address)}</td></tr>`;
+                html += `<tr><td>${escapeHtml(r.station)}</td><td>${resultFavButtonHtml(r.material, r.address, state.article, [r.station])}</td><td>${escapeHtml(r.material)}</td><td>${escapeHtml(r.address)}</td></tr>`;
             });
             html += '</tbody></table>';
         } else if (state.action === 'sp') {
@@ -1199,6 +1180,7 @@ function buildArticlesLevelHtml(stateIndex) {
                     const stationsHtml = buildStationsHtml(stationHtmlArr);
                     html += `<div class="result-card">
                         <div class="result-top">
+                            ${resultFavButtonHtml(item.num, item.addr, state.article, item.stations)}
                             <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(item.num)}</span>
                             <span class="result-address-new">${escapeHtml(item.addr)}</span>
                         </div>
@@ -1231,6 +1213,7 @@ function buildArticlesLevelHtml(stateIndex) {
                     </div>`;
                 byStation[st].forEach((item, i) => {
                     html += `<div class="article-row"${i === 0 ? ' style="border-top:none; padding-top:0;"' : ''}>
+                        ${resultFavButtonHtml(item.mat, item.addr, state.article, [st])}
                         <span class="article-number">${escapeHtml(item.mat)}</span>
                         <span class="article-stations">${escapeHtml(item.addr)}</span>
                     </div>`;
@@ -1253,6 +1236,7 @@ function buildArticlesLevelHtml(stateIndex) {
                 const stationsHtml = buildStationsHtml(stationHtmlArr);
                 html += `<div class="result-card">
                     <div class="result-top">
+                        ${resultFavButtonHtml(matName, matAddr, state.article, grouped[matKey])}
                         <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
                         <span class="result-address-new">${escapeHtml(matAddr)}</span>
                     </div>
@@ -1275,6 +1259,7 @@ function buildArticlesLevelHtml(stateIndex) {
                 const stationsHtml = buildStationsHtml(stationHtmlArr);
                 html += `<div class="result-card">
                     <div class="result-top">
+                        ${resultFavButtonHtml(matName, matAddr, state.article, grouped[matKey])}
                         <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
                         <span class="result-address-new">${escapeHtml(matAddr)}</span>
                     </div>
@@ -1341,6 +1326,7 @@ function buildArticlesLevelHtml(stateIndex) {
                 seen.add(key);
                 html += `<div class="result-card">
                     <div class="result-top">
+                        ${resultFavButtonHtml(matName, matAddr, state.article, state.station ? [state.station] : [])}
                         <span class="result-material-badge"><span class="box-icon">📦</span>${escapeHtml(matName)}</span>
                         <span class="result-address-new">${escapeHtml(matAddr)}</span>
                     </div>
@@ -1387,6 +1373,21 @@ articlesPageContent.addEventListener('click', (e) => {
     if (!btn) return;
     const nav = btn.dataset.anav;
     const current = articlesPageStack[articlesPageStack.length - 1];
+
+    if (nav === 'fav-toggle') {
+        const key = decodeURIComponent(btn.dataset.key || "");
+        const material = decodeURIComponent(btn.dataset.material || "");
+        const address = decodeURIComponent(btn.dataset.address || "");
+        let articlesPlain = {};
+        try { articlesPlain = JSON.parse(decodeURIComponent(btn.dataset.articles || "{}")); } catch (_) {}
+        const nowSelected = toggleWaitlistItem(key, material, address, articlesPlain);
+        btn.classList.toggle('selected', nowSelected);
+        btn.textContent = nowSelected ? '★' : '☆';
+        // Тримаємо кеш цього рівня в синхроні з щойно зміненою зіркою,
+        // щоб повернення/скасований свайп не показали застарілий стан.
+        if (current) current.cachedHtml = articlesPageContent.innerHTML;
+        return;
+    }
 
     if (nav === 'article-favorite') {
         toggleArticleFavorite(btn.dataset.article);
