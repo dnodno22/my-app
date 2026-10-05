@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Пошук</title>
-
 <style>
 *, *::before, *::after {
     box-sizing: border-box;
@@ -15,7 +14,6 @@
     margin: 0;
     padding: 0;
 }
-
 html, body {
     width: 100%;
     height: 100%;
@@ -24,13 +22,11 @@ html, body {
     background: #fff;
     touch-action: none;
 }
-
 #pages {
     display: flex;
     height: 100%;
     transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
 }
-
 .page {
     height: 100%;
     display: flex;
@@ -39,15 +35,12 @@ html, body {
     position: relative;
     flex-shrink: 0;
 }
-
 /* ==================== SEARCH PAGE ==================== */
-
 .search-header {
     padding: 16px 16px 8px;
     padding-top: calc(16px + env(safe-area-inset-top));
     flex-shrink: 0;
 }
-
 input#input {
     width: 100%;
     padding: 16px 18px;
@@ -61,7 +54,6 @@ input#input {
     caret-color: transparent;
     height: 60px;
 }
-
 .scroll-area {
     flex: 1;
     overflow-y: auto;
@@ -71,25 +63,20 @@ input#input {
     overscroll-behavior: contain;
     touch-action: pan-y;
 }
-
 /* ==================== КРАПОЧКИ ГЛИБИНИ АРТИКУЛІВ ==================== */
-
 .articles-dots {
     position: fixed;
     bottom: calc(8px + env(safe-area-inset-bottom));
     left: 0;
     right: 0;
     height: 18px;
-
     display: none;
     align-items: center;
     justify-content: center;
     gap: 7px;
-
     z-index: 30;
     pointer-events: none;
 }
-
 .articles-dots .dot {
     width: 7px;
     height: 7px;
@@ -97,26 +84,21 @@ input#input {
     background: #d1d5db;
     transition: all 0.2s ease;
 }
-
 .articles-dots .dot.past {
     background: #9ca3af;
 }
-
 .articles-dots .dot.active {
     width: 9px;
     height: 9px;
     background: #111827;
 }
-
 /* ==================== СВАЙП ВНУТРІШНІХ РІВНІВ ==================== */
-
 .articles-drag-wrapper {
     display: flex;
     align-items: flex-start;
     width: 200%;
     will-change: transform;
 }
-
 .articles-drag-pane {
     width: 50%;
     flex: 0 0 50%;
@@ -124,19 +106,16 @@ input#input {
     min-width: 0;
     padding: 0;
 }
-
 #page-articles.articles-swiping .scroll-area {
     overflow-y: hidden;
     touch-action: none;
 }
-
 #page-articles,
 #page-articles * {
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
 }
-
 #page-articles table,
 #page-articles td,
 #page-articles th,
@@ -144,9 +123,7 @@ input#input {
 #page-articles .premontage-title {
     touch-action: pan-y;
 }
-
 /* ==================== RESULT CARDS ==================== */
-
 .result-card {
     background: #ffffff;
     border-radius: 22px;
@@ -154,7 +131,6 @@ input#input {
     padding: 24px;
     margin-bottom: 16px;
 }
-
 .result-top {
     display: flex;
     justify-content: space-between;
@@ -162,7 +138,6 @@ input#input {
     gap: 12px;
     margin-bottom: 20px;
 }
-
 .result-material-badge {
     display: inline-flex;
     align-items: center;
@@ -173,11 +148,9 @@ input#input {
     line-height: 1.1;
     white-space: nowrap;
 }
-
 .result-material-badge .box-icon {
     font-size: 0.85em;
 }
-
 .result-address-new {
     font-weight: 600;
     font-size: 14px;
@@ -185,7 +158,6 @@ input#input {
     white-space: nowrap;
     text-align: right;
 }
-
 .article-row {
     display: flex;
     justify-content: space-between;
@@ -194,28 +166,23 @@ input#input {
     padding: 14px 0;
     border-top: 1px solid #ECECEC;
 }
-
 .article-row:first-child {
     border-top: none;
     padding-top: 0;
 }
-
 .article-number {
     font-size: 15px;
     font-weight: 700;
     color: #111111;
     white-space: nowrap;
 }
-
 .article-number .art-g1 {
     margin-right: 3px;
 }
-
 .article-number .art-g2 {
     font-size: 1.2em;
     margin-right: 3px;
 }
-
 .article-stations {
     font-size: 20px;
     font-weight: 800;
@@ -223,9 +190,7 @@ input#input {
     text-align: right;
     line-height: 1.3;
 }
-
 /* ==================== СПИСОК ОЧІКУВАННЯ ==================== */
-
 .waitlist-title {
     font-size: 18px;
     font-weight: 700;
@@ -233,7 +198,6 @@ input#input {
     text-align: center;
     padding: 8px 0;
 }
-
 .select-btn {
     border: none;
     background: transparent;
@@ -244,26 +208,21 @@ input#input {
     color: #d1d5db;
     flex-shrink: 0;
 }
-
 .select-btn.selected {
     color: #FFC400;
 }
-
 .select-btn:active {
     transform: scale(.9);
 }
-
 .article-choice-row {
     display: flex;
     align-items: stretch;
     gap: 8px;
 }
-
 .article-choice-main {
     flex: 1;
     min-width: 0;
 }
-
 .article-favorite-btn {
     width: 54px;
     min-width: 54px;
@@ -275,23 +234,19 @@ input#input {
     font-weight: 700;
     cursor: pointer;
 }
-
 .article-favorite-btn.selected {
     color: #FFC400;
     background: #fffaf0;
     border-color: #f3d37a;
 }
-
 .article-favorite-btn:active {
     transform: scale(.96);
 }
-
 .waitlist-actions-row {
     display: flex;
     gap: 8px;
     margin-top: 16px;
 }
-
 .waitlist-remove-btn {
     border: none;
     background: #fff7e0;
@@ -304,11 +259,9 @@ input#input {
     text-align: center;
     cursor: pointer;
 }
-
 .waitlist-remove-btn:active {
     background: #fdeeca;
 }
-
 .comment-toggle-btn {
     border: none;
     background: #eef2ff;
@@ -321,15 +274,12 @@ input#input {
     text-align: center;
     cursor: pointer;
 }
-
 .comment-toggle-btn:active {
     background: #e0e7ff;
 }
-
 .comment-edit-area {
     margin-top: 12px;
 }
-
 .comment-textarea {
     width: 100%;
     border: 1px solid #e5e7eb;
@@ -343,7 +293,6 @@ input#input {
     color: #111;
     background: #f9fafb;
 }
-
 .comment-save-btn {
     display: block;
     margin-top: 8px;
@@ -358,11 +307,9 @@ input#input {
     text-align: center;
     cursor: pointer;
 }
-
 .comment-save-btn:active {
     background: #372ea8;
 }
-
 .waitlist-comment-text {
     margin-top: 12px;
     padding: 10px 12px;
@@ -373,16 +320,13 @@ input#input {
     white-space: pre-wrap;
     word-break: break-word;
 }
-
 /* ==================== ПАНЕЛЬ ПЕРЕДМОНТАЖУ ==================== */
-
 .premontage-toolbar {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-bottom: 14px;
 }
-
 .premontage-nav-btn {
     border: none;
     background: #eef2ff;
@@ -393,34 +337,28 @@ input#input {
     padding: 10px 14px;
     cursor: pointer;
 }
-
 .premontage-nav-btn:active {
     background: #e0e7ff;
 }
-
 .premontage-close-btn {
     background: #fff7e0;
     color: #b45309;
     margin-left: auto;
 }
-
 .premontage-close-btn:active {
     background: #fdeeca;
 }
-
 .premontage-title {
     font-size: 16px;
     font-weight: 700;
     color: #111;
     margin-bottom: 14px;
 }
-
 .premontage-btn-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
 }
-
 .premontage-item-btn {
     border: 1px solid #e5e7eb;
     background: #f9fafb;
@@ -434,22 +372,18 @@ input#input {
     white-space: normal;
     word-break: break-word;
 }
-
 .premontage-item-btn:active {
     background: #eef2ff;
 }
-
 .premontage-item-btn.favorite {
     background: #fffaf0;
     border-color: #f3d37a;
 }
-
 .wire-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
-
 .wire-row {
     display: flex;
     align-items: center;
@@ -460,21 +394,18 @@ input#input {
     border-radius: 12px;
     padding: 12px 14px;
 }
-
 .wire-name {
     font-weight: 800;
     font-size: 16px;
     color: #111;
     flex-shrink: 0;
 }
-
 .wire-code {
     font-size: 13px;
     color: #6b7280;
     flex: 1;
     text-align: center;
 }
-
 .wire-location {
     font-weight: 700;
     font-size: 14px;
@@ -482,9 +413,7 @@ input#input {
     text-align: right;
     white-space: nowrap;
 }
-
 /* ==================== HIGHLIGHT ==================== */
-
 mark.hl {
     background: #fde047;
     color: #111;
@@ -492,9 +421,7 @@ mark.hl {
     padding: 0 2px;
     font-weight: inherit;
 }
-
 /* ==================== KEYBOARDS ==================== */
-
 .kb-container {
     flex-shrink: 0;
     background: #fff;
@@ -503,17 +430,14 @@ mark.hl {
     /* Extra space below 0-key for depth dots */
     padding-bottom: calc(28px + env(safe-area-inset-bottom));
 }
-
 .kb-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
 }
-
 .hidden {
     display: none !important;
 }
-
 .btn {
     background: #fff;
     border: 1px solid #222;
@@ -526,16 +450,13 @@ mark.hl {
     touch-action: manipulation;
     user-select: none;
 }
-
 .btn:active {
     background: #F7F7F7;
     transform: scale(.96);
 }
-
 .btn-special {
     background: #f1f5f9;
 }
-
 .btn-version {
     background: #f1f5f9;
     color: #9ca3af;
@@ -546,13 +467,10 @@ mark.hl {
     justify-content: center;
     user-select: none;
 }
-
 /* ==================== TABLE PAGES ==================== */
-
 .table-page {
     background: #fff;
 }
-
 .table-header {
     padding: 16px;
     padding-top: calc(16px + env(safe-area-inset-top));
@@ -562,30 +480,25 @@ mark.hl {
     justify-content: space-between;
     align-items: baseline;
 }
-
 .table-title {
     font-weight: 700;
     font-size: 16px;
     color: #111;
 }
-
 .table-updated {
     font-size: 11px;
     color: #9ca3af;
 }
-
 .table-scroll {
     flex: 1;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
 }
-
 table {
     border-collapse: collapse;
     font-size: 13px;
     min-width: 100%;
 }
-
 th {
     background: #f1f5f9;
     border: 1px solid #e2e8f0;
@@ -596,113 +509,80 @@ th {
     font-weight: 700;
     color: #333;
 }
-
 td {
     border: 1px solid #e2e8f0;
     padding: 8px;
     white-space: nowrap;
     color: #444;
 }
-
 tr:nth-child(even) td {
     background: #f9fafb;
 }
 </style>
 </head>
-
 <body>
-
 <div id="pages">
-
     <!-- PAGE (waitlist): свайп управо від пошуку -->
     <div class="page" id="page-waitlist">
         <div class="search-header">
             <div class="waitlist-title">⭐ Обрані матеріали</div>
         </div>
-
         <div class="scroll-area">
             <div id="waitlist-result"></div>
         </div>
     </div>
-
     <!-- PAGE (search) -->
     <div class="page" id="page0">
         <div class="search-header">
             <input id="input" readonly>
         </div>
-
         <div class="scroll-area">
             <div id="result"></div>
         </div>
-
         <div id="kb-wrapper" class="kb-container">
             <div id="kb1" class="kb-grid">
                 <button class="btn" data-v="1">1</button>
                 <button class="btn" data-v="2">2</button>
                 <button class="btn" data-v="3">3</button>
-
                 <button class="btn" data-v="4">4</button>
                 <button class="btn" data-v="5">5</button>
                 <button class="btn" data-v="6">6</button>
-
                 <button class="btn" data-v="7">7</button>
                 <button class="btn" data-v="8">8</button>
                 <button class="btn" data-v="9">9</button>
-
                 <div class="btn btn-version" id="kb-version"></div>
-
                 <button class="btn" data-v="0">0</button>
-
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
         </div>
     </div>
-
     <!-- PAGE (артикули): свайп ліворуч від пошуку -->
     <div class="page" id="page-articles">
-
         <div class="scroll-area">
             <div id="articles-page-content"></div>
         </div>
     </div>
-
 </div>
-
 <!-- КРАПОЧКИ ГЛИБИНИ (глобально: пошук + артикули) -->
 <div class="articles-dots" id="articles-dots"></div>
-
 <script>
-
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
-
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-
-const CODE_VERSION = 7;
-
+const CODE_VERSION = 8;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
-
 /* ================================================================ */
-
 let TOTAL_PAGES = 3;
-
 const SEARCH_PAGE_INDEX = 1;
 const ARTICLES_PAGE_INDEX = 2;
-
 let currentPage = SEARCH_PAGE_INDEX;
-
 let searchData = [];
-
 let pageWidthPercent = 100 / TOTAL_PAGES;
-
 let articleGroups = [];
-
 /* ==================== СТЕК РІВНІВ АРТИКУЛІВ ==================== */
-
 let articlesPageStack = [
     { level: 'articles' }
 ];
-
 const ARTICLE_ACTION_KEYS = [
     "розміщення",
     "sp",
@@ -712,7 +592,6 @@ const ARTICLE_ACTION_KEYS = [
     "передмонтаж",
     "проводи"
 ];
-
 const ACTION_LABELS = {
     "розміщення": "📍 Розміщення",
     "sp": "🔩 SP",
@@ -722,34 +601,24 @@ const ACTION_LABELS = {
     "передмонтаж": "🧵 Передмонтаж",
     "проводи": "⚡ Проводи"
 };
-
 function actionLabel(key) {
     return ACTION_LABELS[key] || escapeHtml(key);
 }
-
 /* ==================== ELEMENTS ==================== */
-
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
 const waitlistBox = document.getElementById('waitlist-result');
 const kbWrapper = document.getElementById('kb-wrapper');
 const pagesEl = document.getElementById('pages');
-
 const articlesPageContent =
     document.getElementById('articles-page-content');
-
 const articlesDots =
     document.getElementById('articles-dots');
-
 const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
-
 /* ==================== КРАПОЧКИ ГЛИБИНИ ==================== */
-
 function renderArticlesDots(overridePage, overrideDepth) {
-
     if (!articlesDots) return;
-
     /*
         overridePage / overrideDepth дозволяють показати крапочки
         "наперед" — просто щоб ПІД ЧАС самого свайпу (ще до того, як
@@ -761,7 +630,6 @@ function renderArticlesDots(overridePage, overrideDepth) {
         overridePage !== undefined
             ? overridePage
             : currentPage;
-
     /*
         Крапочки показуємо на сторінках "Пошук" і "Артикули".
         На "Обрані матеріали" їх немає.
@@ -774,43 +642,31 @@ function renderArticlesDots(overridePage, overrideDepth) {
         articlesDots.innerHTML = '';
         return;
     }
-
     /*
         Кількість крапочок = кількість рівнів у стеку.
-
         1:
         Артикули
-
         2:
         Артикули → Артикул
-
         3:
         Артикули → Артикул → Дія
-
         4:
         Артикули → Артикул → Передмонтаж → Категорія
-
         і т.д.
     */
     const depth =
         overrideDepth !== undefined
             ? overrideDepth
             : articlesPageStack.length;
-
     if (depth <= 0) {
         articlesDots.style.display = 'none';
         articlesDots.innerHTML = '';
         return;
     }
-
     articlesDots.style.display = 'flex';
-
     let html = '';
-
     for (let i = 0; i < depth; i++) {
-
         let className = 'dot';
-
         /*
             Остання крапочка = поточний рівень.
         */
@@ -819,125 +675,82 @@ function renderArticlesDots(overridePage, overrideDepth) {
         } else {
             className += ' past';
         }
-
         html += `<span class="${className}"></span>`;
     }
-
     articlesDots.innerHTML = html;
 }
-
 /* ==================== РОЗМІР СТОРІНОК ==================== */
-
 const kbVersionEl = document.getElementById('kb-version');
-
 if (kbVersionEl) {
     kbVersionEl.textContent = 'v' + CODE_VERSION;
 }
-
 document.querySelectorAll('.page').forEach(p => {
     p.style.width = pageWidthPercent + '%';
 });
-
 pagesEl.style.width = (TOTAL_PAGES * 100) + '%';
-
 pagesEl.style.transform =
     `translateX(-${currentPage * pageWidthPercent}%)`;
-
 /* ==================== АРТИКУЛИ ==================== */
-
 function normalizeArticlePart(part) {
     return String(part || "")
         .trim()
         .replace(/\s+/g, "");
 }
-
 function getArticleBase(code) {
-
     if (/^\d{7}/.test(code) && code.length > 7) {
         return code.slice(0, 7);
     }
-
     return code;
 }
-
 function expandArticleValue(raw) {
-
     raw = String(raw || "").trim();
-
     if (!raw) return [];
-
     const parts = raw
         .split("/")
         .map(normalizeArticlePart)
         .filter(Boolean);
-
     if (!parts.length) return [];
-
     if (parts.length === 1) {
         return [getArticleBase(parts[0])];
     }
-
     const first = getArticleBase(parts[0]);
-
     const result = [first];
-
     let prefix = "";
-
     if (/^\d+$/.test(first) && first.length >= 3) {
         prefix = first.slice(0, -3);
     }
-
     for (let i = 1; i < parts.length; i++) {
-
         const part = parts[i];
-
         if (/^\d{1,3}$/.test(part) && prefix) {
-
             result.push(
                 prefix + part.padStart(3, "0")
             );
-
         } else {
-
             result.push(
                 getArticleBase(part)
             );
         }
     }
-
     return [...new Set(result)];
 }
-
 /* ==================== ГРУПУВАННЯ ==================== */
-
 function computeArticleGroups() {
-
     const groups = {};
-
     searchData.forEach(row => {
-
         const articles =
             expandArticleValue(row.article);
-
         articles.forEach(article => {
-
             if (!article) return;
-
             if (!groups[article]) {
                 groups[article] = [];
             }
-
             groups[article].push(row);
         });
     });
-
     Object.keys(groups).forEach(article => {
-
         const seen = new Set();
-
         groups[article] =
             groups[article].filter(row => {
-
                 const key = [
                     row.station,
                     row.material,
@@ -945,17 +758,13 @@ function computeArticleGroups() {
                     row.colD,
                     row.address
                 ].join("|||");
-
                 if (seen.has(key)) {
                     return false;
                 }
-
                 seen.add(key);
-
                 return true;
             });
     });
-
     const keys =
         Object.keys(groups).sort((a, b) =>
             a.localeCompare(
@@ -967,41 +776,30 @@ function computeArticleGroups() {
                 }
             )
         );
-
     return keys.map(article => ({
         article,
         rows: groups[article]
     }));
 }
-
 /* ==================== ОБРАНІ АРТИКУЛИ ==================== */
-
 const CACHE_KEY_ARTICLE_FAVORITES =
     "articleFavorites";
-
 function loadArticleFavorites() {
-
     try {
-
         const value =
             JSON.parse(
                 localStorage.getItem(
                     CACHE_KEY_ARTICLE_FAVORITES
                 ) || "[]"
             );
-
         return Array.isArray(value)
             ? value.map(String)
             : [];
-
     } catch (e) {
-
         return [];
     }
 }
-
 function saveArticleFavorites(list) {
-
     localStorage.setItem(
         CACHE_KEY_ARTICLE_FAVORITES,
         JSON.stringify(
@@ -1009,56 +807,35 @@ function saveArticleFavorites(list) {
         )
     );
 }
-
 function isArticleFavorite(article) {
-
     return loadArticleFavorites()
         .includes(String(article));
 }
-
 function toggleArticleFavorite(article) {
-
     const art = String(article || "");
-
     if (!art) return false;
-
     const list = loadArticleFavorites();
-
     const idx = list.indexOf(art);
-
     if (idx >= 0) {
-
         list.splice(idx, 1);
-
         saveArticleFavorites(list);
-
         return false;
     }
-
     list.push(art);
-
     saveArticleFavorites(list);
-
     return true;
 }
-
 function sortArticlesWithFavorites(articles) {
-
     const favorites =
         new Set(loadArticleFavorites());
-
     return [...articles].sort((a, b) => {
-
         const aFav =
             favorites.has(String(a));
-
         const bFav =
             favorites.has(String(b));
-
         if (aFav !== bFav) {
             return aFav ? -1 : 1;
         }
-
         return String(a).localeCompare(
             String(b),
             "uk",
@@ -1069,55 +846,36 @@ function sortArticlesWithFavorites(articles) {
         );
     });
 }
-
 function refreshArticleGroups() {
-
     articleGroups =
         computeArticleGroups();
-
     articlesPageStack.forEach(s => {
         delete s.cachedHtml;
     });
-
     renderArticlesPage(true);
 }
-
 /* ==================== КЛАВІАТУРА ==================== */
-
 document
     .getElementById('kb-wrapper')
     .addEventListener('click', (e) => {
-
         const btn =
             e.target.closest('.btn');
-
         if (!btn) return;
-
         e.stopPropagation();
-
         if (btn.dataset.del) {
-
             input.value = "";
-
         } else if (
             btn.dataset.v !== undefined
         ) {
-
             input.value += btn.dataset.v;
         }
-
         search();
     });
-
 /* ==================== CSV ==================== */
-
 function parseSearchCSV(t) {
-
     searchData =
         t.trim().split("\n").map(r => {
-
             const c = r.split(",");
-
             return {
                 station: c[0] || "",
                 material: c[1] || "",
@@ -1127,87 +885,59 @@ function parseSearchCSV(t) {
             };
         });
 }
-
 /* ==================== CACHE ==================== */
-
 const cachedSearch =
     localStorage.getItem(CACHE_KEY_SEARCH);
-
 if (cachedSearch) {
-
     parseSearchCSV(cachedSearch);
-
     if (input.value) {
         search();
     }
 }
-
 refreshArticleGroups();
-
 /* ==================== СВІЖІ ДАНІ ==================== */
-
 function fetchSearchData() {
-
     const url1 =
         `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SEARCH_GID}&t=` +
         Date.now();
-
     fetch(url1)
         .then(r => r.text())
         .then(t => {
-
             localStorage.setItem(
                 CACHE_KEY_SEARCH,
                 t
             );
-
             localStorage.setItem(
                 CACHE_KEY_SEARCH_TIME,
                 Date.now().toString()
             );
-
             parseSearchCSV(t);
-
             refreshArticleGroups();
-
             if (input.value) {
                 search();
             }
-
         })
         .catch(() => {});
 }
-
 fetchSearchData();
-
 /* ==================== HTML ESCAPE ==================== */
-
 function escapeHtml(str) {
-
     return String(str)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 }
-
 function highlight(text, v, fromEnd) {
-
     const safe = escapeHtml(text);
-
     if (!v) return safe;
-
     const lower =
         text.toLowerCase();
-
     if (fromEnd) {
-
         if (!lower.endsWith(v)) {
             return safe;
         }
-
         const idx =
             text.length - v.length;
-
         return escapeHtml(
             text.slice(0, idx)
         )
@@ -1215,108 +945,77 @@ function highlight(text, v, fromEnd) {
         '<mark class="hl">' +
         escapeHtml(text.slice(idx)) +
         '</mark>';
-
     } else {
-
         if (!lower.startsWith(v)) {
             return safe;
         }
-
         return '<mark class="hl">' +
             escapeHtml(text.slice(0, v.length)) +
             '</mark>' +
             escapeHtml(text.slice(v.length));
     }
 }
-
 /* ==================== СТАНЦІЇ ==================== */
-
 const STATIONS_PER_LINE = 5;
-
 function buildStationsHtml(stationHtmlArr) {
-
     const lines = [];
-
     for (
         let i = 0;
         i < stationHtmlArr.length;
         i += STATIONS_PER_LINE
     ) {
-
         lines.push(
             stationHtmlArr
                 .slice(i, i + STATIONS_PER_LINE)
                 .join(" | ")
         );
     }
-
     return lines.join("<br>");
 }
-
 /* ==================== НОМЕР АРТИКУЛУ ==================== */
-
 function renderArticleNumber(
     art,
     v,
     isNumOnly,
     isSpecialSearch
 ) {
-
     let matchStart = -1;
     let matchEnd = -1;
-
     if (!isSpecialSearch && v) {
-
         const lower =
             art.toLowerCase();
-
         if (isNumOnly) {
-
             if (lower.endsWith(v)) {
-
                 matchStart =
                     art.length - v.length;
-
                 matchEnd =
                     art.length;
             }
-
         } else {
-
             if (lower.startsWith(v)) {
-
                 matchStart = 0;
                 matchEnd = v.length;
             }
         }
     }
-
     function part(s, e) {
-
         const str = art.slice(s, e);
-
         if (matchStart === -1) {
             return escapeHtml(str);
         }
-
         const overlapStart =
             Math.max(s, matchStart);
-
         const overlapEnd =
             Math.min(e, matchEnd);
-
         if (overlapStart >= overlapEnd) {
             return escapeHtml(str);
         }
-
         let out = '';
-
         if (overlapStart > s) {
             out += escapeHtml(
                 art.slice(s, overlapStart)
             );
         }
-
         out +=
             '<mark class="hl">' +
             escapeHtml(
@@ -1326,102 +1025,71 @@ function renderArticleNumber(
                 )
             ) +
             '</mark>';
-
         if (overlapEnd < e) {
             out += escapeHtml(
                 art.slice(overlapEnd, e)
             );
         }
-
         return out;
     }
-
     const len = art.length;
-
     if (len <= 4) {
-
         return `<span class="art-g1">${part(0, len)}</span>`;
     }
-
     const g1end =
         Math.min(4, len);
-
     const g2end =
         Math.min(7, len);
-
     let html =
         `<span class="art-g1">${part(0, g1end)}</span>`;
-
     if (len > 4) {
-
         html +=
             `<span class="art-g2">${part(g1end, g2end)}</span>`;
     }
-
     if (len > 7) {
-
         html +=
             `<span class="art-g3">${part(g2end, len)}</span>`;
     }
-
     return html;
 }
-
 /* ==================== СПИСОК ОЧІКУВАННЯ ==================== */
-
 const CACHE_KEY_WAITLIST =
     "materialWaitlist";
-
 function loadWaitlist() {
-
     try {
-
         return JSON.parse(
             localStorage.getItem(
                 CACHE_KEY_WAITLIST
             ) || "[]"
         );
-
     } catch (e) {
-
         return [];
     }
 }
-
 function saveWaitlist(list) {
-
     localStorage.setItem(
         CACHE_KEY_WAITLIST,
         JSON.stringify(list)
     );
 }
-
 function isInWaitlist(key) {
-
     return loadWaitlist()
         .some(item => item.key === key);
 }
-
 function toggleWaitlistItem(
     key,
     material,
     address,
     articlesPlain
 ) {
-
     const list = loadWaitlist();
-
     const idx =
         list.findIndex(
             item => item.key === key
         );
-
     if (idx >= 0) {
-
         list.splice(idx, 1);
-
     } else {
-
         list.push({
             key,
             material,
@@ -1430,99 +1098,66 @@ function toggleWaitlistItem(
             comment: ""
         });
     }
-
     saveWaitlist(list);
-
     return idx < 0;
 }
-
 function toSearchAttr(material) {
-
     return `data-anav="to-search" data-material="${encodeURIComponent(material)}"`;
 }
-
 function setWaitlistComment(key, text) {
-
     const list = loadWaitlist();
-
     const idx =
         list.findIndex(
             item => item.key === key
         );
-
     if (idx >= 0) {
-
         list[idx].comment = text;
-
         saveWaitlist(list);
     }
 }
-
 let waitlistCardKeys = [];
-
 function renderWaitlistPage() {
-
     const list = loadWaitlist();
-
     if (!list.length) {
-
         waitlistBox.innerHTML =
             '<div style="text-align:center; padding:40px; color:#aaa;">Список порожній</div>';
-
         waitlistCardKeys = [];
-
         return;
     }
-
     waitlistCardKeys = [];
-
     let html = "";
-
     list.forEach(item => {
-
         const idx =
             waitlistCardKeys.push(item.key) - 1;
-
         const hasComment =
             !!(
                 item.comment &&
                 item.comment.trim()
             );
-
         html += `
             <div class="result-card">
-
                 <div class="result-top">
-
                     <span class="result-material-badge">
                         <span class="box-icon">📦</span>
                         ${escapeHtml(item.material)}
                     </span>
-
                     <div style="display:flex; align-items:center; gap:8px;">
-
                         <span class="result-address-new">
                             ${escapeHtml(item.address)}
                         </span>
-
                     </div>
                 </div>
         `;
-
         for (let art in item.articles) {
-
             const stationHtmlArr =
                 item.articles[art]
                     .map(st => escapeHtml(st));
-
             const stationsHtml =
                 buildStationsHtml(
                     stationHtmlArr
                 );
-
             html += `
                 <div class="article-row">
-
                     <span class="article-number">
                         ${renderArticleNumber(
                             art,
@@ -1531,52 +1166,40 @@ function renderWaitlistPage() {
                             true
                         )}
                     </span>
-
                     <span class="article-stations">
                         ${stationsHtml}
                     </span>
-
                 </div>
             `;
         }
-
         html += `
             <div class="waitlist-actions-row">
-
                 <button
                     class="waitlist-remove-btn"
                     data-idx="${idx}">
                     ★ Прибрати зі списку
                 </button>
-
                 <button
                     class="comment-toggle-btn"
                     data-idx="${idx}">
                     ${hasComment ? '✎ Коментар' : '💬 Коментар'}
                 </button>
-
             </div>
-
             <div
                 class="comment-edit-area hidden"
                 data-idx="${idx}">
-
                 <textarea
                     class="comment-textarea"
                     data-idx="${idx}"
                     placeholder="Ваш коментар...">${escapeHtml(item.comment || "")}</textarea>
-
                 <button
                     class="comment-save-btn"
                     data-idx="${idx}">
                     Зберегти
                 </button>
-
             </div>
         `;
-
         if (hasComment) {
-
             html += `
                 <div
                     class="waitlist-comment-text"
@@ -1585,22 +1208,16 @@ function renderWaitlistPage() {
                 </div>
             `;
         }
-
         html += `</div>`;
     });
-
     waitlistBox.innerHTML = html;
 }
-
 waitlistBox.addEventListener('click', (e) => {
-
     const removeBtn =
         e.target.closest(
             '.waitlist-remove-btn'
         );
-
     if (removeBtn) {
-
         const key =
             waitlistCardKeys[
                 parseInt(
@@ -1608,112 +1225,81 @@ waitlistBox.addEventListener('click', (e) => {
                     10
                 )
             ];
-
         if (key === undefined) return;
-
         const list =
             loadWaitlist()
                 .filter(
                     item => item.key !== key
                 );
-
         saveWaitlist(list);
-
         renderWaitlistPage();
-
         return;
     }
-
     const toggleBtn =
         e.target.closest(
             '.comment-toggle-btn'
         );
-
     if (toggleBtn) {
-
         const idx =
             toggleBtn.dataset.idx;
-
         const area =
             waitlistBox.querySelector(
                 `.comment-edit-area[data-idx="${idx}"]`
             );
-
         if (area) {
-
             area.classList.toggle(
                 'hidden'
             );
-
             if (
                 !area.classList.contains(
                     'hidden'
                 )
             ) {
-
                 const ta =
                     area.querySelector(
                         '.comment-textarea'
                     );
-
                 if (ta) ta.focus();
             }
         }
-
         return;
     }
-
     const saveBtn =
         e.target.closest(
             '.comment-save-btn'
         );
-
     if (saveBtn) {
-
         const idx =
             parseInt(
                 saveBtn.dataset.idx,
                 10
             );
-
         const key =
             waitlistCardKeys[idx];
-
         if (key === undefined) return;
-
         const textarea =
             waitlistBox.querySelector(
                 `.comment-textarea[data-idx="${idx}"]`
             );
-
         const text =
             textarea
                 ? textarea.value
                 : "";
-
         setWaitlistComment(
             key,
             text
         );
-
         renderWaitlistPage();
-
         return;
     }
 });
-
 /* ==================== ПОШУКОВІ ЗІРОЧКИ ==================== */
-
 let searchCardKeys = [];
 let searchResultLookup = {};
-
 resultBox.addEventListener('click', (e) => {
-
     const btn =
         e.target.closest('.select-btn');
-
     if (!btn) return;
-
     const key =
         searchCardKeys[
             parseInt(
@@ -1721,14 +1307,10 @@ resultBox.addEventListener('click', (e) => {
                 10
             )
         ];
-
     if (key === undefined) return;
-
     const data =
         searchResultLookup[key];
-
     if (!data) return;
-
     const nowSelected =
         toggleWaitlistItem(
             key,
@@ -1736,149 +1318,109 @@ resultBox.addEventListener('click', (e) => {
             data.address,
             data.articles
         );
-
     btn.classList.toggle(
         'selected',
         nowSelected
     );
-
     btn.textContent =
         nowSelected ? '★' : '☆';
 });
-
 /* ==================== MERGE ARTICLE ==================== */
-
 function mergeAbbreviatedArticles(articleMap) {
-
     const arts =
         Object.keys(articleMap);
-
     const fullArts =
         arts.filter(
             a => a.length > 3
         );
-
     const shortArts =
         arts.filter(
             a => a.length <= 3
         );
-
     if (!shortArts.length) {
         return articleMap;
     }
-
     const fullByLast3 = {};
-
     fullArts.forEach(a => {
-
         const last3 =
             a.slice(-3);
-
         if (!fullByLast3[last3]) {
             fullByLast3[last3] = a;
         }
     });
-
     const merged = {};
-
     fullArts.forEach(a => {
-
         merged[a] =
             new Set(articleMap[a]);
     });
-
     shortArts.forEach(shortArt => {
-
         const target =
             fullByLast3[shortArt];
-
         if (target) {
-
             articleMap[shortArt]
                 .forEach(st =>
                     merged[target].add(st)
                 );
-
         } else {
-
             if (!merged[shortArt]) {
                 merged[shortArt] =
                     new Set();
             }
-
             articleMap[shortArt]
                 .forEach(st =>
                     merged[shortArt].add(st)
                 );
         }
     });
-
     return merged;
 }
-
 /* ==================== ПЕРЕДМОНТАЖ ==================== */
-
 function isPremontageName(value) {
-
     const raw =
         String(value || "").trim();
-
     if (!raw) return false;
-
     return /^[A-Za-zА-Яа-яІіЇїЄєҐґ][A-Za-zА-Яа-яІіЇїЄєҐґ0-9_-]*$/
         .test(raw);
 }
-
 function getPremontageRows() {
-
     return searchData.filter(
         row =>
             isPremontageName(row.station) &&
             row.article
     );
 }
-
 function premontageArticleMatches(
     row,
     article
 ) {
-
     if (!row || !article) {
         return false;
     }
-
     return expandArticleValue(
         row.article
     ).includes(
         String(article).trim()
     );
 }
-
 function computePremontageCategoriesForArticle(
     article
 ) {
-
     const categories = new Set();
-
     getPremontageRows().forEach(row => {
-
         if (
             !premontageArticleMatches(
                 row,
                 article
             )
         ) return;
-
         const name =
             String(
                 row.station || ""
             ).trim();
-
         if (name) {
             categories.add(name);
         }
     });
-
     return [...categories].sort(
         (a, b) =>
             a.localeCompare(
@@ -1891,18 +1433,15 @@ function computePremontageCategoriesForArticle(
             )
     );
 }
-
 function computeWiresForCategory(
     article,
     category
 ) {
-
     const wantedCategory =
         String(
             category || ""
         ).trim()
         .toLowerCase();
-
     return getPremontageRows()
         .filter(row =>
             premontageArticleMatches(
@@ -1926,20 +1465,15 @@ function computeWiresForCategory(
                 )
         );
 }
-
 /* ==================== ACTION RESULTS ==================== */
-
 function computeArticleActionResults(
     article,
     key
 ) {
-
     const v =
         String(key || "")
             .toLowerCase();
-
     return searchData.filter(x => {
-
         if (
             !expandArticleValue(
                 x.article
@@ -1947,26 +1481,19 @@ function computeArticleActionResults(
         ) {
             return false;
         }
-
         return x.colD
             .toLowerCase()
             .startsWith(v);
     });
 }
-
 /* ==================== ПРОВОДИ ==================== */
-
 function isWireMaterial(material) {
-
     return /^15[237]/.test(
         String(material || "").trim()
     );
 }
-
 function getWireRowsForArticle(article) {
-
     return searchData.filter(row => {
-
         if (
             !expandArticleValue(
                 row.article
@@ -1976,7 +1503,6 @@ function getWireRowsForArticle(article) {
         ) {
             return false;
         }
-
         if (
             isPremontageName(
                 row.station
@@ -1984,7 +1510,6 @@ function getWireRowsForArticle(article) {
         ) {
             return false;
         }
-
         if (
             String(
                 row.colD || ""
@@ -1992,32 +1517,25 @@ function getWireRowsForArticle(article) {
         ) {
             return false;
         }
-
         return isWireMaterial(
             row.material
         );
     });
 }
-
 function computeWireStationsForArticle(
     article
 ) {
-
     const stations = new Set();
-
     getWireRowsForArticle(article)
         .forEach(row => {
-
             const st =
                 String(
                     row.station || ""
                 ).trim();
-
             if (st) {
                 stations.add(st);
             }
         });
-
     return [...stations].sort(
         (a, b) =>
             a.localeCompare(
@@ -2030,18 +1548,15 @@ function computeWireStationsForArticle(
             )
     );
 }
-
 function computeWiresForStation(
     article,
     station
 ) {
-
     const wanted =
         String(
             station || ""
         ).trim()
         .toLowerCase();
-
     return getWireRowsForArticle(article)
         .filter(row =>
             String(
@@ -2061,11 +1576,8 @@ function computeWiresForStation(
                 )
         );
 }
-
 /* ==================== ВСІ МАТЕРІАЛИ ==================== */
-
 function getAllMaterialsForArticle(article) {
-
     return searchData.filter(row =>
         expandArticleValue(
             row.article
@@ -2074,45 +1586,34 @@ function getAllMaterialsForArticle(article) {
         )
     );
 }
-
 /* ==================== ДІЇ ==================== */
-
 function articleHasAction(
     article,
     action
 ) {
-
     if (action === 'розміщення') {
-
         return getAllMaterialsForArticle(
             article
         ).length > 0;
     }
-
     if (action === 'передмонтаж') {
-
         return computePremontageCategoriesForArticle(
             article
         ).length > 0;
     }
-
     if (action === 'проводи') {
-
         return computeWireStationsForArticle(
             article
         ).length > 0;
     }
-
     return computeArticleActionResults(
         article,
         action
     ).length > 0;
 }
-
 function getAvailableActionsForArticle(
     article
 ) {
-
     return ARTICLE_ACTION_KEYS.filter(
         k => articleHasAction(
             article,
@@ -2120,149 +1621,104 @@ function getAvailableActionsForArticle(
         )
     );
 }
-
 /* ==================== НАЗАД ==================== */
-
 function popArticlesPageLevel() {
-
     if (
         articlesPageStack.length > 1
     ) {
-
         articlesPageStack.pop();
-
         renderArticlesPage();
     }
 }
-
 /* ==================== ПОБУДОВА СТОРІНКИ ==================== */
-
 function buildArticlesLevelHtml(
     stateIndex
 ) {
-
     const state =
         articlesPageStack[stateIndex];
-
     if (!state) return '';
-
     let html = '';
-
     /* ---------- АРТИКУЛИ ---------- */
-
     if (state.level === 'articles') {
-
         html +=
             '<div class="premontage-title"></div>';
-
         const articles =
             sortArticlesWithFavorites(
                 articleGroups.map(
                     g => g.article
                 )
             );
-
         if (!articles.length) {
-
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Немає даних</div>';
-
         } else {
-
             html +=
                 '<div class="premontage-btn-grid">';
-
             articles.forEach(a => {
-
                 const favorite =
                     isArticleFavorite(a);
-
                 html += `
                     <button
                         class="premontage-item-btn${favorite ? ' favorite' : ''}"
                         data-anav="article"
                         data-article="${escapeHtml(a)}">
-
                         ${renderArticleNumber(
                             a,
                             "",
                             false,
                             true
                         )}
-
                     </button>
                 `;
             });
-
             html +=
                 '</div>';
         }
-
     /* ---------- ДІЇ ---------- */
-
     } else if (state.level === 'actions') {
-
         const favorite =
             isArticleFavorite(
                 state.article
             );
-
         html += `
             <div
                 class="premontage-title"
                 style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
-
                 <button
                     class="article-favorite-btn${favorite ? ' selected' : ''}"
                     data-anav="article-favorite"
                     data-article="${escapeHtml(state.article)}"
                     aria-label="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}"
                     title="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}">
-
                     ${favorite ? '★' : '☆'}
-
                 </button>
-
             </div>
         `;
-
         const available =
             getAvailableActionsForArticle(
                 state.article
             );
-
         if (!available.length) {
-
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Немає даних для цього артикулу</div>';
-
         } else {
-
             html +=
                 '<div class="premontage-btn-grid">';
-
             available.forEach(k => {
-
                 html += `
                     <button
                         class="premontage-item-btn"
                         data-anav="action"
                         data-action="${escapeHtml(k)}">
-
                         ${actionLabel(k)}
-
                     </button>
                 `;
             });
-
             html +=
                 '</div>';
         }
-
     /* ---------- РЕЗУЛЬТАТИ ---------- */
-
     } else if (state.level === 'results') {
-
         const rows =
             state.action === 'розміщення'
                 ? getAllMaterialsForArticle(
@@ -2272,22 +1728,16 @@ function buildArticlesLevelHtml(
                     state.article,
                     state.action
                 );
-
         html +=
             '<div class="premontage-title"></div>';
-
         if (!rows.length) {
-
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
-
         } else if (
             state.action === 'розміщення'
         ) {
-
             const sorted =
                 [...rows].sort((a, b) => {
-
                     const byStation =
                         String(a.station || "")
                             .localeCompare(
@@ -2298,11 +1748,9 @@ function buildArticlesLevelHtml(
                                     sensitivity: 'base'
                                 }
                             );
-
                     if (byStation !== 0) {
                         return byStation;
                     }
-
                     return String(a.material || "")
                         .localeCompare(
                             String(b.material || ""),
@@ -2313,75 +1761,55 @@ function buildArticlesLevelHtml(
                             }
                         );
                 });
-
             html +=
                 '<table><thead><tr><th>Станція</th><th>Матеріал</th><th>Адреса</th></tr></thead><tbody>';
-
             sorted.forEach(r => {
-
                 html += `
                     <tr
                         ${toSearchAttr(r.material)}
                         style="cursor:pointer;">
-
                         <td>${escapeHtml(r.station)}</td>
                         <td>${escapeHtml(r.material)}</td>
                         <td>${escapeHtml(r.address)}</td>
-
                     </tr>
                 `;
             });
-
             html +=
                 '</tbody></table>';
-
         } else if (state.action === 'sp') {
-
             const grouped = {};
-
             rows.forEach(x => {
-
                 const mat =
                     String(
                         x.material || ""
                     ).trim();
-
                 const m =
                     mat.match(/158\d+/);
-
                 if (!m) return;
-
                 const num = m[0];
-
                 const st =
                     String(
                         x.station || ""
                     ).trim();
-
                 const addr =
                     String(
                         x.address || ""
                     ).trim();
-
                 const key =
                     num + "|" + addr;
-
                 if (!grouped[key]) {
-
                     grouped[key] = {
                         num,
                         addr,
                         stations: new Set()
                     };
                 }
-
                 if (st) {
                     grouped[key]
                         .stations
                         .add(st);
                 }
             });
-
             const items =
                 Object.values(grouped)
                     .sort((a, b) =>
@@ -2393,16 +1821,11 @@ function buildArticlesLevelHtml(
                             }
                         )
                     );
-
             if (!items.length) {
-
                 html +=
                     '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
-
             } else {
-
                 items.forEach(item => {
-
                     const stationHtmlArr =
                         [...item.stations]
                             .sort((a, b) =>
@@ -2417,74 +1840,55 @@ function buildArticlesLevelHtml(
                             .map(st =>
                                 escapeHtml(st)
                             );
-
                     const stationsHtml =
                         buildStationsHtml(
                             stationHtmlArr
                         );
-
                     html += `
                         <div
                             class="result-card"
                             ${toSearchAttr(item.num)}
                             style="cursor:pointer;">
-
                             <div class="result-top">
-
                                 <span class="result-material-badge">
                                     <span class="box-icon">📦</span>
                                     ${escapeHtml(item.num)}
                                 </span>
-
                                 <span class="result-address-new">
                                     ${escapeHtml(item.addr)}
                                 </span>
-
                             </div>
-
                             <div
                                 class="article-row"
                                 style="border-top:none; padding-top:0; justify-content:flex-end;">
-
                                 <span class="article-stations">
                                     ${stationsHtml}
                                 </span>
-
                             </div>
-
                         </div>
                     `;
                 });
             }
-
         } else if (state.action === 'ts') {
-
             const byStation = {};
-
             rows.forEach(x => {
-
                 const st =
                     String(
                         x.station || ""
                     ).trim() || "—";
-
                 if (!byStation[st]) {
                     byStation[st] = [];
                 }
-
                 const mat =
                     String(
                         x.material || ""
                     ).trim();
-
                 const addr =
                     String(
                         x.address || ""
                     ).trim();
-
                 const key =
                     mat + "|" + addr;
-
                 if (
                     !byStation[st]
                         .some(
@@ -2492,7 +1896,6 @@ function buildArticlesLevelHtml(
                                 item.key === key
                         )
                 ) {
-
                     byStation[st].push({
                         key,
                         mat,
@@ -2500,7 +1903,6 @@ function buildArticlesLevelHtml(
                     });
                 }
             });
-
             const stationKeys =
                 Object.keys(byStation)
                     .sort((a, b) =>
@@ -2513,77 +1915,57 @@ function buildArticlesLevelHtml(
                             }
                         )
                     );
-
             stationKeys.forEach(st => {
-
                 html += `
                     <div class="result-card">
-
                         <div class="result-top">
-
                             <span class="result-material-badge">
                                 <span class="box-icon">📍</span>
                                 Станція ${escapeHtml(st)}
                             </span>
-
                         </div>
                 `;
-
                 byStation[st]
                     .forEach((item, i) => {
-
                         html += `
                             <div
                                 class="article-row"
                                 ${toSearchAttr(item.mat)}
                                 style="cursor:pointer;${i === 0 ? ' border-top:none; padding-top:0;' : ''}">
-
                                 <span class="article-number">
                                     ${escapeHtml(item.mat)}
                                 </span>
-
                                 <span class="article-stations">
                                     ${escapeHtml(item.addr)}
                                 </span>
-
                             </div>
                         `;
                     });
-
                 html +=
                     `</div>`;
             });
-
         } else if (state.action === 'стр') {
-
             const grouped = {};
-
             rows.forEach(x => {
-
                 const matKey =
                     x.material +
                     "|" +
                     x.address;
-
                 if (!grouped[matKey]) {
                     grouped[matKey] =
                         new Set();
                 }
-
                 grouped[matKey]
                     .add(x.station);
             });
-
             for (
                 let matKey in grouped
             ) {
-
                 const [
                     matName,
                     matAddr
                 ] =
                     matKey.split("|");
-
                 const stationHtmlArr =
                     [...grouped[matKey]]
                         .sort((a, b) =>
@@ -2598,344 +1980,249 @@ function buildArticlesLevelHtml(
                         .map(st =>
                             escapeHtml(st)
                         );
-
                 const stationsHtml =
                     buildStationsHtml(
                         stationHtmlArr
                     );
-
                 html += `
                     <div
                         class="result-card"
                         ${toSearchAttr(matName)}
                         style="cursor:pointer;">
-
                         <div class="result-top">
-
                             <span class="result-material-badge">
                                 <span class="box-icon">📦</span>
                                 ${escapeHtml(matName)}
                             </span>
-
                             <span class="result-address-new">
                                 ${escapeHtml(matAddr)}
                             </span>
-
                         </div>
-
                         <div
                             class="article-row"
                             style="border-top:none; padding-top:0; justify-content:flex-end;">
-
                             <span class="article-stations">
                                 ${stationsHtml}
                             </span>
-
                         </div>
-
                     </div>
                 `;
             }
-
         } else {
-
             const grouped = {};
-
             rows.forEach(x => {
-
                 const matKey =
                     x.material +
                     "|" +
                     x.address;
-
                 if (!grouped[matKey]) {
                     grouped[matKey] =
                         new Set();
                 }
-
                 grouped[matKey]
                     .add(x.station);
             });
-
             for (
                 let matKey in grouped
             ) {
-
                 const [
                     matName,
                     matAddr
                 ] =
                     matKey.split("|");
-
                 const stationHtmlArr =
                     [...grouped[matKey]]
                         .map(st =>
                             escapeHtml(st)
                         );
-
                 const stationsHtml =
                     buildStationsHtml(
                         stationHtmlArr
                     );
-
                 html += `
                     <div
                         class="result-card"
                         ${toSearchAttr(matName)}
                         style="cursor:pointer;">
-
                         <div class="result-top">
-
                             <span class="result-material-badge">
                                 <span class="box-icon">📦</span>
                                 ${escapeHtml(matName)}
                             </span>
-
                             <span class="result-address-new">
                                 ${escapeHtml(matAddr)}
                             </span>
-
                         </div>
-
                         <div
                             class="article-row"
                             style="border-top:none; padding-top:0; justify-content:flex-end;">
-
                             <span class="article-stations">
                                 ${stationsHtml}
                             </span>
-
                         </div>
-
                     </div>
                 `;
             }
         }
-
     /* ---------- КАТЕГОРІЇ ПЕРЕДМОНТАЖУ ---------- */
-
     } else if (
         state.level === 'premontage-categories'
     ) {
-
         const categories =
             computePremontageCategoriesForArticle(
                 state.article
             );
-
         html +=
             '<div class="premontage-title"></div>';
-
         if (!categories.length) {
-
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Немає передмонтажів для цього артикулу</div>';
-
         } else {
-
             html +=
                 '<div class="premontage-btn-grid">';
-
             categories.forEach(c => {
-
                 html += `
                     <button
                         class="premontage-item-btn"
                         data-anav="category"
                         data-category="${escapeHtml(c)}">
-
                         ${escapeHtml(c)}
-
                     </button>
                 `;
             });
-
             html +=
                 '</div>';
         }
-
     /* ---------- ПРОВОДИ ПЕРЕДМОНТАЖУ ---------- */
-
     } else if (
         state.level === 'premontage-wires'
     ) {
-
         const wires =
             computeWiresForCategory(
                 state.article,
                 state.category
             );
-
         html +=
             '<div class="premontage-title"></div>';
-
         if (!wires.length) {
-
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Проводів не знайдено</div>';
-
         } else {
-
             html +=
                 '<div class="wire-list">';
-
             wires.forEach(w => {
-
                 const wireName =
                     String(
                         w.material || ""
                     ).trim();
-
                 const address =
                     String(
                         w.address || ""
                     ).trim();
-
                 html += `
                     <div
                         class="wire-row"
                         ${toSearchAttr(wireName)}
                         style="cursor:pointer;">
-
                         <span class="wire-name">
                             ${escapeHtml(wireName)}
                         </span>
-
                         <span class="wire-location">
                             ${escapeHtml(address)}
                         </span>
-
                     </div>
                 `;
             });
-
             html +=
                 '</div>';
         }
-
     /* ---------- СТАНЦІЇ ПРОВОДІВ ---------- */
-
     } else if (
         state.level === 'wire-stations'
     ) {
-
         const stations =
             computeWireStationsForArticle(
                 state.article
             );
-
         html +=
             '<div class="premontage-title"></div>';
-
         if (!stations.length) {
-
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Немає станцій з проводами для цього артикулу</div>';
-
         } else {
-
             html +=
                 '<div class="premontage-btn-grid">';
-
             stations.forEach(st => {
-
                 html += `
                     <button
                         class="premontage-item-btn"
                         data-anav="wire-station"
                         data-station="${escapeHtml(st)}">
-
                         ${escapeHtml(st)}
-
                     </button>
                 `;
             });
-
             html +=
                 '</div>';
         }
-
     /* ---------- РЕЗУЛЬТАТИ ПРОВОДІВ ---------- */
-
     } else if (
         state.level === 'wire-results'
     ) {
-
         const wires =
             computeWiresForStation(
                 state.article,
                 state.station
             );
-
         html +=
             '<div class="premontage-title"></div>';
-
         if (!wires.length) {
-
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Проводів не знайдено</div>';
-
         } else {
-
             const seen = new Set();
-
             wires.forEach(x => {
-
                 const matName =
                     String(
                         x.material || ""
                     ).trim();
-
                 const matAddr =
                     String(
                         x.address || ""
                     ).trim();
-
                 const key =
                     matName +
                     "|" +
                     matAddr;
-
                 if (seen.has(key)) {
                     return;
                 }
-
                 seen.add(key);
-
                 html += `
                     <div
                         class="result-card"
                         ${toSearchAttr(matName)}
                         style="cursor:pointer;">
-
                         <div class="result-top">
-
                             <span class="result-material-badge">
                                 <span class="box-icon">📦</span>
                                 ${escapeHtml(matName)}
                             </span>
-
                             <span class="result-address-new">
                                 ${escapeHtml(matAddr)}
                             </span>
-
                         </div>
-
                     </div>
                 `;
             });
         }
     }
-
     return html;
 }
-
 /* ==================== РЕНДЕР АРТИКУЛІВ ==================== */
-
 function renderArticlesPage(
     forceRebuild
 ) {
-
     /*
         ВАЖЛИВО:
         Крапочки оновлюємо ПЕРЕД рендером контенту.
@@ -2943,350 +2230,246 @@ function renderArticlesPage(
         вони одразу змінюють кількість.
     */
     renderArticlesDots();
-
     const container =
         document.getElementById(
             'articles-page-content'
         );
-
     if (!container) return;
-
     container.style.transition = '';
     container.style.transform = '';
     container.style.opacity = '';
-
     const pageArticlesEl =
         document.getElementById(
             'page-articles'
         );
-
     if (pageArticlesEl) {
         pageArticlesEl.classList.remove(
             'articles-swiping'
         );
     }
-
     const idx =
         articlesPageStack.length - 1;
-
     const state =
         articlesPageStack[idx];
-
     let html;
-
     if (
         !forceRebuild &&
         state &&
         state.cachedHtml
     ) {
-
         html =
             state.cachedHtml;
-
     } else {
-
         html =
             buildArticlesLevelHtml(
                 idx
             );
-
         if (state) {
             state.cachedHtml = html;
         }
     }
-
     container.innerHTML = html;
 }
-
 /* ==================== КЛІКИ НА АРТИКУЛАХ ==================== */
-
 articlesPageContent.addEventListener(
     'click',
     (e) => {
-
         const btn =
             e.target.closest(
                 '[data-anav]'
             );
-
         if (!btn) return;
-
         const nav =
             btn.dataset.anav;
-
         const current =
             articlesPageStack[
                 articlesPageStack.length - 1
             ];
-
         /* ---------- ДО ПОШУКУ ---------- */
-
         if (nav === 'to-search') {
-
             const material =
                 decodeURIComponent(
                     btn.dataset.material || ""
                 );
-
             input.value =
                 material;
-
             goToPage(
                 SEARCH_PAGE_INDEX
             );
-
             search();
-
             return;
         }
-
         /* ---------- ОБРАНЕ ---------- */
-
         if (
             nav === 'article-favorite'
         ) {
-
             toggleArticleFavorite(
                 btn.dataset.article
             );
-
             renderArticlesPage(
                 true
             );
-
             return;
         }
-
         /* ---------- АРТИКУЛ ---------- */
-
         if (nav === 'article') {
-
             articlesPageStack.push({
                 level: 'actions',
                 article: btn.dataset.article
             });
-
             renderArticlesPage();
-
             return;
         }
-
         /* ---------- ДІЯ ---------- */
-
         if (nav === 'action') {
-
             const action =
                 btn.dataset.action;
-
             if (
                 action === 'передмонтаж'
             ) {
-
                 articlesPageStack.push({
                     level: 'premontage-categories',
                     article: current.article
                 });
-
             } else if (
                 action === 'проводи'
             ) {
-
                 articlesPageStack.push({
                     level: 'wire-stations',
                     article: current.article
                 });
-
             } else {
-
                 articlesPageStack.push({
                     level: 'results',
                     article: current.article,
                     action
                 });
             }
-
             renderArticlesPage();
-
             return;
         }
-
         /* ---------- КАТЕГОРІЯ ---------- */
-
         if (nav === 'category') {
-
             articlesPageStack.push({
                 level: 'premontage-wires',
                 article: current.article,
                 category: btn.dataset.category
             });
-
             renderArticlesPage();
-
             return;
         }
-
         /* ---------- СТАНЦІЯ ПРОВОДУ ---------- */
-
         if (nav === 'wire-station') {
-
             articlesPageStack.push({
                 level: 'wire-results',
                 article: current.article,
                 station: btn.dataset.station
             });
-
             renderArticlesPage();
-
             return;
         }
     }
 );
-
 /* ==================== ПОШУК ==================== */
-
 function search() {
-
     const v =
         input.value.toLowerCase();
-
     if (!v) {
-
         resultBox.innerHTML = "";
-
         return;
     }
-
     const isNumOnly =
         /^\d+$/.test(v);
-
     const isSpecialSearch =
         v.includes("стр") ||
         v.includes("мм") ||
         v.includes("ts");
-
     const filtered =
         searchData.filter(x => {
-
             if (isSpecialSearch) {
-
                 return x.colD
                     .toLowerCase()
                     .startsWith(v);
             }
-
             if (isNumOnly) {
-
                 return (
                     x.station
                         .toLowerCase()
                         .endsWith(v)
-
                     ||
-
                     x.material
                         .toLowerCase()
                         .endsWith(v)
-
                     ||
-
                     x.article
                         .toLowerCase()
                         .endsWith(v)
-
                     ||
-
                     x.colD
                         .toLowerCase()
                         .endsWith(v)
-
                     ||
-
                     x.address
                         .toLowerCase()
                         .endsWith(v)
                 );
             }
-
             return (
                 x.station
                     .toLowerCase()
                     .startsWith(v)
-
                 ||
-
                 x.material
                     .toLowerCase()
                     .startsWith(v)
-
                 ||
-
                 x.article
                     .toLowerCase()
                     .startsWith(v)
-
                 ||
-
                 x.colD
                     .toLowerCase()
                     .startsWith(v)
-
                 ||
-
                 x.address
                     .toLowerCase()
                     .startsWith(v)
             );
         });
-
     if (!filtered.length) {
-
         resultBox.innerHTML =
             '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
-
         return;
     }
-
     let html = "";
-
     searchCardKeys = [];
-
     searchResultLookup = {};
-
     const grouped = {};
-
     filtered.forEach(x => {
-
         const matKey =
             x.material +
             "|" +
             x.address;
-
         if (!grouped[matKey]) {
             grouped[matKey] = {};
         }
-
         if (
             !grouped[matKey][x.article]
         ) {
-
             grouped[matKey][x.article] =
                 new Set();
         }
-
         grouped[matKey][x.article]
             .add(x.station);
     });
-
     for (
         let matKey in grouped
     ) {
-
         const [
             matName,
             matAddr
         ] =
             matKey.split("|");
-
         const matHtml =
             isSpecialSearch
                 ? escapeHtml(matName)
@@ -3295,7 +2478,6 @@ function search() {
                     v,
                     isNumOnly
                 );
-
         const addrHtml =
             isSpecialSearch
                 ? escapeHtml(matAddr)
@@ -3304,72 +2486,53 @@ function search() {
                     v,
                     isNumOnly
                 );
-
         const mergedArticles =
             mergeAbbreviatedArticles(
                 grouped[matKey]
             );
-
         const articlesPlain = {};
-
         for (
             let art in mergedArticles
         ) {
-
             articlesPlain[art] =
                 [...mergedArticles[art]];
         }
-
         searchResultLookup[matKey] = {
             material: matName,
             address: matAddr,
             articles: articlesPlain
         };
-
         const cardIdx =
             searchCardKeys.push(
                 matKey
             ) - 1;
-
         const selected =
             isInWaitlist(
                 matKey
             );
-
         html += `
             <div class="result-card">
-
                 <div class="result-top">
-
                     <span class="result-material-badge">
                         <span class="box-icon">📦</span>
                         ${matHtml}
                     </span>
-
                     <div
                         style="display:flex; align-items:center; gap:8px;">
-
                         <span class="result-address-new">
                             ${addrHtml}
                         </span>
-
                         <button
                             class="select-btn${selected ? ' selected' : ''}"
                             data-idx="${cardIdx}">
-
                             ${selected ? '★' : '☆'}
-
                         </button>
-
                     </div>
-
                 </div>
         `;
-
         for (
             let art in mergedArticles
         ) {
-
             const artHtml =
                 renderArticleNumber(
                     art,
@@ -3377,7 +2540,6 @@ function search() {
                     isNumOnly,
                     isSpecialSearch
                 );
-
             const stationHtmlArr =
                 [...mergedArticles[art]]
                     .map(st =>
@@ -3389,39 +2551,29 @@ function search() {
                                 isNumOnly
                             )
                     );
-
             const stationsHtml =
                 buildStationsHtml(
                     stationHtmlArr
                 );
-
             html += `
                 <div class="article-row">
-
                     <span class="article-number">
                         ${artHtml}
                     </span>
-
                     <span class="article-stations">
                         ${stationsHtml}
                     </span>
-
                 </div>
             `;
         }
-
         html +=
             `</div>`;
     }
-
     resultBox.innerHTML =
         html;
 }
-
 /* ==================== ДАТА ==================== */
-
 function formatDate(ts) {
-
     const d =
         new Date(
             parseInt(
@@ -3429,19 +2581,14 @@ function formatDate(ts) {
                 10
             )
         );
-
     const pad =
         n =>
             String(n)
                 .padStart(2, '0');
-
     return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
-
 /* ==================== ПЕРЕХІД МІЖ ГОЛОВНИМИ СТОРІНКАМИ ==================== */
-
 function goToPage(n) {
-
     n =
         Math.max(
             0,
@@ -3450,48 +2597,35 @@ function goToPage(n) {
                 n
             )
         );
-
     currentPage = n;
-
     pagesEl.style.transform =
         `translateX(-${n * pageWidthPercent}%)`;
-
     /*
         Оновлюємо крапочки тут також.
         Це гарантує, що коли залишаємо сторінку
         "Артикули", вони одразу зникають.
     */
     renderArticlesDots();
-
     if (
         n === SEARCH_PAGE_INDEX
     ) {
-
         kbWrapper.classList.remove(
             'hidden'
         );
-
     } else {
-
         kbWrapper.classList.add(
             'hidden'
         );
-
         if (n === 0) {
-
             renderWaitlistPage();
-
         } else if (
             n === ARTICLES_PAGE_INDEX
         ) {
-
             renderArticlesPage();
         }
     }
 }
-
 /* ==================== ГОРИЗОНТАЛЬНИЙ СВАЙП ==================== */
-
 let pageDragStartX = 0;
 let pageDragStartY = 0;
 let pageDragBasePage = 0;
@@ -3500,77 +2634,54 @@ let pageMoved = false;
 let pageDragPxWidth = 0;
 let pageSwipeCandidate = false;
 let suppressNextClick = false;
-
 const PAGE_SWIPE_START_PX = 14;
-
 function finishPageDrag(dx) {
-
     const SWIPE_THRESHOLD =
         Math.max(
             55,
             pageDragPxWidth * 0.20
         );
-
     const pageArticlesEl =
         document.getElementById(
             'page-articles'
         );
-
     /*
         ВНУТРІШНЯ НАВІГАЦІЯ АРТИКУЛІВ
     */
-
     if (
         pageDragBasePage === ARTICLES_PAGE_INDEX &&
         articlesPageStack.length > 1
     ) {
-
         const wrapper =
             document.getElementById(
                 'articles-drag-wrapper'
             );
-
         if (!wrapper) {
-
             if (pageArticlesEl) {
                 pageArticlesEl.classList.remove(
                     'articles-swiping'
                 );
             }
-
             renderArticlesPage();
-
             return;
         }
-
         let settled = false;
-
         const settle = (goBack) => {
-
             if (settled) return;
-
             settled = true;
-
             if (pageArticlesEl) {
-
                 pageArticlesEl.classList.remove(
                     'articles-swiping'
                 );
             }
-
             if (goBack) {
-
                 popArticlesPageLevel();
-
             } else {
-
                 renderArticlesPage();
             }
         };
-
         wrapper.style.transition =
             'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
-
         /*
             Крапочки оновлюємо ВІДРАЗУ, в момент прийняття рішення —
             ще до того, як почалась/завершилась сама анімація зсуву.
@@ -3579,95 +2690,73 @@ function finishPageDrag(dx) {
         */
         const willGoBack =
             dx >= SWIPE_THRESHOLD;
-
         renderArticlesDots(
             ARTICLES_PAGE_INDEX,
             willGoBack
                 ? articlesPageStack.length - 1
                 : articlesPageStack.length
         );
-
         if (
             willGoBack
         ) {
-
             wrapper.style.transform =
                 'translateX(0px)';
-
             const onDone = (ev) => {
-
                 if (
                     ev &&
                     ev.target !== wrapper
                 ) {
                     return;
                 }
-
                 wrapper.removeEventListener(
                     'transitionend',
                     onDone
                 );
-
                 settle(true);
             };
-
             wrapper.addEventListener(
                 'transitionend',
                 onDone
             );
-
             setTimeout(
                 () => settle(true),
                 400
             );
-
         } else {
-
             wrapper.style.transform =
                 `translateX(-${pageDragPxWidth}px)`;
-
             const onCancel = (ev) => {
-
                 if (
                     ev &&
                     ev.target !== wrapper
                 ) {
                     return;
                 }
-
                 wrapper.removeEventListener(
                     'transitionend',
                     onCancel
                 );
-
                 settle(false);
             };
-
             wrapper.addEventListener(
                 'transitionend',
                 onCancel
             );
-
             setTimeout(
                 () => settle(false),
                 400
             );
         }
-
         return;
     }
-
     let target =
         pageDragBasePage;
-
     if (
         Math.abs(dx) >=
         SWIPE_THRESHOLD
     ) {
-
         const dir =
             dx > 0 ? -1 : 1;
-
         target =
             Math.max(
                 0,
@@ -3677,322 +2766,52 @@ function finishPageDrag(dx) {
                 )
             );
     }
-
     pagesEl.style.transition =
         'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
-
     currentPage = target;
-
     pagesEl.style.transform =
         `translateX(-${target * pageWidthPercent}%)`;
-
     /*
         Оновлення крапочок після завершення свайпу.
     */
     renderArticlesDots();
-
     if (
         target === SEARCH_PAGE_INDEX
     ) {
-
         kbWrapper.classList.remove(
             'hidden'
         );
-
     } else {
-
         kbWrapper.classList.add(
             'hidden'
         );
-
         if (target === 0) {
-
             renderWaitlistPage();
-
         } else if (
             target === ARTICLES_PAGE_INDEX
         ) {
-
             renderArticlesPage();
         }
     }
 }
-
-/* ==================== TOUCH / SWIPE ==================== */
-
-/*
-    ЛОГІКА ТАЧУ ПЕРЕРОБЛЕНА ТАК, ЩОБ:
-
-    1. ТАП ПО КНОПЦІ НЕ ВВАЖАВСЯ ПОЧАТКОМ СВАЙПУ.
-    2. СВАЙП ПО СТОРІНЦІ ПОЧИНАВСЯ ЛИШЕ ПІСЛЯ ~24 px.
-    3. ВЕРТИКАЛЬНИЙ РУХ НЕ ЛАМАЄ ЗВИЧАЙНИЙ СКРОЛ.
-    4. ПІСЛЯ СПРАВЖНЬОГО СВАЙПУ CLICK БЛОКУЄТЬСЯ.
-    5. ТАП ПО КНОПЦІ ВИКОНУЄТЬСЯ ОДИН РАЗ.
-*/
-
-let pageDragStartX = 0;
-let pageDragStartY = 0;
-let pageDragBasePage = 0;
-let pageDragging = false;
-let pageMoved = false;
-let pageDragPxWidth = 0;
-let pageSwipeCandidate = false;
-let suppressNextClick = false;
-
-let touchStartTarget = null;
-let touchOnControl = false;
-let touchHadMovement = false;
-
-const PAGE_SWIPE_START_PX = 24;
-const CONTROL_MOVE_CANCEL_PX = 10;
-
-function finishPageDrag(dx) {
-
-    const SWIPE_THRESHOLD =
-        Math.max(
-            55,
-            pageDragPxWidth * 0.20
-        );
-
-    const pageArticlesEl =
-        document.getElementById(
-            'page-articles'
-        );
-
-    /*
-        ВНУТРІШНЯ НАВІГАЦІЯ АРТИКУЛІВ
-    */
-
-    if (
-        pageDragBasePage === ARTICLES_PAGE_INDEX &&
-        articlesPageStack.length > 1
-    ) {
-
-        const wrapper =
-            document.getElementById(
-                'articles-drag-wrapper'
-            );
-
-        if (!wrapper) {
-
-            if (pageArticlesEl) {
-                pageArticlesEl.classList.remove(
-                    'articles-swiping'
-                );
-            }
-
-            renderArticlesPage();
-
-            return;
-        }
-
-        let settled = false;
-
-        const settle = (goBack) => {
-
-            if (settled) return;
-
-            settled = true;
-
-            if (pageArticlesEl) {
-
-                pageArticlesEl.classList.remove(
-                    'articles-swiping'
-                );
-            }
-
-            if (goBack) {
-
-                popArticlesPageLevel();
-
-            } else {
-
-                renderArticlesPage();
-            }
-        };
-
-        wrapper.style.transition =
-            'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
-
-        const willGoBack =
-            dx >= SWIPE_THRESHOLD;
-
-        renderArticlesDots(
-            ARTICLES_PAGE_INDEX,
-            willGoBack
-                ? articlesPageStack.length - 1
-                : articlesPageStack.length
-        );
-
-        if (willGoBack) {
-
-            wrapper.style.transform =
-                'translateX(0px)';
-
-            const onDone = (ev) => {
-
-                if (
-                    ev &&
-                    ev.target !== wrapper
-                ) {
-                    return;
-                }
-
-                wrapper.removeEventListener(
-                    'transitionend',
-                    onDone
-                );
-
-                settle(true);
-            };
-
-            wrapper.addEventListener(
-                'transitionend',
-                onDone
-            );
-
-            setTimeout(
-                () => settle(true),
-                400
-            );
-
-        } else {
-
-            wrapper.style.transform =
-                `translateX(-${pageDragPxWidth}px)`;
-
-            const onCancel = (ev) => {
-
-                if (
-                    ev &&
-                    ev.target !== wrapper
-                ) {
-                    return;
-                }
-
-                wrapper.removeEventListener(
-                    'transitionend',
-                    onCancel
-                );
-
-                settle(false);
-            };
-
-            wrapper.addEventListener(
-                'transitionend',
-                onCancel
-            );
-
-            setTimeout(
-                () => settle(false),
-                400
-            );
-        }
-
-        return;
-    }
-
-    let target =
-        pageDragBasePage;
-
-    if (
-        Math.abs(dx) >=
-        SWIPE_THRESHOLD
-    ) {
-
-        const dir =
-            dx > 0 ? -1 : 1;
-
-        target =
-            Math.max(
-                0,
-                Math.min(
-                    TOTAL_PAGES - 1,
-                    pageDragBasePage + dir
-                )
-            );
-    }
-
-    pagesEl.style.transition =
-        'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
-
-    currentPage = target;
-
-    pagesEl.style.transform =
-        `translateX(-${target * pageWidthPercent}%)`;
-
-    renderArticlesDots();
-
-    if (
-        target === SEARCH_PAGE_INDEX
-    ) {
-
-        kbWrapper.classList.remove(
-            'hidden'
-        );
-
-    } else {
-
-        kbWrapper.classList.add(
-            'hidden'
-        );
-
-        if (target === 0) {
-
-            renderWaitlistPage();
-
-        } else if (
-            target === ARTICLES_PAGE_INDEX
-        ) {
-
-            renderArticlesPage();
-        }
-    }
-}
-
 /* ==================== TOUCH START ==================== */
-
 document.addEventListener(
     'touchstart',
     e => {
-
         if (
             !e.touches ||
             e.touches.length !== 1
         ) {
             return;
         }
-
         const touch =
             e.touches[0];
-
-        /*
-            Дуже важливо:
-            запам'ятовуємо саме елемент, на якому почався тап.
-            Тому якщо палець трохи змістився, кнопка все одно
-            буде визначена правильно.
-        */
-        touchStartTarget =
-            e.target.closest
-                ? e.target.closest(
-                    'button, [data-anav], input, textarea, select, a'
-                )
-                : null;
-
-        touchOnControl =
-            !!touchStartTarget;
-
-        touchHadMovement = false;
-
         pageDragStartX =
             touch.clientX;
-
         pageDragStartY =
             touch.clientY;
-
         pageDragBasePage =
             currentPage;
-
         pageDragPxWidth =
             (
                 pagesEl.parentElement
@@ -4000,31 +2819,18 @@ document.addEventListener(
                     : window.innerWidth
             ) ||
             window.innerWidth;
-
         pageDragging = true;
-
         pageMoved = false;
-
         pageSwipeCandidate = true;
-
-        /*
-            Якщо попередній свайп уже блокував click,
-            новий тап не повинен успадкувати цей стан.
-        */
-        suppressNextClick = false;
-
     },
     {
         passive: true
     }
 );
-
 /* ==================== TOUCH MOVE ==================== */
-
 document.addEventListener(
     'touchmove',
     e => {
-
         if (
             !pageDragging ||
             !pageSwipeCandidate ||
@@ -4033,194 +2839,123 @@ document.addEventListener(
         ) {
             return;
         }
-
         const touch =
             e.touches[0];
-
         const dx =
             touch.clientX -
             pageDragStartX;
-
         const dy =
             touch.clientY -
             pageDragStartY;
-
-        const absX =
-            Math.abs(dx);
-
-        const absY =
-            Math.abs(dy);
-
-        /*
-            Малий рух пальця ще не вважаємо свайпом.
-            Саме це прибирає проблему з кнопками.
-        */
-        if (
-            Math.max(
-                absX,
-                absY
-            ) < PAGE_SWIPE_START_PX
-        ) {
-            return;
-        }
-
-        touchHadMovement = true;
-
-        /*
-            Якщо тап почався на кнопці/керуючому елементі,
-            НЕ забираємо його під свайп.
-            Невелике зміщення пальця не повинно ламати натискання.
-        */
-        if (touchOnControl) {
-
+        if (!pageMoved) {
+            const absX =
+                Math.abs(dx);
+            const absY =
+                Math.abs(dy);
             if (
                 Math.max(
                     absX,
                     absY
-                ) <= CONTROL_MOVE_CANCEL_PX
+                ) < PAGE_SWIPE_START_PX
             ) {
                 return;
             }
-
-            pageDragging = false;
-            pageSwipeCandidate = false;
-            pageMoved = false;
-
-            return;
-        }
-
-        /*
-            Якщо рух вертикальний — віддаємо його звичайному
-            вертикальному скролу.
-        */
-        if (
-            absY > absX
-        ) {
-
-            pageDragging = false;
-
-            pageSwipeCandidate =
-                false;
-
-            pageMoved = false;
-
-            return;
-        }
-
-        /*
-            Тут уже гарантовано справжній горизонтальний свайп.
-        */
-        pageMoved = true;
-
-        try {
-            e.preventDefault();
-        } catch (_) {}
-
-        if (
-            pageDragBasePage !== ARTICLES_PAGE_INDEX ||
-            articlesPageStack.length <= 1
-        ) {
-
-            pagesEl.style.transition =
-                'none';
-
-        } else {
-
-            const contentW =
-                articlesPageContent.clientWidth ||
-                pageDragPxWidth;
-
-            pageDragPxWidth =
-                contentW;
-
-            const prevState =
-                articlesPageStack[
-                    articlesPageStack.length - 2
-                ];
-
-            const prevHtml =
-                (
-                    prevState &&
-                    prevState.cachedHtml
-                )
-                    ? prevState.cachedHtml
-                    : buildArticlesLevelHtml(
-                        articlesPageStack.length - 2
-                    );
-
-            const wrapper =
-                document.createElement(
-                    'div'
-                );
-
-            wrapper.className =
-                'articles-drag-wrapper';
-
-            wrapper.id =
-                'articles-drag-wrapper';
-
-            const prevPane =
-                document.createElement(
-                    'div'
-                );
-
-            prevPane.className =
-                'articles-drag-pane';
-
-            prevPane.innerHTML =
-                prevHtml;
-
-            const currentPane =
-                document.createElement(
-                    'div'
-                );
-
-            currentPane.className =
-                'articles-drag-pane';
-
-            while (
-                articlesPageContent.firstChild
+            if (
+                absY > absX
             ) {
-
-                currentPane.appendChild(
+                pageDragging = false;
+                pageSwipeCandidate =
+                    false;
+                return;
+            }
+            pageMoved = true;
+            try {
+                e.preventDefault();
+            } catch (_) {}
+            if (
+                pageDragBasePage !== ARTICLES_PAGE_INDEX ||
+                articlesPageStack.length <= 1
+            ) {
+                pagesEl.style.transition =
+                    'none';
+            } else {
+                const contentW =
+                    articlesPageContent.clientWidth ||
+                    pageDragPxWidth;
+                pageDragPxWidth =
+                    contentW;
+                const prevState =
+                    articlesPageStack[
+                        articlesPageStack.length - 2
+                    ];
+                const prevHtml =
+                    (
+                        prevState &&
+                        prevState.cachedHtml
+                    )
+                        ? prevState.cachedHtml
+                        : buildArticlesLevelHtml(
+                            articlesPageStack.length - 2
+                        );
+                const wrapper =
+                    document.createElement(
+                        'div'
+                    );
+                wrapper.className =
+                    'articles-drag-wrapper';
+                wrapper.id =
+                    'articles-drag-wrapper';
+                const prevPane =
+                    document.createElement(
+                        'div'
+                    );
+                prevPane.className =
+                    'articles-drag-pane';
+                prevPane.innerHTML =
+                    prevHtml;
+                const currentPane =
+                    document.createElement(
+                        'div'
+                    );
+                currentPane.className =
+                    'articles-drag-pane';
+                while (
                     articlesPageContent.firstChild
+                ) {
+                    currentPane.appendChild(
+                        articlesPageContent.firstChild
+                    );
+                }
+                wrapper.appendChild(
+                    prevPane
                 );
+                wrapper.appendChild(
+                    currentPane
+                );
+                articlesPageContent.appendChild(
+                    wrapper
+                );
+                const pageArticlesEl =
+                    document.getElementById(
+                        'page-articles'
+                    );
+                if (pageArticlesEl) {
+                    pageArticlesEl.classList.add(
+                        'articles-swiping'
+                    );
+                }
+                wrapper.style.transition =
+                    'none';
+                wrapper.style.transform =
+                    `translateX(-${pageDragPxWidth}px)`;
             }
-
-            wrapper.appendChild(
-                prevPane
-            );
-
-            wrapper.appendChild(
-                currentPane
-            );
-
-            articlesPageContent.appendChild(
-                wrapper
-            );
-
-            const pageArticlesEl =
-                document.getElementById(
-                    'page-articles'
-                );
-
-            if (pageArticlesEl) {
-
-                pageArticlesEl.classList.add(
-                    'articles-swiping'
-                );
-            }
-
-            wrapper.style.transition =
-                'none';
-
-            wrapper.style.transform =
-                `translateX(-${pageDragPxWidth}px)`;
+        } else {
+            try {
+                e.preventDefault();
+            } catch (_) {}
         }
-
         const maxDelta =
             pageDragPxWidth;
-
         const limitedDx =
             Math.max(
                 -maxDelta,
@@ -4229,19 +2964,15 @@ document.addEventListener(
                     dx
                 )
             );
-
         if (
             pageDragBasePage === ARTICLES_PAGE_INDEX &&
             articlesPageStack.length > 1
         ) {
-
             const wrapper =
                 document.getElementById(
                     'articles-drag-wrapper'
                 );
-
             if (!wrapper) return;
-
             const visualDx =
                 Math.max(
                     0,
@@ -4250,34 +2981,31 @@ document.addEventListener(
                         limitedDx
                     )
                 );
-
             wrapper.style.transition =
                 'none';
-
             wrapper.style.transform =
                 `translateX(${visualDx - pageDragPxWidth}px)`;
-
+            /*
+                Крапочки "йдуть за пальцем" ще під час самого свайпу —
+                так зміна помітна ще швидше, ніж сам перехід.
+            */
             const liveThreshold =
                 Math.max(
                     55,
                     pageDragPxWidth * 0.20
                 );
-
             renderArticlesDots(
                 ARTICLES_PAGE_INDEX,
                 visualDx >= liveThreshold
                     ? articlesPageStack.length - 1
                     : articlesPageStack.length
             );
-
             return;
         }
-
         let livePos =
             pageDragBasePage -
             limitedDx /
             pageDragPxWidth;
-
         livePos =
             Math.max(
                 0,
@@ -4286,10 +3014,8 @@ document.addEventListener(
                     livePos
                 )
             );
-
         pagesEl.style.transform =
             `translateX(-${livePos * pageWidthPercent}%)`;
-
         renderArticlesDots(
             Math.round(livePos)
         );
@@ -4298,62 +3024,20 @@ document.addEventListener(
         passive: false
     }
 );
-
 /* ==================== TOUCH END ==================== */
-
 document.addEventListener(
     'touchend',
     e => {
-
         if (!pageDragging) {
-            touchStartTarget = null;
-            touchOnControl = false;
-            touchHadMovement = false;
             return;
         }
-
         const wasSwipe =
             pageMoved;
-
         pageDragging = false;
-
         pageSwipeCandidate =
             false;
-
-        /*
-            Якщо це був звичайний тап:
-            - не перемикаємо сторінку;
-            - якщо тап був по кнопці — виконуємо її ОДИН раз;
-            - якщо це був просто тап по пошуку — показуємо/ховаємо клавіатуру.
-        */
         if (!wasSwipe) {
-
             if (
-                !touchHadMovement &&
-                touchStartTarget
-            ) {
-
-                const tappable =
-                    touchStartTarget;
-
-                /*
-                    Спочатку виконуємо дію.
-                    suppressNextClick ставимо ПІСЛЯ .click(),
-                    бо .click() виконується синхронно.
-                */
-                tappable.click();
-
-                suppressNextClick = true;
-
-                setTimeout(
-                    () => {
-                        suppressNextClick = false;
-                    },
-                    400
-                );
-
-            } else if (
-                !touchHadMovement &&
                 currentPage === SEARCH_PAGE_INDEX &&
                 !kbWrapper.contains(
                     e.target
@@ -4365,120 +3049,88 @@ document.addEventListener(
                     '[data-anav]'
                 )
             ) {
-
                 kbWrapper.classList.toggle(
                     'hidden'
                 );
             }
-
-            touchStartTarget = null;
-            touchOnControl = false;
-            touchHadMovement = false;
-
+            /*
+                Швидкий тап: виконуємо клік ОДРАЗУ на touchend,
+                не чекаючи окремого синтетичного "click" від браузера
+                (той приходить із помітною затримкою). Справжній
+                наступний click від цього ж тапу гасимо нижче —
+                інакше дія виконалась би двічі.
+            */
+            const tappable =
+                e.target.closest(
+                    'button, [data-anav]'
+                );
+            if (tappable) {
+                tappable.click();
+                suppressNextClick = true;
+                setTimeout(
+                    () => {
+                        suppressNextClick = false;
+                    },
+                    400
+                );
+            }
             return;
         }
-
         const changedTouch =
             e.changedTouches &&
             e.changedTouches.length
                 ? e.changedTouches[0]
                 : null;
-
         const dx =
             changedTouch
                 ? changedTouch.clientX -
                   pageDragStartX
                 : 0;
-
-        /*
-            Тільки справжній свайп блокує наступний
-            синтетичний click браузера.
-        */
         suppressNextClick = true;
-
         finishPageDrag(dx);
-
         setTimeout(
             () => {
                 suppressNextClick = false;
             },
             400
         );
-
-        touchStartTarget = null;
-        touchOnControl = false;
-        touchHadMovement = false;
     },
     {
         passive: true
     }
 );
-
-/* ==================== TOUCH CANCEL ==================== */
-
-document.addEventListener(
-    'touchcancel',
-    () => {
-
-        pageDragging = false;
-        pageSwipeCandidate = false;
-        pageMoved = false;
-
-        touchStartTarget = null;
-        touchOnControl = false;
-        touchHadMovement = false;
-
-    },
-    {
-        passive: true
-    }
-);
-
 /* ==================== БЛОКУВАННЯ CLICK ПІСЛЯ SWIPE ==================== */
-
 document.addEventListener(
     'click',
     e => {
-
         if (!suppressNextClick) {
             return;
         }
-
         suppressNextClick = false;
-
         e.preventDefault();
         e.stopPropagation();
-
     },
     true
 );
-
 /* ==================== ХОВАННЯ КЛАВІАТУРИ ПРИ СКРОЛІ ==================== */
-
 const scrollAreaEl =
     document.querySelector(
         '#page0 .scroll-area'
     );
-
 let resultStartY = 0;
-
 scrollAreaEl.addEventListener(
     'touchstart',
     (e) => {
-
         resultStartY =
             e.touches[0].clientY;
-
     },
     {
         passive: true
     }
 );
-
 scrollAreaEl.addEventListener(
     'touchmove',
     (e) => {
-
         if (
             kbWrapper.classList.contains(
                 'hidden'
@@ -4486,51 +3138,39 @@ scrollAreaEl.addEventListener(
         ) {
             return;
         }
-
         const dy =
             e.touches[0].clientY -
             resultStartY;
-
         if (dy < -8) {
-
             kbWrapper.classList.add(
                 'hidden'
             );
         }
-
     },
     {
         passive: true
     }
 );
-
 scrollAreaEl.addEventListener(
     'scroll',
     () => {
-
         if (
             scrollAreaEl.scrollTop > 4 &&
             !kbWrapper.classList.contains(
                 'hidden'
             )
         ) {
-
             kbWrapper.classList.add(
                 'hidden'
             );
         }
-
     },
     {
         passive: true
     }
 );
-
 /* ==================== ПЕРВИННИЙ СТАН КРАПОЧОК ==================== */
-
 renderArticlesDots();
-
 </script>
-
 </body>
 </html>
