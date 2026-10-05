@@ -3718,6 +3718,238 @@ function finishPageDrag(dx) {
     }
 }
 
+/* ==================== TOUCH / SWIPE ==================== */
+
+/*
+    ЛОГІКА ТАЧУ ПЕРЕРОБЛЕНА ТАК, ЩОБ:
+
+    1. ТАП ПО КНОПЦІ НЕ ВВАЖАВСЯ ПОЧАТКОМ СВАЙПУ.
+    2. СВАЙП ПО СТОРІНЦІ ПОЧИНАВСЯ ЛИШЕ ПІСЛЯ ~24 px.
+    3. ВЕРТИКАЛЬНИЙ РУХ НЕ ЛАМАЄ ЗВИЧАЙНИЙ СКРОЛ.
+    4. ПІСЛЯ СПРАВЖНЬОГО СВАЙПУ CLICK БЛОКУЄТЬСЯ.
+    5. ТАП ПО КНОПЦІ ВИКОНУЄТЬСЯ ОДИН РАЗ.
+*/
+
+let pageDragStartX = 0;
+let pageDragStartY = 0;
+let pageDragBasePage = 0;
+let pageDragging = false;
+let pageMoved = false;
+let pageDragPxWidth = 0;
+let pageSwipeCandidate = false;
+let suppressNextClick = false;
+
+let touchStartTarget = null;
+let touchOnControl = false;
+let touchHadMovement = false;
+
+const PAGE_SWIPE_START_PX = 24;
+const CONTROL_MOVE_CANCEL_PX = 10;
+
+function finishPageDrag(dx) {
+
+    const SWIPE_THRESHOLD =
+        Math.max(
+            55,
+            pageDragPxWidth * 0.20
+        );
+
+    const pageArticlesEl =
+        document.getElementById(
+            'page-articles'
+        );
+
+    /*
+        ВНУТРІШНЯ НАВІГАЦІЯ АРТИКУЛІВ
+    */
+
+    if (
+        pageDragBasePage === ARTICLES_PAGE_INDEX &&
+        articlesPageStack.length > 1
+    ) {
+
+        const wrapper =
+            document.getElementById(
+                'articles-drag-wrapper'
+            );
+
+        if (!wrapper) {
+
+            if (pageArticlesEl) {
+                pageArticlesEl.classList.remove(
+                    'articles-swiping'
+                );
+            }
+
+            renderArticlesPage();
+
+            return;
+        }
+
+        let settled = false;
+
+        const settle = (goBack) => {
+
+            if (settled) return;
+
+            settled = true;
+
+            if (pageArticlesEl) {
+
+                pageArticlesEl.classList.remove(
+                    'articles-swiping'
+                );
+            }
+
+            if (goBack) {
+
+                popArticlesPageLevel();
+
+            } else {
+
+                renderArticlesPage();
+            }
+        };
+
+        wrapper.style.transition =
+            'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+
+        const willGoBack =
+            dx >= SWIPE_THRESHOLD;
+
+        renderArticlesDots(
+            ARTICLES_PAGE_INDEX,
+            willGoBack
+                ? articlesPageStack.length - 1
+                : articlesPageStack.length
+        );
+
+        if (willGoBack) {
+
+            wrapper.style.transform =
+                'translateX(0px)';
+
+            const onDone = (ev) => {
+
+                if (
+                    ev &&
+                    ev.target !== wrapper
+                ) {
+                    return;
+                }
+
+                wrapper.removeEventListener(
+                    'transitionend',
+                    onDone
+                );
+
+                settle(true);
+            };
+
+            wrapper.addEventListener(
+                'transitionend',
+                onDone
+            );
+
+            setTimeout(
+                () => settle(true),
+                400
+            );
+
+        } else {
+
+            wrapper.style.transform =
+                `translateX(-${pageDragPxWidth}px)`;
+
+            const onCancel = (ev) => {
+
+                if (
+                    ev &&
+                    ev.target !== wrapper
+                ) {
+                    return;
+                }
+
+                wrapper.removeEventListener(
+                    'transitionend',
+                    onCancel
+                );
+
+                settle(false);
+            };
+
+            wrapper.addEventListener(
+                'transitionend',
+                onCancel
+            );
+
+            setTimeout(
+                () => settle(false),
+                400
+            );
+        }
+
+        return;
+    }
+
+    let target =
+        pageDragBasePage;
+
+    if (
+        Math.abs(dx) >=
+        SWIPE_THRESHOLD
+    ) {
+
+        const dir =
+            dx > 0 ? -1 : 1;
+
+        target =
+            Math.max(
+                0,
+                Math.min(
+                    TOTAL_PAGES - 1,
+                    pageDragBasePage + dir
+                )
+            );
+    }
+
+    pagesEl.style.transition =
+        'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
+
+    currentPage = target;
+
+    pagesEl.style.transform =
+        `translateX(-${target * pageWidthPercent}%)`;
+
+    renderArticlesDots();
+
+    if (
+        target === SEARCH_PAGE_INDEX
+    ) {
+
+        kbWrapper.classList.remove(
+            'hidden'
+        );
+
+    } else {
+
+        kbWrapper.classList.add(
+            'hidden'
+        );
+
+        if (target === 0) {
+
+            renderWaitlistPage();
+
+        } else if (
+            target === ARTICLES_PAGE_INDEX
+        ) {
+
+            renderArticlesPage();
+        }
+    }
+}
+
 /* ==================== TOUCH START ==================== */
 
 document.addEventListener(
@@ -3733,6 +3965,24 @@ document.addEventListener(
 
         const touch =
             e.touches[0];
+
+        /*
+            Дуже важливо:
+            запам'ятовуємо саме елемент, на якому почався тап.
+            Тому якщо палець трохи змістився, кнопка все одно
+            буде визначена правильно.
+        */
+        touchStartTarget =
+            e.target.closest
+                ? e.target.closest(
+                    'button, [data-anav], input, textarea, select, a'
+                )
+                : null;
+
+        touchOnControl =
+            !!touchStartTarget;
+
+        touchHadMovement = false;
 
         pageDragStartX =
             touch.clientX;
@@ -3756,6 +4006,12 @@ document.addEventListener(
         pageMoved = false;
 
         pageSwipeCandidate = true;
+
+        /*
+            Якщо попередній свайп уже блокував click,
+            новий тап не повинен успадкувати цей стан.
+        */
+        suppressNextClick = false;
 
     },
     {
@@ -3789,148 +4045,177 @@ document.addEventListener(
             touch.clientY -
             pageDragStartY;
 
-        if (!pageMoved) {
+        const absX =
+            Math.abs(dx);
 
-            const absX =
-                Math.abs(dx);
+        const absY =
+            Math.abs(dy);
 
-            const absY =
-                Math.abs(dy);
+        /*
+            Малий рух пальця ще не вважаємо свайпом.
+            Саме це прибирає проблему з кнопками.
+        */
+        if (
+            Math.max(
+                absX,
+                absY
+            ) < PAGE_SWIPE_START_PX
+        ) {
+            return;
+        }
+
+        touchHadMovement = true;
+
+        /*
+            Якщо тап почався на кнопці/керуючому елементі,
+            НЕ забираємо його під свайп.
+            Невелике зміщення пальця не повинно ламати натискання.
+        */
+        if (touchOnControl) {
 
             if (
                 Math.max(
                     absX,
                     absY
-                ) < PAGE_SWIPE_START_PX
+                ) <= CONTROL_MOVE_CANCEL_PX
             ) {
                 return;
             }
 
-            if (
-                absY > absX
-            ) {
+            pageDragging = false;
+            pageSwipeCandidate = false;
+            pageMoved = false;
 
-                pageDragging = false;
+            return;
+        }
 
-                pageSwipeCandidate =
-                    false;
+        /*
+            Якщо рух вертикальний — віддаємо його звичайному
+            вертикальному скролу.
+        */
+        if (
+            absY > absX
+        ) {
 
-                return;
-            }
+            pageDragging = false;
 
-            pageMoved = true;
+            pageSwipeCandidate =
+                false;
 
-            try {
-                e.preventDefault();
-            } catch (_) {}
+            pageMoved = false;
 
-            if (
-                pageDragBasePage !== ARTICLES_PAGE_INDEX ||
-                articlesPageStack.length <= 1
-            ) {
+            return;
+        }
 
-                pagesEl.style.transition =
-                    'none';
+        /*
+            Тут уже гарантовано справжній горизонтальний свайп.
+        */
+        pageMoved = true;
 
-            } else {
+        try {
+            e.preventDefault();
+        } catch (_) {}
 
-                const contentW =
-                    articlesPageContent.clientWidth ||
-                    pageDragPxWidth;
+        if (
+            pageDragBasePage !== ARTICLES_PAGE_INDEX ||
+            articlesPageStack.length <= 1
+        ) {
 
-                pageDragPxWidth =
-                    contentW;
-
-                const prevState =
-                    articlesPageStack[
-                        articlesPageStack.length - 2
-                    ];
-
-                const prevHtml =
-                    (
-                        prevState &&
-                        prevState.cachedHtml
-                    )
-                        ? prevState.cachedHtml
-                        : buildArticlesLevelHtml(
-                            articlesPageStack.length - 2
-                        );
-
-                const wrapper =
-                    document.createElement(
-                        'div'
-                    );
-
-                wrapper.className =
-                    'articles-drag-wrapper';
-
-                wrapper.id =
-                    'articles-drag-wrapper';
-
-                const prevPane =
-                    document.createElement(
-                        'div'
-                    );
-
-                prevPane.className =
-                    'articles-drag-pane';
-
-                prevPane.innerHTML =
-                    prevHtml;
-
-                const currentPane =
-                    document.createElement(
-                        'div'
-                    );
-
-                currentPane.className =
-                    'articles-drag-pane';
-
-                while (
-                    articlesPageContent.firstChild
-                ) {
-
-                    currentPane.appendChild(
-                        articlesPageContent.firstChild
-                    );
-                }
-
-                wrapper.appendChild(
-                    prevPane
-                );
-
-                wrapper.appendChild(
-                    currentPane
-                );
-
-                articlesPageContent.appendChild(
-                    wrapper
-                );
-
-                const pageArticlesEl =
-                    document.getElementById(
-                        'page-articles'
-                    );
-
-                if (pageArticlesEl) {
-
-                    pageArticlesEl.classList.add(
-                        'articles-swiping'
-                    );
-                }
-
-                wrapper.style.transition =
-                    'none';
-
-                wrapper.style.transform =
-                    `translateX(-${pageDragPxWidth}px)`;
-            }
+            pagesEl.style.transition =
+                'none';
 
         } else {
 
-            try {
-                e.preventDefault();
-            } catch (_) {}
+            const contentW =
+                articlesPageContent.clientWidth ||
+                pageDragPxWidth;
+
+            pageDragPxWidth =
+                contentW;
+
+            const prevState =
+                articlesPageStack[
+                    articlesPageStack.length - 2
+                ];
+
+            const prevHtml =
+                (
+                    prevState &&
+                    prevState.cachedHtml
+                )
+                    ? prevState.cachedHtml
+                    : buildArticlesLevelHtml(
+                        articlesPageStack.length - 2
+                    );
+
+            const wrapper =
+                document.createElement(
+                    'div'
+                );
+
+            wrapper.className =
+                'articles-drag-wrapper';
+
+            wrapper.id =
+                'articles-drag-wrapper';
+
+            const prevPane =
+                document.createElement(
+                    'div'
+                );
+
+            prevPane.className =
+                'articles-drag-pane';
+
+            prevPane.innerHTML =
+                prevHtml;
+
+            const currentPane =
+                document.createElement(
+                    'div'
+                );
+
+            currentPane.className =
+                'articles-drag-pane';
+
+            while (
+                articlesPageContent.firstChild
+            ) {
+
+                currentPane.appendChild(
+                    articlesPageContent.firstChild
+                );
+            }
+
+            wrapper.appendChild(
+                prevPane
+            );
+
+            wrapper.appendChild(
+                currentPane
+            );
+
+            articlesPageContent.appendChild(
+                wrapper
+            );
+
+            const pageArticlesEl =
+                document.getElementById(
+                    'page-articles'
+                );
+
+            if (pageArticlesEl) {
+
+                pageArticlesEl.classList.add(
+                    'articles-swiping'
+                );
+            }
+
+            wrapper.style.transition =
+                'none';
+
+            wrapper.style.transform =
+                `translateX(-${pageDragPxWidth}px)`;
         }
 
         const maxDelta =
@@ -3972,10 +4257,6 @@ document.addEventListener(
             wrapper.style.transform =
                 `translateX(${visualDx - pageDragPxWidth}px)`;
 
-            /*
-                Крапочки "йдуть за пальцем" ще під час самого свайпу —
-                так зміна помітна ще швидше, ніж сам перехід.
-            */
             const liveThreshold =
                 Math.max(
                     55,
@@ -4025,6 +4306,9 @@ document.addEventListener(
     e => {
 
         if (!pageDragging) {
+            touchStartTarget = null;
+            touchOnControl = false;
+            touchHadMovement = false;
             return;
         }
 
@@ -4036,9 +4320,40 @@ document.addEventListener(
         pageSwipeCandidate =
             false;
 
+        /*
+            Якщо це був звичайний тап:
+            - не перемикаємо сторінку;
+            - якщо тап був по кнопці — виконуємо її ОДИН раз;
+            - якщо це був просто тап по пошуку — показуємо/ховаємо клавіатуру.
+        */
         if (!wasSwipe) {
 
             if (
+                !touchHadMovement &&
+                touchStartTarget
+            ) {
+
+                const tappable =
+                    touchStartTarget;
+
+                /*
+                    Спочатку виконуємо дію.
+                    suppressNextClick ставимо ПІСЛЯ .click(),
+                    бо .click() виконується синхронно.
+                */
+                tappable.click();
+
+                suppressNextClick = true;
+
+                setTimeout(
+                    () => {
+                        suppressNextClick = false;
+                    },
+                    400
+                );
+
+            } else if (
+                !touchHadMovement &&
                 currentPage === SEARCH_PAGE_INDEX &&
                 !kbWrapper.contains(
                     e.target
@@ -4056,31 +4371,9 @@ document.addEventListener(
                 );
             }
 
-            /*
-                Швидкий тап: виконуємо клік ОДРАЗУ на touchend,
-                не чекаючи окремого синтетичного "click" від браузера
-                (той приходить із помітною затримкою). Справжній
-                наступний click від цього ж тапу гасимо нижче —
-                інакше дія виконалась би двічі.
-            */
-            const tappable =
-                e.target.closest(
-                    'button, [data-anav]'
-                );
-
-            if (tappable) {
-
-                tappable.click();
-
-                suppressNextClick = true;
-
-                setTimeout(
-                    () => {
-                        suppressNextClick = false;
-                    },
-                    400
-                );
-            }
+            touchStartTarget = null;
+            touchOnControl = false;
+            touchHadMovement = false;
 
             return;
         }
@@ -4097,6 +4390,10 @@ document.addEventListener(
                   pageDragStartX
                 : 0;
 
+        /*
+            Тільки справжній свайп блокує наступний
+            синтетичний click браузера.
+        */
         suppressNextClick = true;
 
         finishPageDrag(dx);
@@ -4107,6 +4404,30 @@ document.addEventListener(
             },
             400
         );
+
+        touchStartTarget = null;
+        touchOnControl = false;
+        touchHadMovement = false;
+    },
+    {
+        passive: true
+    }
+);
+
+/* ==================== TOUCH CANCEL ==================== */
+
+document.addEventListener(
+    'touchcancel',
+    () => {
+
+        pageDragging = false;
+        pageSwipeCandidate = false;
+        pageMoved = false;
+
+        touchStartTarget = null;
+        touchOnControl = false;
+        touchHadMovement = false;
+
     },
     {
         passive: true
