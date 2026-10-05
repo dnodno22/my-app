@@ -677,7 +677,7 @@ tr:nth-child(even) td {
 
 /* ==================== ВЕРСІЯ КОДУ ==================== */
 
-const CODE_VERSION = 6;
+const CODE_VERSION = 7;
 
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
@@ -746,17 +746,29 @@ const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 
 /* ==================== КРАПОЧКИ ГЛИБИНИ ==================== */
 
-function renderArticlesDots() {
+function renderArticlesDots(overridePage, overrideDepth) {
 
     if (!articlesDots) return;
+
+    /*
+        overridePage / overrideDepth дозволяють показати крапочки
+        "наперед" — просто щоб ПІД ЧАС самого свайпу (ще до того, як
+        currentPage чи articlesPageStack реально зміняться) крапочки
+        вже відображали стан, в який ми прямуємо. Так вони йдуть
+        синхронно з переходом, а не з запізненням після нього.
+    */
+    const page =
+        overridePage !== undefined
+            ? overridePage
+            : currentPage;
 
     /*
         Крапочки показуємо на сторінках "Пошук" і "Артикули".
         На "Обрані матеріали" їх немає.
     */
     if (
-        currentPage !== ARTICLES_PAGE_INDEX &&
-        currentPage !== SEARCH_PAGE_INDEX
+        page !== ARTICLES_PAGE_INDEX &&
+        page !== SEARCH_PAGE_INDEX
     ) {
         articlesDots.style.display = 'none';
         articlesDots.innerHTML = '';
@@ -780,7 +792,10 @@ function renderArticlesDots() {
 
         і т.д.
     */
-    const depth = articlesPageStack.length;
+    const depth =
+        overrideDepth !== undefined
+            ? overrideDepth
+            : articlesPageStack.length;
 
     if (depth <= 0) {
         articlesDots.style.display = 'none';
@@ -3556,8 +3571,24 @@ function finishPageDrag(dx) {
         wrapper.style.transition =
             'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
 
+        /*
+            Крапочки оновлюємо ВІДРАЗУ, в момент прийняття рішення —
+            ще до того, як почалась/завершилась сама анімація зсуву.
+            Інакше вони чекали б на transitionend (чи й цілих 400мс
+            запасного таймауту) і помітно відставали від переходу.
+        */
+        const willGoBack =
+            dx >= SWIPE_THRESHOLD;
+
+        renderArticlesDots(
+            ARTICLES_PAGE_INDEX,
+            willGoBack
+                ? articlesPageStack.length - 1
+                : articlesPageStack.length
+        );
+
         if (
-            dx >= SWIPE_THRESHOLD
+            willGoBack
         ) {
 
             wrapper.style.transform =
@@ -3941,6 +3972,23 @@ document.addEventListener(
             wrapper.style.transform =
                 `translateX(${visualDx - pageDragPxWidth}px)`;
 
+            /*
+                Крапочки "йдуть за пальцем" ще під час самого свайпу —
+                так зміна помітна ще швидше, ніж сам перехід.
+            */
+            const liveThreshold =
+                Math.max(
+                    55,
+                    pageDragPxWidth * 0.20
+                );
+
+            renderArticlesDots(
+                ARTICLES_PAGE_INDEX,
+                visualDx >= liveThreshold
+                    ? articlesPageStack.length - 1
+                    : articlesPageStack.length
+            );
+
             return;
         }
 
@@ -3960,6 +4008,10 @@ document.addEventListener(
 
         pagesEl.style.transform =
             `translateX(-${livePos * pageWidthPercent}%)`;
+
+        renderArticlesDots(
+            Math.round(livePos)
+        );
     },
     {
         passive: false
@@ -4001,6 +4053,32 @@ document.addEventListener(
 
                 kbWrapper.classList.toggle(
                     'hidden'
+                );
+            }
+
+            /*
+                Швидкий тап: виконуємо клік ОДРАЗУ на touchend,
+                не чекаючи окремого синтетичного "click" від браузера
+                (той приходить із помітною затримкою). Справжній
+                наступний click від цього ж тапу гасимо нижче —
+                інакше дія виконалась би двічі.
+            */
+            const tappable =
+                e.target.closest(
+                    'button, [data-anav]'
+                );
+
+            if (tappable) {
+
+                tappable.click();
+
+                suppressNextClick = true;
+
+                setTimeout(
+                    () => {
+                        suppressNextClick = false;
+                    },
+                    400
                 );
             }
 
