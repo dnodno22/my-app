@@ -597,7 +597,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 26;
+const CODE_VERSION = 27;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -2073,6 +2073,72 @@ function buildArticlesLevelHtml(
                 html +=
                     '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
             }
+            if (isSp && stationKeys.length) {
+                /*
+                    SP: плоский список у стилі проводів:
+                    номер станції — матеріал — адреса складу.
+                    Спочатку матеріали без адреси.
+                */
+                const flat = [];
+                stationKeys.forEach(st => {
+                    byStation[st].forEach(item => {
+                        flat.push({
+                            station: st,
+                            shown: item.shown,
+                            search: item.search,
+                            addr: item.addr
+                        });
+                    });
+                });
+                flat.sort((a, b) => {
+                    const aNo = a.addr ? 1 : 0;
+                    const bNo = b.addr ? 1 : 0;
+                    if (aNo !== bNo) {
+                        return aNo - bNo;
+                    }
+                    const byStationCmp =
+                        a.station.localeCompare(
+                            b.station,
+                            'uk',
+                            {
+                                numeric: true,
+                                sensitivity: 'base'
+                            }
+                        );
+                    if (byStationCmp !== 0) {
+                        return byStationCmp;
+                    }
+                    return a.shown.localeCompare(
+                        b.shown,
+                        'uk',
+                        {
+                            numeric: true
+                        }
+                    );
+                });
+                html +=
+                    '<div class="wire-list">';
+                flat.forEach(item => {
+                    html += `
+                        <div
+                            class="wire-row"
+                            ${toSearchAttr(item.search)}
+                            style="cursor:pointer;">
+                            <span class="wire-name">
+                                ${escapeHtml(item.station)}
+                            </span>
+                            <span class="wire-code" style="font-size:16px; font-weight:800; color:#111;">
+                                ${escapeHtml(item.shown)}
+                            </span>
+                            <span class="wire-location">
+                                ${escapeHtml(item.addr)}
+                            </span>
+                        </div>
+                    `;
+                });
+                html +=
+                    '</div>';
+            } else
             stationKeys.forEach(st => {
                 const list = byStation[st];
                 if (isSp) {
