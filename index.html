@@ -572,7 +572,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 13;
+const CODE_VERSION = 14;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -1934,8 +1934,8 @@ function buildArticlesLevelHtml(
                     const bg =
                         state.sortQty
                             ? (r.shade
-                                ? ' background:#e2e8f0;'
-                                : ' background:#ffffff;')
+                                ? ' background:#eceff4; border-color:#b6c0cf;'
+                                : ' background:#ffffff; border-color:#b6c0cf;')
                             : '';
                     const tdStyle =
                         bg ? ` style="${bg.trim()}"` : '';
