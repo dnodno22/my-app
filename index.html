@@ -597,7 +597,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 27;
+const CODE_VERSION = 28;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -2124,10 +2124,10 @@ function buildArticlesLevelHtml(
                             class="wire-row"
                             ${toSearchAttr(item.search)}
                             style="cursor:pointer;">
-                            <span class="wire-name">
+                            <span class="wire-name" style="min-width:34px;">
                                 ${escapeHtml(item.station)}
                             </span>
-                            <span class="wire-code" style="font-size:16px; font-weight:800; color:#111;">
+                            <span class="wire-code" style="font-size:16px; font-weight:800; color:#111; text-align:left;">
                                 ${escapeHtml(item.shown)}
                             </span>
                             <span class="wire-location">
