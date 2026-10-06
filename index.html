@@ -38,8 +38,11 @@ html, body {
 /* ==================== SEARCH PAGE ==================== */
 .search-header {
     padding: 16px 16px 8px;
-    padding-top: calc(16px + env(safe-area-inset-top));
+    padding-top: calc(30px + env(safe-area-inset-top));
     flex-shrink: 0;
+}
+#page-articles .scroll-area {
+    padding-top: calc(30px + env(safe-area-inset-top));
 }
 input#input {
     width: 100%;
@@ -239,6 +242,13 @@ input#input {
     background: #fffaf0;
     border-color: #f3d37a;
 }
+.level-head-left + .article-favorite-btn {
+    width: 40px;
+    min-width: 40px;
+    height: 36px;
+    font-size: 20px;
+    padding: 0;
+}
 .article-favorite-btn:active {
     transform: scale(.96);
 }
@@ -358,6 +368,23 @@ input#input {
     color: #111;
     margin-bottom: 14px;
 }
+.level-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.level-head-left {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111;
+}
+.level-head-right {
+    font-size: 16px;
+    font-weight: 700;
+    color: #4338ca;
+    text-align: right;
+}
 .premontage-btn-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -411,7 +438,7 @@ input#input {
     text-align: center;
 }
 .wire-location {
-    font-weight: 700;
+    font-weight: 600;
     font-size: 14px;
     color: #059669;
     text-align: right;
@@ -572,7 +599,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 19;
+const CODE_VERSION = 23;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -1769,7 +1796,8 @@ function buildArticlesLevelHtml(
         html += `
             <div
                 class="premontage-title"
-                style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
+                style="display:flex; align-items:center; justify-content:flex-start; gap:10px;">
+                <span class="level-head-left">${escapeHtml(state.article)}</span>
                 <button
                     class="article-favorite-btn${favorite ? ' selected' : ''}"
                     data-anav="article-favorite"
@@ -1971,13 +1999,15 @@ function buildArticlesLevelHtml(
                             : '';
                     const tdStyle =
                         bg ? ` style="${bg.trim()}"` : '';
+                    const addrStyle =
+                        ` style="${bg.trim()} color:#059669; font-weight:600; font-size:14px;"`;
                     html += `
                         <tr
                             ${toSearchAttr(r.material)}
                             style="cursor:pointer;">
                             <td${tdStyle}>${escapeHtml(r.station)}</td>
                             <td${tdStyle}>${escapeHtml(r.material)}</td>
-                            <td${tdStyle}>${escapeHtml(r.address)}</td>
+                            <td${addrStyle}>${escapeHtml(r.address)}</td>
                             ${state.shared
                                 ? `<td style="white-space:normal; word-break:break-word; min-width:90px;${bg}">${escapeHtml(others.join(", "))}</td>`
                                 : ''}
@@ -2097,7 +2127,7 @@ function buildArticlesLevelHtml(
                             <span class="article-number" style="font-size:20px; font-weight:800;">
                                 ${escapeHtml(item.shown)}
                             </span>
-                            <span class="article-stations" style="color:#059669;">
+                            <span class="result-address-new">
                                 ${escapeHtml(item.addr)}
                             </span>
                         </div>
@@ -2379,7 +2409,54 @@ function buildArticlesLevelHtml(
             });
         }
     }
+    /* ---------- ШАПКА: ліворуч артикул, праворуч назва кнопки ---------- */
+    if (
+        state.level !== 'articles' &&
+        state.level !== 'actions'
+    ) {
+        let right = '';
+        if (state.level === 'results') {
+            right = plainActionName(state.action);
+        } else if (
+            state.level === 'premontage-categories'
+        ) {
+            right = plainActionName('передмонтаж');
+        } else if (
+            state.level === 'premontage-wires'
+        ) {
+            right = state.category || '';
+        } else if (
+            state.level === 'wire-stations'
+        ) {
+            right = plainActionName('проводи');
+        } else if (
+            state.level === 'wire-results'
+        ) {
+            right = state.station || '';
+        }
+        html =
+            html.replace(
+                '<div class="premontage-title"></div>',
+                ''
+            );
+        html = `
+            <div class="premontage-title level-head">
+                <span class="level-head-left">${escapeHtml(state.article)}</span>
+                <span class="level-head-right">${escapeHtml(right)}</span>
+            </div>
+        ` + html;
+    }
     return html;
+}
+function plainActionName(key) {
+    const k = String(key || "");
+    if (k === 'sp' || k === 'ts') {
+        return k.toUpperCase();
+    }
+    if (k === 'стр' || k === 'мм') {
+        return k.toUpperCase();
+    }
+    return k.charAt(0).toUpperCase() + k.slice(1);
 }
 /* ==================== РЕНДЕР АРТИКУЛІВ ==================== */
 function renderArticlesPage(
