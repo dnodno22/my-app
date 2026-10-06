@@ -340,6 +340,10 @@ input#input {
 .premontage-nav-btn:active {
     background: #e0e7ff;
 }
+.premontage-nav-btn.active {
+    background: #4338ca;
+    color: #fff;
+}
 .premontage-close-btn {
     background: #fff7e0;
     color: #b45309;
@@ -568,7 +572,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 10;
+const CODE_VERSION = 11;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -1598,6 +1602,44 @@ function getAllMaterialsForArticle(article) {
         )
     );
 }
+/* ==================== СПІЛЬНІ МАТЕРІАЛИ ==================== */
+function buildMaterialArticleMap() {
+    const map = {};
+    searchData.forEach(row => {
+        const mat =
+            String(row.material || "").trim();
+        if (!mat) return;
+        if (!map[mat]) {
+            map[mat] = new Set();
+        }
+        expandArticleValue(row.article)
+            .forEach(a => map[mat].add(a));
+    });
+    return map;
+}
+function getOtherArticles(
+    map,
+    material,
+    article
+) {
+    const set =
+        map[String(material || "").trim()];
+    if (!set) return [];
+    const current =
+        String(article || "").trim();
+    return [...set]
+        .filter(a => a !== current)
+        .sort((a, b) =>
+            a.localeCompare(
+                b,
+                'uk',
+                {
+                    numeric: true,
+                    sensitivity: 'base'
+                }
+            )
+        );
+}
 /* ==================== ДІЇ ==================== */
 function articleHasAction(
     article,
@@ -1748,8 +1790,68 @@ function buildArticlesLevelHtml(
         } else if (
             state.action === 'розміщення'
         ) {
+            /*
+                Спільні матеріали (152 / 153 / 157): в яких ще
+                артикулах вони використовуються.
+            */
+            const matArticleMap =
+                buildMaterialArticleMap();
+            /*
+                Кількість = у скількох станціях матеріал
+                зустрічається на цьому артикулі.
+            */
+            const qtySets = {};
+            rows.forEach(r => {
+                const m =
+                    String(r.material || "").trim();
+                if (!qtySets[m]) {
+                    qtySets[m] = new Set();
+                }
+                qtySets[m].add(
+                    String(r.station || "").trim()
+                );
+            });
+            const qtyOf = (r) => {
+                const set =
+                    qtySets[
+                        String(r.material || "").trim()
+                    ];
+                return set ? set.size : 0;
+            };
+            let placementRows = [...rows];
+            if (state.shared) {
+                placementRows =
+                    placementRows.filter(r =>
+                        isWireMaterial(r.material) &&
+                        getOtherArticles(
+                            matArticleMap,
+                            r.material,
+                            state.article
+                        ).length > 0
+                    );
+            }
             const sorted =
-                [...rows].sort((a, b) => {
+                placementRows.sort((a, b) => {
+                    if (state.sortQty) {
+                        const byQty =
+                            qtyOf(b) - qtyOf(a);
+                        if (byQty !== 0) {
+                            return byQty;
+                        }
+                        const byMat =
+                            String(a.material || "")
+                                .localeCompare(
+                                    String(b.material || ""),
+                                    'uk',
+                                    {
+                                        numeric: true,
+                                        sensitivity: 'base'
+                                    }
+                                );
+                        if (byMat !== 0) {
+                            return byMat;
+                        }
+                    }
                     const byStation =
                         String(a.station || "")
                             .localeCompare(
@@ -1773,21 +1875,55 @@ function buildArticlesLevelHtml(
                             }
                         );
                 });
-            html +=
-                '<table><thead><tr><th>Станція</th><th>Матеріал</th><th>Адреса</th></tr></thead><tbody>';
-            sorted.forEach(r => {
-                html += `
-                    <tr
-                        ${toSearchAttr(r.material)}
-                        style="cursor:pointer;">
-                        <td>${escapeHtml(r.station)}</td>
-                        <td>${escapeHtml(r.material)}</td>
-                        <td>${escapeHtml(r.address)}</td>
-                    </tr>
-                `;
-            });
-            html +=
-                '</tbody></table>';
+            html += `
+                <div class="premontage-toolbar">
+                    <button
+                        class="premontage-nav-btn${state.shared ? ' active' : ''}"
+                        data-anav="toggle-shared">
+                        🔗 Спільні
+                    </button>
+                    <button
+                        class="premontage-nav-btn${state.sortQty ? ' active' : ''}"
+                        data-anav="toggle-qty">
+                        🔢 Кількість
+                    </button>
+                </div>
+            `;
+            if (!sorted.length) {
+                html +=
+                    '<div style="text-align:center; padding:40px; color:#aaa;">Спільних матеріалів не знайдено</div>';
+            } else {
+                html +=
+                    '<table><thead><tr><th>Станція</th><th>Матеріал</th><th>Адреса</th><th>Також в артикулах</th></tr></thead><tbody>';
+                sorted.forEach(r => {
+                    const others =
+                        isWireMaterial(r.material)
+                            ? getOtherArticles(
+                                matArticleMap,
+                                r.material,
+                                state.article
+                            )
+                            : [];
+                    const qtyBadge =
+                        state.sortQty
+                            ? ' <span style="color:#6b7280; font-weight:700;">×' +
+                              qtyOf(r) +
+                              '</span>'
+                            : '';
+                    html += `
+                        <tr
+                            ${toSearchAttr(r.material)}
+                            style="cursor:pointer;">
+                            <td>${escapeHtml(r.station)}</td>
+                            <td>${escapeHtml(r.material)}${qtyBadge}</td>
+                            <td>${escapeHtml(r.address)}</td>
+                            <td style="white-space:normal; word-break:break-word; min-width:90px;">${escapeHtml(others.join(", "))}</td>
+                        </tr>
+                    `;
+                });
+                html +=
+                    '</tbody></table>';
+            }
         } else if (state.action === 'sp') {
             const grouped = {};
             rows.forEach(x => {
@@ -2297,6 +2433,26 @@ articlesPageContent.addEventListener(
             articlesPageStack[
                 articlesPageStack.length - 1
             ];
+        /* ---------- ПЕРЕМИКАЧІ РОЗМІЩЕННЯ ---------- */
+        if (
+            nav === 'toggle-shared' ||
+            nav === 'toggle-qty'
+        ) {
+            if (
+                current &&
+                current.level === 'results'
+            ) {
+                if (nav === 'toggle-shared') {
+                    current.shared =
+                        !current.shared;
+                } else {
+                    current.sortQty =
+                        !current.sortQty;
+                }
+                renderArticlesPage(true);
+            }
+            return;
+        }
         /* ---------- ДО ПОШУКУ ---------- */
         if (nav === 'to-search') {
             const material =
