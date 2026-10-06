@@ -572,7 +572,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 11;
+const CODE_VERSION = 13;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -1875,6 +1875,28 @@ function buildArticlesLevelHtml(
                             }
                         );
                 });
+            /*
+                Режим "Кількість": однакові матеріали йдуть підряд,
+                групи розрізняються відтінком фону (світліше / темніше).
+            */
+            const displayRows =
+                sorted.map(r => ({
+                    station: r.station,
+                    material: r.material,
+                    address: r.address,
+                    shade: 0
+                }));
+            let shadeIdx = -1;
+            let prevMat = null;
+            displayRows.forEach(r => {
+                const m =
+                    String(r.material || "").trim();
+                if (m !== prevMat) {
+                    shadeIdx++;
+                    prevMat = m;
+                }
+                r.shade = shadeIdx % 2;
+            });
             html += `
                 <div class="premontage-toolbar">
                     <button
@@ -1889,35 +1911,44 @@ function buildArticlesLevelHtml(
                     </button>
                 </div>
             `;
-            if (!sorted.length) {
+            if (!displayRows.length) {
                 html +=
                     '<div style="text-align:center; padding:40px; color:#aaa;">Спільних матеріалів не знайдено</div>';
             } else {
                 html +=
-                    '<table><thead><tr><th>Станція</th><th>Матеріал</th><th>Адреса</th><th>Також в артикулах</th></tr></thead><tbody>';
-                sorted.forEach(r => {
+                    '<table><thead><tr><th>Станція</th><th>Матеріал</th><th>Адреса</th>' +
+                    (state.shared ? '<th>Також в артикулах</th>' : '') +
+                    '</tr></thead><tbody>';
+                displayRows.forEach(r => {
                     const others =
-                        isWireMaterial(r.material)
+                        (
+                            state.shared &&
+                            isWireMaterial(r.material)
+                        )
                             ? getOtherArticles(
                                 matArticleMap,
                                 r.material,
                                 state.article
                             )
                             : [];
-                    const qtyBadge =
+                    const bg =
                         state.sortQty
-                            ? ' <span style="color:#6b7280; font-weight:700;">×' +
-                              qtyOf(r) +
-                              '</span>'
+                            ? (r.shade
+                                ? ' background:#e2e8f0;'
+                                : ' background:#ffffff;')
                             : '';
+                    const tdStyle =
+                        bg ? ` style="${bg.trim()}"` : '';
                     html += `
                         <tr
                             ${toSearchAttr(r.material)}
                             style="cursor:pointer;">
-                            <td>${escapeHtml(r.station)}</td>
-                            <td>${escapeHtml(r.material)}${qtyBadge}</td>
-                            <td>${escapeHtml(r.address)}</td>
-                            <td style="white-space:normal; word-break:break-word; min-width:90px;">${escapeHtml(others.join(", "))}</td>
+                            <td${tdStyle}>${escapeHtml(r.station)}</td>
+                            <td${tdStyle}>${escapeHtml(r.material)}</td>
+                            <td${tdStyle}>${escapeHtml(r.address)}</td>
+                            ${state.shared
+                                ? `<td style="white-space:normal; word-break:break-word; min-width:90px;${bg}">${escapeHtml(others.join(", "))}</td>`
+                                : ''}
                         </tr>
                     `;
                 });
