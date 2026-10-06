@@ -572,10 +572,13 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 14;
+const CODE_VERSION = 15;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
+/* Кеші для швидкодії */
+const _expandCache = new Map();
+let _actionsCache = {};
 let TOTAL_PAGES = 3;
 const SEARCH_PAGE_INDEX = 1;
 const ARTICLES_PAGE_INDEX = 2;
@@ -719,6 +722,15 @@ function getArticleBase(code) {
     return code;
 }
 function expandArticleValue(raw) {
+    const k = String(raw || "");
+    let r = _expandCache.get(k);
+    if (r === undefined) {
+        r = expandArticleValueRaw(k);
+        _expandCache.set(k, r);
+    }
+    return r;
+}
+function expandArticleValueRaw(raw) {
     raw = String(raw || "").trim();
     if (!raw) return [];
     const parts = raw
@@ -889,6 +901,7 @@ document
     });
 /* ==================== CSV ==================== */
 function parseSearchCSV(t) {
+    _actionsCache = {};
     searchData =
         t.trim().split("\n").map(r => {
             const c = r.split(",");
@@ -919,6 +932,18 @@ function fetchSearchData() {
     fetch(url1)
         .then(r => r.text())
         .then(t => {
+            const previous =
+                localStorage.getItem(
+                    CACHE_KEY_SEARCH
+                );
+            if (previous === t) {
+                /* Дані не змінились — нічого не перебудовуємо */
+                localStorage.setItem(
+                    CACHE_KEY_SEARCH_TIME,
+                    Date.now().toString()
+                );
+                return;
+            }
             localStorage.setItem(
                 CACHE_KEY_SEARCH,
                 t
@@ -1668,12 +1693,19 @@ function articleHasAction(
 function getAvailableActionsForArticle(
     article
 ) {
-    return ARTICLE_ACTION_KEYS.filter(
-        k => articleHasAction(
-            article,
-            k
-        )
-    );
+    const cacheKey = String(article);
+    if (_actionsCache[cacheKey]) {
+        return _actionsCache[cacheKey];
+    }
+    const result =
+        ARTICLE_ACTION_KEYS.filter(
+            k => articleHasAction(
+                article,
+                k
+            )
+        );
+    _actionsCache[cacheKey] = result;
+    return result;
 }
 /* ==================== НАЗАД ==================== */
 function popArticlesPageLevel() {
@@ -2505,6 +2537,11 @@ articlesPageContent.addEventListener(
             toggleArticleFavorite(
                 btn.dataset.article
             );
+            articlesPageStack.forEach(st => {
+                if (st.level === 'articles') {
+                    delete st.cachedHtml;
+                }
+            });
             renderArticlesPage(
                 true
             );
@@ -3100,6 +3137,13 @@ document.addEventListener(
                         : buildArticlesLevelHtml(
                             articlesPageStack.length - 2
                         );
+                if (
+                    prevState &&
+                    !prevState.cachedHtml
+                ) {
+                    prevState.cachedHtml =
+                        prevHtml;
+                }
                 const wrapper =
                     document.createElement(
                         'div'
