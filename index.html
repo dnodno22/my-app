@@ -597,7 +597,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 28;
+const CODE_VERSION = 29;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -1959,9 +1959,7 @@ function buildArticlesLevelHtml(
                     '<div style="text-align:center; padding:40px; color:#aaa;">Спільних матеріалів не знайдено</div>';
             } else {
                 html +=
-                    '<table><thead><tr><th>Станція</th><th>Матеріал</th><th>Адреса</th>' +
-                    (state.shared ? '<th>Також в артикулах</th>' : '') +
-                    '</tr></thead><tbody>';
+                    '<div class="wire-list">';
                 displayRows.forEach(r => {
                     const others =
                         (
@@ -1977,28 +1975,31 @@ function buildArticlesLevelHtml(
                     const bg =
                         state.sortQty
                             ? (r.shade
-                                ? ' background:#eceff4; border-color:#b6c0cf;'
+                                ? ' background:#e3e8f0; border-color:#b6c0cf;'
                                 : ' background:#ffffff; border-color:#b6c0cf;')
                             : '';
-                    const tdStyle =
-                        bg ? ` style="${bg.trim()}"` : '';
-                    const addrStyle =
-                        ` style="${bg.trim()} color:#059669; font-weight:600; font-size:14px;"`;
                     html += `
-                        <tr
+                        <div
+                            class="wire-row"
                             ${toSearchAttr(r.material)}
-                            style="cursor:pointer;">
-                            <td${tdStyle}>${escapeHtml(r.station)}</td>
-                            <td${tdStyle}>${escapeHtml(r.material)}</td>
-                            <td${addrStyle}>${escapeHtml(r.address)}</td>
-                            ${state.shared
-                                ? `<td style="white-space:normal; word-break:break-word; min-width:90px;${bg}">${escapeHtml(others.join(", "))}</td>`
+                            style="cursor:pointer; flex-wrap:wrap;${bg}">
+                            <span class="wire-name" style="min-width:34px;">
+                                ${escapeHtml(r.station)}
+                            </span>
+                            <span class="wire-code" style="font-size:16px; font-weight:800; color:#111; text-align:left;">
+                                ${escapeHtml(r.material)}
+                            </span>
+                            <span class="wire-location">
+                                ${escapeHtml(r.address)}
+                            </span>
+                            ${others.length
+                                ? `<span style="flex-basis:100%; font-size:13px; font-weight:600; color:#4338ca;">Також в артикулах: ${escapeHtml(others.join(", "))}</span>`
                                 : ''}
-                        </tr>
+                        </div>
                     `;
                 });
                 html +=
-                    '</tbody></table>';
+                    '</div>';
             }
         } else if (
             state.action === 'sp' ||
