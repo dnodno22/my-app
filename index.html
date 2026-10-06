@@ -568,7 +568,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 8;
+const CODE_VERSION = 9;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -2634,7 +2634,11 @@ let pageMoved = false;
 let pageDragPxWidth = 0;
 let pageSwipeCandidate = false;
 let suppressNextClick = false;
-const PAGE_SWIPE_START_PX = 14;
+/*
+    ЗБІЛЬШЕНО з 14 до 24: дрейф пальця при звичайному натисканні
+    більше не сприймається як початок свайпу.
+*/
+const PAGE_SWIPE_START_PX = 24;
 function finishPageDrag(dx) {
     const SWIPE_THRESHOLD =
         Math.max(
@@ -2686,7 +2690,7 @@ function finishPageDrag(dx) {
             Крапочки оновлюємо ВІДРАЗУ, в момент прийняття рішення —
             ще до того, як почалась/завершилась сама анімація зсуву.
             Інакше вони чекали б на transitionend (чи й цілих 400мс
-            запасного таймауту) і помітно відставали від переходу.
+            запасного таймауту) і помітно відставали б від переходу.
         */
         const willGoBack =
             dx >= SWIPE_THRESHOLD;
@@ -3099,10 +3103,36 @@ document.addEventListener(
         passive: true
     }
 );
+/* ==================== TOUCH CANCEL ==================== */
+/*
+    Якщо браузер сам скасував жест (наприклад, перехопив скрол),
+    скидаємо стан, щоб не лишалось "зависшого" свайпу.
+*/
+document.addEventListener(
+    'touchcancel',
+    () => {
+        pageDragging = false;
+        pageSwipeCandidate = false;
+        if (pageMoved) {
+            pageMoved = false;
+            finishPageDrag(0);
+        }
+    },
+    {
+        passive: true
+    }
+);
 /* ==================== БЛОКУВАННЯ CLICK ПІСЛЯ SWIPE ==================== */
 document.addEventListener(
     'click',
     e => {
+        /*
+            Наш власний click() з touchend (isTrusted === false)
+            ніколи не гасимо — тільки справжній клік від браузера.
+        */
+        if (!e.isTrusted) {
+            return;
+        }
         if (!suppressNextClick) {
             return;
         }
