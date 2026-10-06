@@ -572,7 +572,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 15;
+const CODE_VERSION = 16;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -2023,15 +2023,21 @@ function buildArticlesLevelHtml(
             });
             const items =
                 Object.values(grouped)
-                    .sort((a, b) =>
-                        a.num.localeCompare(
+                    .sort((a, b) => {
+                        /* Спочатку матеріали без адреси */
+                        const aNo = a.addr ? 1 : 0;
+                        const bNo = b.addr ? 1 : 0;
+                        if (aNo !== bNo) {
+                            return aNo - bNo;
+                        }
+                        return a.num.localeCompare(
                             b.num,
                             'uk',
                             {
                                 numeric: true
                             }
-                        )
-                    );
+                        );
+                    });
             if (!items.length) {
                 html +=
                     '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
