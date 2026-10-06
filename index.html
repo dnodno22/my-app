@@ -242,13 +242,6 @@ input#input {
     background: #fffaf0;
     border-color: #f3d37a;
 }
-.level-head-left + .article-favorite-btn {
-    width: 40px;
-    min-width: 40px;
-    height: 36px;
-    font-size: 20px;
-    padding: 0;
-}
 .article-favorite-btn:active {
     transform: scale(.96);
 }
@@ -379,10 +372,15 @@ input#input {
     font-weight: 800;
     color: #111;
 }
+.level-head-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
 .level-head-right {
-    font-size: 16px;
-    font-weight: 700;
-    color: #4338ca;
+    font-size: 20px;
+    font-weight: 800;
+    color: #111;
     text-align: right;
 }
 .premontage-btn-grid {
@@ -599,7 +597,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 23;
+const CODE_VERSION = 25;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -1789,25 +1787,10 @@ function buildArticlesLevelHtml(
         }
     /* ---------- ДІЇ ---------- */
     } else if (state.level === 'actions') {
-        const favorite =
-            isArticleFavorite(
-                state.article
-            );
-        html += `
-            <div
-                class="premontage-title"
-                style="display:flex; align-items:center; justify-content:flex-start; gap:10px;">
-                <span class="level-head-left">${escapeHtml(state.article)}</span>
-                <button
-                    class="article-favorite-btn${favorite ? ' selected' : ''}"
-                    data-anav="article-favorite"
-                    data-article="${escapeHtml(state.article)}"
-                    aria-label="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}"
-                    title="${favorite ? 'Прибрати з обраних' : 'Додати до обраних'}">
-                    ${favorite ? '★' : '☆'}
-                </button>
-            </div>
-        `;
+        html += buildLevelHeadHtml(
+            state.article,
+            ''
+        );
         const available =
             getAvailableActionsForArticle(
                 state.article
@@ -2350,7 +2333,7 @@ function buildArticlesLevelHtml(
                         class="premontage-item-btn"
                         data-anav="wire-station"
                         data-station="${escapeHtml(st)}">
-                        ${escapeHtml(st)}
+                        Станція ${escapeHtml(st)}
                     </button>
                 `;
             });
@@ -2432,21 +2415,38 @@ function buildArticlesLevelHtml(
         } else if (
             state.level === 'wire-results'
         ) {
-            right = state.station || '';
+            right = state.station ? 'Станція ' + state.station : '';
         }
         html =
             html.replace(
                 '<div class="premontage-title"></div>',
                 ''
             );
-        html = `
-            <div class="premontage-title level-head">
-                <span class="level-head-left">${escapeHtml(state.article)}</span>
-                <span class="level-head-right">${escapeHtml(right)}</span>
-            </div>
-        ` + html;
+        html =
+            buildLevelHeadHtml(
+                state.article,
+                right
+            ) + html;
     }
     return html;
+}
+function buildLevelHeadHtml(article, right) {
+    const fav = isArticleFavorite(article);
+    return `
+        <div class="premontage-title level-head">
+            <span class="level-head-main">
+                <button
+                    class="select-btn${fav ? ' selected' : ''}"
+                    data-anav="article-favorite"
+                    data-article="${escapeHtml(article)}"
+                    aria-label="${fav ? 'Прибрати з обраних' : 'Додати до обраних'}">
+                    ${fav ? '★' : '☆'}
+                </button>
+                <span class="level-head-left">${escapeHtml(article)}</span>
+            </span>
+            <span class="level-head-right">${escapeHtml(right)}</span>
+        </div>
+    `;
 }
 function plainActionName(key) {
     const k = String(key || "");
@@ -2566,9 +2566,7 @@ articlesPageContent.addEventListener(
                 btn.dataset.article
             );
             articlesPageStack.forEach(st => {
-                if (st.level === 'articles') {
-                    delete st.cachedHtml;
-                }
+                delete st.cachedHtml;
             });
             renderArticlesPage(
                 true
