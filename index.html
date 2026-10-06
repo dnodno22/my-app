@@ -572,7 +572,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 16;
+const CODE_VERSION = 18;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -1987,125 +1987,48 @@ function buildArticlesLevelHtml(
                 html +=
                     '</tbody></table>';
             }
-        } else if (state.action === 'sp') {
-            const grouped = {};
+        } else if (
+            state.action === 'sp' ||
+            state.action === 'ts'
+        ) {
+            /*
+                SP і TS показуємо однаково: картка на кожну станцію,
+                у ній рядки "номер матеріалу — адреса".
+                SP: тільки номери 158…; TS: тільки цифри з назви.
+            */
+            const isSp = state.action === 'sp';
+            const byStation = {};
             rows.forEach(x => {
                 const mat =
                     String(
                         x.material || ""
                     ).trim();
-                const m =
-                    mat.match(/158\d+/);
-                if (!m) return;
-                const num = m[0];
-                const st =
-                    String(
-                        x.station || ""
-                    ).trim();
-                const addr =
-                    String(
-                        x.address || ""
-                    ).trim();
-                const key =
-                    num + "|" + addr;
-                if (!grouped[key]) {
-                    grouped[key] = {
-                        num,
-                        addr,
-                        stations: new Set()
-                    };
+                let shown = mat;
+                if (isSp) {
+                    const m =
+                        mat.match(/158\d+/);
+                    if (!m) return;
+                    shown = m[0];
+                } else {
+                    const digits =
+                        mat.replace(/\D/g, "");
+                    if (digits) {
+                        shown = digits;
+                    }
                 }
-                if (st) {
-                    grouped[key]
-                        .stations
-                        .add(st);
-                }
-            });
-            const items =
-                Object.values(grouped)
-                    .sort((a, b) => {
-                        /* Спочатку матеріали без адреси */
-                        const aNo = a.addr ? 1 : 0;
-                        const bNo = b.addr ? 1 : 0;
-                        if (aNo !== bNo) {
-                            return aNo - bNo;
-                        }
-                        return a.num.localeCompare(
-                            b.num,
-                            'uk',
-                            {
-                                numeric: true
-                            }
-                        );
-                    });
-            if (!items.length) {
-                html +=
-                    '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
-            } else {
-                items.forEach(item => {
-                    const stationHtmlArr =
-                        [...item.stations]
-                            .sort((a, b) =>
-                                String(a).localeCompare(
-                                    String(b),
-                                    'uk',
-                                    {
-                                        numeric: true
-                                    }
-                                )
-                            )
-                            .map(st =>
-                                escapeHtml(st)
-                            );
-                    const stationsHtml =
-                        buildStationsHtml(
-                            stationHtmlArr
-                        );
-                    html += `
-                        <div
-                            class="result-card"
-                            ${toSearchAttr(item.num)}
-                            style="cursor:pointer;">
-                            <div class="result-top">
-                                <span class="result-material-badge">
-                                    <span class="box-icon">📦</span>
-                                    ${escapeHtml(item.num)}
-                                </span>
-                                <span class="result-address-new">
-                                    ${escapeHtml(item.addr)}
-                                </span>
-                            </div>
-                            <div
-                                class="article-row"
-                                style="border-top:none; padding-top:0; justify-content:flex-end;">
-                                <span class="article-stations">
-                                    ${stationsHtml}
-                                </span>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-        } else if (state.action === 'ts') {
-            const byStation = {};
-            rows.forEach(x => {
                 const st =
                     String(
                         x.station || ""
                     ).trim() || "—";
-                if (!byStation[st]) {
-                    byStation[st] = [];
-                }
-                const mat =
-                    String(
-                        x.material || ""
-                    ).trim();
                 const addr =
                     String(
                         x.address || ""
                     ).trim();
+                if (!byStation[st]) {
+                    byStation[st] = [];
+                }
                 const key =
-                    mat + "|" + addr;
+                    shown + "|" + addr;
                 if (
                     !byStation[st]
                         .some(
@@ -2115,7 +2038,8 @@ function buildArticlesLevelHtml(
                 ) {
                     byStation[st].push({
                         key,
-                        mat,
+                        shown,
+                        search: shown,
                         addr
                     });
                 }
@@ -2132,7 +2056,29 @@ function buildArticlesLevelHtml(
                             }
                         )
                     );
+            if (!stationKeys.length) {
+                html +=
+                    '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
+            }
             stationKeys.forEach(st => {
+                const list = byStation[st];
+                if (isSp) {
+                    /* Спочатку матеріали без адреси */
+                    list.sort((a, b) => {
+                        const aNo = a.addr ? 1 : 0;
+                        const bNo = b.addr ? 1 : 0;
+                        if (aNo !== bNo) {
+                            return aNo - bNo;
+                        }
+                        return a.shown.localeCompare(
+                            b.shown,
+                            'uk',
+                            {
+                                numeric: true
+                            }
+                        );
+                    });
+                }
                 html += `
                     <div class="result-card">
                         <div class="result-top">
@@ -2142,22 +2088,21 @@ function buildArticlesLevelHtml(
                             </span>
                         </div>
                 `;
-                byStation[st]
-                    .forEach((item, i) => {
-                        html += `
-                            <div
-                                class="article-row"
-                                ${toSearchAttr(item.mat)}
-                                style="cursor:pointer;${i === 0 ? ' border-top:none; padding-top:0;' : ''}">
-                                <span class="article-number">
-                                    ${escapeHtml(item.mat)}
-                                </span>
-                                <span class="article-stations">
-                                    ${escapeHtml(item.addr)}
-                                </span>
-                            </div>
-                        `;
-                    });
+                list.forEach((item, i) => {
+                    html += `
+                        <div
+                            class="article-row"
+                            ${toSearchAttr(item.search)}
+                            style="cursor:pointer;${i === 0 ? ' border-top:none; padding-top:0;' : ''}">
+                            <span class="article-number">
+                                ${escapeHtml(item.shown)}
+                            </span>
+                            <span class="article-stations">
+                                ${escapeHtml(item.addr)}
+                            </span>
+                        </div>
+                    `;
+                });
                 html +=
                     `</div>`;
             });
@@ -2642,6 +2587,9 @@ function search() {
                     x.material
                         .toLowerCase()
                         .endsWith(v)
+                    ||
+                    String(x.material || "")
+                        .replace(/\D/g, "") === v
                     ||
                     x.article
                         .toLowerCase()
