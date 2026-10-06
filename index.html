@@ -568,7 +568,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 9;
+const CODE_VERSION = 10;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -654,10 +654,22 @@ function renderArticlesDots(overridePage, overrideDepth) {
         Артикули → Артикул → Передмонтаж → Категорія
         і т.д.
     */
-    const depth =
-        overrideDepth !== undefined
-            ? overrideDepth
-            : articlesPageStack.length;
+    /*
+        Пошук завжди 1-а крапочка (перша сторінка).
+        Панель артикулів = 2-а крапочка, кожен рівень углиб додає ще одну.
+        Тому на сторінці артикулів: глибина стеку + 1.
+    */
+    let depth;
+    if (page === SEARCH_PAGE_INDEX) {
+        depth = 1;
+    } else {
+        depth =
+            (
+                overrideDepth !== undefined
+                    ? overrideDepth
+                    : articlesPageStack.length
+            ) + 1;
+    }
     if (depth <= 0) {
         articlesDots.style.display = 'none';
         articlesDots.innerHTML = '';
