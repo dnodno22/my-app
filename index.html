@@ -572,7 +572,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 18;
+const CODE_VERSION = 19;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -2082,7 +2082,7 @@ function buildArticlesLevelHtml(
                 html += `
                     <div class="result-card">
                         <div class="result-top">
-                            <span class="result-material-badge">
+                            <span class="result-material-badge" style="font-size:15px;">
                                 <span class="box-icon">📍</span>
                                 Станція ${escapeHtml(st)}
                             </span>
@@ -2094,10 +2094,10 @@ function buildArticlesLevelHtml(
                             class="article-row"
                             ${toSearchAttr(item.search)}
                             style="cursor:pointer;${i === 0 ? ' border-top:none; padding-top:0;' : ''}">
-                            <span class="article-number">
+                            <span class="article-number" style="font-size:20px; font-weight:800;">
                                 ${escapeHtml(item.shown)}
                             </span>
-                            <span class="article-stations">
+                            <span class="article-stations" style="color:#059669;">
                                 ${escapeHtml(item.addr)}
                             </span>
                         </div>
