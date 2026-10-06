@@ -597,7 +597,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 28;
+const CODE_VERSION = 30;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -2073,7 +2073,7 @@ function buildArticlesLevelHtml(
                 html +=
                     '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
             }
-            if (isSp && stationKeys.length) {
+            if (stationKeys.length) {
                 /*
                     SP: плоский список у стилі проводів:
                     номер станції — матеріал — адреса складу.
@@ -2093,7 +2093,7 @@ function buildArticlesLevelHtml(
                 flat.sort((a, b) => {
                     const aNo = a.addr ? 1 : 0;
                     const bNo = b.addr ? 1 : 0;
-                    if (aNo !== bNo) {
+                    if (isSp && aNo !== bNo) {
                         return aNo - bNo;
                     }
                     const byStationCmp =
