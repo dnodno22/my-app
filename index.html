@@ -597,7 +597,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 25;
+const CODE_VERSION = 26;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -2356,6 +2356,8 @@ function buildArticlesLevelHtml(
                 '<div style="text-align:center; padding:40px; color:#aaa;">Проводів не знайдено</div>';
         } else {
             const seen = new Set();
+            html +=
+                '<div class="wire-list">';
             wires.forEach(x => {
                 const matName =
                     String(
@@ -2375,21 +2377,20 @@ function buildArticlesLevelHtml(
                 seen.add(key);
                 html += `
                     <div
-                        class="result-card"
+                        class="wire-row"
                         ${toSearchAttr(matName)}
                         style="cursor:pointer;">
-                        <div class="result-top">
-                            <span class="result-material-badge">
-                                <span class="box-icon">📦</span>
-                                ${escapeHtml(matName)}
-                            </span>
-                            <span class="result-address-new">
-                                ${escapeHtml(matAddr)}
-                            </span>
-                        </div>
+                        <span class="wire-name">
+                            ${escapeHtml(matName)}
+                        </span>
+                        <span class="wire-location">
+                            ${escapeHtml(matAddr)}
+                        </span>
                     </div>
                 `;
             });
+            html +=
+                '</div>';
         }
     }
     /* ---------- ШАПКА: ліворуч артикул, праворуч назва кнопки ---------- */
