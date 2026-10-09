@@ -601,13 +601,14 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 33;
+const CODE_VERSION = 34;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
 /* Кеші для швидкодії */
 const _expandCache = new Map();
 let _actionsCache = {};
+let _fullCodeMap = null;
 let TOTAL_PAGES = 3;
 const SEARCH_PAGE_INDEX = 1;
 const ARTICLES_PAGE_INDEX = 2;
@@ -2512,7 +2513,6 @@ function buildLevelHeadHtml(article, right) {
         </div>
     `;
 }
-let _fullCodeMap = null;
 function getArticleFullCode(base) {
     if (!_fullCodeMap) {
         _fullCodeMap = {};
