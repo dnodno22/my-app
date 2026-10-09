@@ -595,7 +595,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 31;
+const CODE_VERSION = 32;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -2014,19 +2014,11 @@ function buildArticlesLevelHtml(
                     String(
                         x.material || ""
                     ).trim();
-                let shown = mat;
-                if (isSp) {
-                    const m =
-                        mat.match(/158\d+/);
-                    if (!m) return;
-                    shown = m[0];
-                } else {
-                    const digits =
-                        mat.replace(/\D/g, "");
-                    if (digits) {
-                        shown = digits;
-                    }
-                }
+                /* SP і TS: потрібна лише частина, що починається на 158 */
+                const m =
+                    mat.match(/158\d+/);
+                if (!m) return;
+                const shown = m[0];
                 const st =
                     String(
                         x.station || ""
