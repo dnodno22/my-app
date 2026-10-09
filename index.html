@@ -377,6 +377,12 @@ input#input {
     align-items: center;
     gap: 4px;
 }
+.level-head-tail {
+    font-size: 0.7em;
+    font-weight: 700;
+    color: #6b7280;
+    margin-left: 1px;
+}
 .level-head-right {
     font-size: 20px;
     font-weight: 800;
@@ -595,7 +601,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 32;
+const CODE_VERSION = 33;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -925,6 +931,7 @@ document
 /* ==================== CSV ==================== */
 function parseSearchCSV(t) {
     _actionsCache = {};
+    _fullCodeMap = null;
     searchData =
         t.trim().split("\n").map(r => {
             const c = r.split(",");
@@ -2499,11 +2506,48 @@ function buildLevelHeadHtml(article, right) {
                     aria-label="${fav ? 'Прибрати з обраних' : 'Додати до обраних'}">
                     ${fav ? '★' : '☆'}
                 </button>
-                <span class="level-head-left">${escapeHtml(article)}</span>
+                <span class="level-head-left">${articleHeadHtml(article)}</span>
             </span>
             <span class="level-head-right">${escapeHtml(right)}</span>
         </div>
     `;
+}
+let _fullCodeMap = null;
+function getArticleFullCode(base) {
+    if (!_fullCodeMap) {
+        _fullCodeMap = {};
+        searchData.forEach(row => {
+            String(row.article || "")
+                .split("/")
+                .map(normalizeArticlePart)
+                .forEach(p => {
+                    if (
+                        /^\d{7}/.test(p) &&
+                        p.length > 7
+                    ) {
+                        const b = p.slice(0, 7);
+                        if (!_fullCodeMap[b]) {
+                            _fullCodeMap[b] = p;
+                        }
+                    }
+                });
+        });
+    }
+    return _fullCodeMap[String(base)] || String(base);
+}
+function articleHeadHtml(article) {
+    const full = getArticleFullCode(article);
+    const base = String(article);
+    if (
+        full.length > base.length &&
+        full.startsWith(base)
+    ) {
+        return escapeHtml(base) +
+            '<span class="level-head-tail">' +
+            escapeHtml(full.slice(base.length)) +
+            '</span>';
+    }
+    return escapeHtml(full);
 }
 function plainActionName(key) {
     const k = String(key || "");
