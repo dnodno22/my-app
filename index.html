@@ -601,7 +601,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 41;
+const CODE_VERSION = 44;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -624,7 +624,7 @@ const ARTICLE_ACTION_KEYS = [
     "розміщення",
     "sp",
     "ts",
-    "стр",
+    "ізострічка",
     "мм",
     "передмонтаж",
     "проводи"
@@ -633,7 +633,7 @@ const ACTION_LABELS = {
     "розміщення": "📍 Розміщення",
     "sp": "🔩 SP",
     "ts": "🧷 TS",
-    "стр": "📏 СТР",
+    "ізострічка": "📏 Ізострічка",
     "мм": "📐 ММ",
     "передмонтаж": "🧵 Передмонтаж",
     "проводи": "⚡ Проводи"
@@ -1222,7 +1222,9 @@ function renderWaitlistPage() {
         `;
         for (let art in item.articles) {
             const stationHtmlArr =
-                item.articles[art]
+                uniqueDisplayStations(
+                    item.articles[art]
+                )
                     .map(st => escapeHtml(st));
             const stationsHtml =
                 buildStationsHtml(
@@ -1543,6 +1545,18 @@ function computeWiresForCategory(
         );
 }
 /* ==================== ACTION RESULTS ==================== */
+/* Адреса зони "А 5" (А / A, потім 5 або 05): "A 05 05 06" */
+function isIsotapeAddress(address) {
+    return /^[AА]\s*0?5(?:\s|$)/i.test(
+        String(address || "").trim()
+    );
+}
+/* У примітці є слово "стр" (на початку слова): СТР, стр 3, ... */
+function hasStrNote(note) {
+    return /(^|[^\p{L}])стр/iu.test(
+        String(note || "")
+    );
+}
 function computeArticleActionResults(
     article,
     key
@@ -1550,6 +1564,17 @@ function computeArticleActionResults(
     const v =
         String(key || "")
             .toLowerCase();
+    if (v === 'ізострічка') {
+        return searchData.filter(x =>
+            expandArticleValue(
+                x.article
+            ).includes(article) &&
+            (
+                isIsotapeAddress(x.address) ||
+                hasStrNote(x.colD)
+            )
+        );
+    }
     return searchData.filter(x => {
         if (
             !expandArticleValue(
@@ -2188,7 +2213,7 @@ function buildArticlesLevelHtml(
                 html +=
                     `</div>`;
             });
-        } else if (state.action === 'стр') {
+        } else if (state.action === 'ізострічка') {
             const grouped = {};
             rows.forEach(x => {
                 const matKey =
@@ -2618,6 +2643,18 @@ function premontage158(full) {
         String(full || "").match(/158\d+/);
     return m ? m[0] : "";
 }
+/* Станція для показу: у назвах передмонтажу прибираємо число на 158 */
+function displayStation(st) {
+    const t = String(st || "");
+    return isPremontageName(t)
+        ? premontageShortName(t)
+        : t;
+}
+function uniqueDisplayStations(list) {
+    return [...new Set(
+        [...list].map(displayStation)
+    )];
+}
 function plainActionName(key) {
     const k = String(key || "");
     if (k === 'sp' || k === 'ts') {
@@ -2976,7 +3013,9 @@ function search() {
                     isSpecialSearch
                 );
             const stationHtmlArr =
-                [...mergedArticles[art]]
+                uniqueDisplayStations(
+                    mergedArticles[art]
+                )
                     .map(st =>
                         isSpecialSearch
                             ? escapeHtml(st)
