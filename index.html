@@ -601,7 +601,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 34;
+const CODE_VERSION = 37;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -2358,6 +2358,11 @@ function buildArticlesLevelHtml(
                     String(
                         w.address || ""
                     ).trim();
+                /* Примітка (4-й стовпець): назва, примітка, адреса */
+                const note =
+                    String(
+                        w.colD || ""
+                    ).trim();
                 html += `
                     <div
                         class="wire-row"
@@ -2365,6 +2370,9 @@ function buildArticlesLevelHtml(
                         style="cursor:pointer;">
                         <span class="wire-name">
                             ${escapeHtml(wireName)}
+                        </span>
+                        <span class="wire-code level-head-tail" style="margin-left:0; font-size:11px; font-weight:700; color:#6b7280; text-align:center;">
+                            ${escapeHtml(note)}
                         </span>
                         <span class="wire-location">
                             ${escapeHtml(address)}
