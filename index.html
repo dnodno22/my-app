@@ -601,7 +601,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 37;
+const CODE_VERSION = 38;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -1451,7 +1451,12 @@ function isPremontageName(value) {
     const raw =
         String(value || "").trim();
     if (!raw) return false;
-    return /^[A-Za-zА-Яа-яІіЇїЄєҐґ][A-Za-zА-Яа-яІіЇїЄєҐґ0-9_-]*$/
+    /*
+        Назва передмонтажу: починається з літери, може містити
+        цифри, _ - * і далі через пробіл ще частини
+        (наприклад "KNDS 15825134", "lds1 15812345").
+    */
+    return /^[A-Za-zА-Яа-яІіЇїЄєҐґ][A-Za-zА-Яа-яІіЇїЄєҐґ0-9_*-]*(?:\s+[A-Za-zА-Яа-яІіЇїЄєҐґ0-9_*-]+)*$/
         .test(raw);
 }
 function getPremontageRows() {
