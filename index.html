@@ -601,7 +601,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 38;
+const CODE_VERSION = 41;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -2322,6 +2322,12 @@ function buildArticlesLevelHtml(
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Немає передмонтажів для цього артикулу</div>';
         } else {
+            const shortCount = {};
+            categories.forEach(c => {
+                const k = premontageShortName(c);
+                shortCount[k] =
+                    (shortCount[k] || 0) + 1;
+            });
             html +=
                 '<div class="premontage-btn-grid">';
             categories.forEach(c => {
@@ -2330,7 +2336,11 @@ function buildArticlesLevelHtml(
                         class="premontage-item-btn"
                         data-anav="category"
                         data-category="${escapeHtml(c)}">
-                        ${escapeHtml(c)}
+                        ${escapeHtml(
+                            shortCount[premontageShortName(c)] > 1
+                                ? c
+                                : premontageShortName(c)
+                        )}
                     </button>
                 `;
             });
@@ -2354,7 +2364,41 @@ function buildArticlesLevelHtml(
         } else {
             html +=
                 '<div class="wire-list">';
-            wires.forEach(w => {
+            /* Спочатку матеріали з примітками (за алфавітом приміток) */
+            const noteOf = w =>
+                String(w.colD || "").trim();
+            const sortedWires =
+                [...wires].sort((a, b) => {
+                    const an = noteOf(a);
+                    const bn = noteOf(b);
+                    if (!an !== !bn) {
+                        return an ? -1 : 1;
+                    }
+                    if (an && bn) {
+                        const byNote =
+                            an.localeCompare(
+                                bn,
+                                'uk',
+                                {
+                                    numeric: true,
+                                    sensitivity: 'base'
+                                }
+                            );
+                        if (byNote !== 0) {
+                            return byNote;
+                        }
+                    }
+                    return String(a.material || "")
+                        .localeCompare(
+                            String(b.material || ""),
+                            'uk',
+                            {
+                                numeric: true,
+                                sensitivity: 'base'
+                            }
+                        );
+                });
+            sortedWires.forEach(w => {
                 const wireName =
                     String(
                         w.material || ""
@@ -2372,14 +2416,14 @@ function buildArticlesLevelHtml(
                     <div
                         class="wire-row"
                         ${toSearchAttr(wireName)}
-                        style="cursor:pointer;">
-                        <span class="wire-name">
+                        style="cursor:pointer; display:grid; grid-template-columns:1fr auto 1fr; align-items:center;">
+                        <span class="wire-name" style="justify-self:start;">
                             ${escapeHtml(wireName)}
                         </span>
-                        <span class="wire-code level-head-tail" style="margin-left:0; font-size:11px; font-weight:700; color:#6b7280; text-align:center;">
+                        <span class="wire-code level-head-tail" style="margin-left:0; font-size:11px; font-weight:700; color:#6b7280; text-align:center; flex:none;">
                             ${escapeHtml(note)}
                         </span>
-                        <span class="wire-location">
+                        <span class="wire-location" style="justify-self:end;">
                             ${escapeHtml(address)}
                         </span>
                     </div>
@@ -2561,6 +2605,18 @@ function articleHeadHtml(article) {
             '</span>';
     }
     return escapeHtml(full);
+}
+/* Передмонтаж: коротка назва (без номера на 158) і сам номер 158… */
+function premontageShortName(full) {
+    const f = String(full || "").trim();
+    const short =
+        f.replace(/\s*158\d+/g, "").trim();
+    return short || f;
+}
+function premontage158(full) {
+    const m =
+        String(full || "").match(/158\d+/);
+    return m ? m[0] : "";
 }
 function plainActionName(key) {
     const k = String(key || "");
