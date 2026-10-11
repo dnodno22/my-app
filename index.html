@@ -601,7 +601,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 45;
+const CODE_VERSION = 47;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* ================================================================ */
@@ -2448,7 +2448,15 @@ function buildArticlesLevelHtml(
                             }
                         );
                 });
+            let _grp = null;
+            const _hasAnyNote = sortedWires.some(w => noteOf(w));
+            const _hasNoNote = sortedWires.some(w => !noteOf(w));
             sortedWires.forEach(w => {
+                const _has = !!noteOf(w);
+                if (_hasAnyNote && _hasNoNote && _grp !== _has) {
+                    _grp = _has;
+                    if (!_has) { html += '<div style="margin-top:10px; border-top:2px solid #e5e7eb;"></div>'; }
+                }
                 const wireName =
                     String(
                         w.material || ""
@@ -2466,7 +2474,7 @@ function buildArticlesLevelHtml(
                     <div
                         class="wire-row"
                         ${toSearchAttr(wireName)}
-                        style="cursor:pointer; display:grid; grid-template-columns:1fr auto 1fr; align-items:center;">
+                        style="cursor:pointer; display:grid; grid-template-columns:1fr auto 1fr; align-items:center;${note ? ' background:#eef2ff; border-left:4px solid #4338ca;' : ''}">
                         <span class="wire-name" style="justify-self:start;">
                             ${escapeHtml(wireName)}
                         </span>
