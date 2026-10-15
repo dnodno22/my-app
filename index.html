@@ -462,6 +462,7 @@ mark.hl {
     background: #fff;
     border-top: 1px solid #e5e7eb;
     padding: 12px;
+    /* Extra space below 0-key for depth dots */
     padding-bottom: calc(28px + env(safe-area-inset-bottom));
 }
 .kb-grid {
@@ -600,9 +601,11 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 47;
+const CODE_VERSION = 49;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
+/* Усі аркуші (gid), з яких тягнуться дані. Додай сюди нові gid через кому. */
+const SEARCH_GIDS = [SEARCH_GID, "421001458", "1146686549", "2115582321", "994923423"];
 /* ================================================================ */
 /* Кеші для швидкодії */
 const _expandCache = new Map();
@@ -656,10 +659,21 @@ const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 /* ==================== КРАПОЧКИ ГЛИБИНИ ==================== */
 function renderArticlesDots(overridePage, overrideDepth) {
     if (!articlesDots) return;
+    /*
+        overridePage / overrideDepth дозволяють показати крапочки
+        "наперед" — просто щоб ПІД ЧАС самого свайпу (ще до того, як
+        currentPage чи articlesPageStack реально зміняться) крапочки
+        вже відображали стан, в який ми прямуємо. Так вони йдуть
+        синхронно з переходом, а не з запізненням після нього.
+    */
     const page =
         overridePage !== undefined
             ? overridePage
             : currentPage;
+    /*
+        Крапочки показуємо на сторінках "Пошук" і "Артикули".
+        На "Обрані матеріали" їх немає.
+    */
     if (
         page !== ARTICLES_PAGE_INDEX &&
         page !== SEARCH_PAGE_INDEX
@@ -668,6 +682,23 @@ function renderArticlesDots(overridePage, overrideDepth) {
         articlesDots.innerHTML = '';
         return;
     }
+    /*
+        Кількість крапочок = кількість рівнів у стеку.
+        1:
+        Артикули
+        2:
+        Артикули → Артикул
+        3:
+        Артикули → Артикул → Дія
+        4:
+        Артикули → Артикул → Передмонтаж → Категорія
+        і т.д.
+    */
+    /*
+        Пошук завжди 1-а крапочка (перша сторінка).
+        Панель артикулів = 2-а крапочка, кожен рівень углиб додає ще одну.
+        Тому на сторінці артикулів: глибина стеку + 1.
+    */
     let depth;
     if (page === SEARCH_PAGE_INDEX) {
         depth = 1;
@@ -688,6 +719,9 @@ function renderArticlesDots(overridePage, overrideDepth) {
     let html = '';
     for (let i = 0; i < depth; i++) {
         let className = 'dot';
+        /*
+            Остання крапочка = поточний рівень.
+        */
         if (i === depth - 1) {
             className += ' active';
         } else {
@@ -916,8 +950,24 @@ function parseSearchCSV(t) {
         });
 }
 /* ==================== CACHE ==================== */
+function gidCacheKey(gid) {
+    /* Для основного gid лишаємо старий ключ (сумісність) */
+    return String(gid) === String(SEARCH_GID)
+        ? CACHE_KEY_SEARCH
+        : CACHE_KEY_SEARCH + "_" + gid;
+}
+function joinCsvParts(parts) {
+    return parts
+        .map(p => String(p || "").trim())
+        .filter(Boolean)
+        .join("\n");
+}
 const cachedSearch =
-    localStorage.getItem(CACHE_KEY_SEARCH);
+    joinCsvParts(
+        SEARCH_GIDS.map(g =>
+            localStorage.getItem(gidCacheKey(g))
+        )
+    );
 if (cachedSearch) {
     parseSearchCSV(cachedSearch);
     if (input.value) {
@@ -927,38 +977,58 @@ if (cachedSearch) {
 refreshArticleGroups();
 /* ==================== СВІЖІ ДАНІ ==================== */
 function fetchSearchData() {
-    const url1 =
-        `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SEARCH_GID}&t=` +
-        Date.now();
-    fetch(url1)
-        .then(r => r.text())
-        .then(t => {
-            const previous =
-                localStorage.getItem(
-                    CACHE_KEY_SEARCH
-                );
-            if (previous === t) {
-                localStorage.setItem(
-                    CACHE_KEY_SEARCH_TIME,
-                    Date.now().toString()
-                );
-                return;
+    const stamp = Date.now();
+    Promise.all(
+        SEARCH_GIDS.map(gid =>
+            fetch(
+                `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}&t=` +
+                stamp
+            )
+                .then(r => r.ok ? r.text() : null)
+                .then(t => {
+                    /* Відсікаємо порожні відповіді та HTML-сторінки помилок */
+                    if (
+                        t === null ||
+                        !t.trim() ||
+                        /^\s*</.test(t)
+                    ) {
+                        return null;
+                    }
+                    return t;
+                })
+                .catch(() => null)
+        )
+    ).then(texts => {
+        let changed = false;
+        texts.forEach((t, i) => {
+            if (t === null) return;
+            const key = gidCacheKey(SEARCH_GIDS[i]);
+            if (localStorage.getItem(key) !== t) {
+                localStorage.setItem(key, t);
+                changed = true;
             }
-            localStorage.setItem(
-                CACHE_KEY_SEARCH,
-                t
-            );
+        });
+        if (texts.some(t => t !== null)) {
             localStorage.setItem(
                 CACHE_KEY_SEARCH_TIME,
                 Date.now().toString()
             );
-            parseSearchCSV(t);
-            refreshArticleGroups();
-            if (input.value) {
-                search();
-            }
-        })
-        .catch(() => {});
+        }
+        if (!changed) {
+            /* Дані не змінились — нічого не перебудовуємо */
+            return;
+        }
+        const all = joinCsvParts(
+            SEARCH_GIDS.map(g =>
+                localStorage.getItem(gidCacheKey(g))
+            )
+        );
+        parseSearchCSV(all);
+        refreshArticleGroups();
+        if (input.value) {
+            search();
+        }
+    });
 }
 fetchSearchData();
 /* ==================== HTML ESCAPE ==================== */
@@ -1422,6 +1492,11 @@ function isPremontageName(value) {
     const raw =
         String(value || "").trim();
     if (!raw) return false;
+    /*
+        Назва передмонтажу: починається з літери, може містити
+        цифри, _ - * і далі через пробіл ще частини
+        (наприклад "KNDS 15825134", "lds1 15812345").
+    */
     return /^[A-Za-zА-Яа-яІіЇїЄєҐґ][A-Za-zА-Яа-яІіЇїЄєҐґ0-9_*-]*(?:\s+[A-Za-zА-Яа-яІіЇїЄєҐґ0-9_*-]+)*$/
         .test(raw);
 }
@@ -1509,16 +1584,24 @@ function computeWiresForCategory(
         );
 }
 /* ==================== ACTION RESULTS ==================== */
+/* Адреса зони "А 5" (А / A, потім 5 або 05): "A 05 05 06" */
 function isIsotapeAddress(address) {
     return /^[AА]\s*0?5(?:\s|$)/i.test(
         String(address || "").trim()
     );
 }
+/* У примітці є слово "стр" (на початку слова): СТР, стр 3, ... */
 function hasStrNote(note) {
     return /(^|[^\p{L}])стр/iu.test(
         String(note || "")
     );
 }
+/*
+    Ізострічка: матеріал вважається ізострічкою, якщо на будь-якому
+    артикулі він на адресі "А 5" або має примітку "стр". Тоді він
+    показується на ВСІХ артикулах, де використовується (там його
+    могли просто не позначити).
+*/
 function getIsotapeMaterials() {
     if (!_isotapeSet) {
         _isotapeSet = new Set();
@@ -1764,6 +1847,7 @@ function buildArticlesLevelHtml(
         articlesPageStack[stateIndex];
     if (!state) return '';
     let html = '';
+    /* ---------- АРТИКУЛИ ---------- */
     if (state.level === 'articles') {
         html +=
             '<div class="premontage-title"></div>';
@@ -1799,6 +1883,7 @@ function buildArticlesLevelHtml(
             html +=
                 '</div>';
         }
+    /* ---------- ДІЇ ---------- */
     } else if (state.level === 'actions') {
         html += buildLevelHeadHtml(
             state.article,
@@ -1827,6 +1912,7 @@ function buildArticlesLevelHtml(
             html +=
                 '</div>';
         }
+    /* ---------- РЕЗУЛЬТАТИ ---------- */
     } else if (state.level === 'results') {
         const rows =
             state.action === 'розміщення'
@@ -1845,8 +1931,16 @@ function buildArticlesLevelHtml(
         } else if (
             state.action === 'розміщення'
         ) {
+            /*
+                Спільні матеріали (152 / 153 / 157): в яких ще
+                артикулах вони використовуються.
+            */
             const matArticleMap =
                 buildMaterialArticleMap();
+            /*
+                Кількість = у скількох станціях матеріал
+                зустрічається на цьому артикулі.
+            */
             const qtySets = {};
             rows.forEach(r => {
                 const m =
@@ -1922,6 +2016,10 @@ function buildArticlesLevelHtml(
                             }
                         );
                 });
+            /*
+                Режим "Кількість": однакові матеріали йдуть підряд,
+                групи розрізняються відтінком фону (світліше / темніше).
+            */
             const displayRows =
                 sorted.map(r => ({
                     station: r.station,
@@ -2004,6 +2102,11 @@ function buildArticlesLevelHtml(
             state.action === 'sp' ||
             state.action === 'ts'
         ) {
+            /*
+                SP і TS показуємо однаково: картка на кожну станцію,
+                у ній рядки "номер матеріалу — адреса".
+                SP: тільки номери 158…; TS: тільки цифри з назви.
+            */
             const isSp = state.action === 'sp';
             const byStation = {};
             rows.forEach(x => {
@@ -2011,6 +2114,7 @@ function buildArticlesLevelHtml(
                     String(
                         x.material || ""
                     ).trim();
+                /* SP і TS: потрібна лише частина, що починається на 158 */
                 const m =
                     mat.match(/158\d+/);
                 if (!m) return;
@@ -2060,6 +2164,11 @@ function buildArticlesLevelHtml(
                     '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
             }
             if (stationKeys.length) {
+                /*
+                    SP: плоский список у стилі проводів:
+                    номер станції — матеріал — адреса складу.
+                    Спочатку матеріали без адреси.
+                */
                 const flat = [];
                 stationKeys.forEach(st => {
                     byStation[st].forEach(item => {
@@ -2119,7 +2228,53 @@ function buildArticlesLevelHtml(
                 });
                 html +=
                     '</div>';
-            }
+            } else
+            stationKeys.forEach(st => {
+                const list = byStation[st];
+                if (isSp) {
+                    /* Спочатку матеріали без адреси */
+                    list.sort((a, b) => {
+                        const aNo = a.addr ? 1 : 0;
+                        const bNo = b.addr ? 1 : 0;
+                        if (aNo !== bNo) {
+                            return aNo - bNo;
+                        }
+                        return a.shown.localeCompare(
+                            b.shown,
+                            'uk',
+                            {
+                                numeric: true
+                            }
+                        );
+                    });
+                }
+                html += `
+                    <div class="result-card">
+                        <div class="result-top">
+                            <span class="result-material-badge" style="font-size:15px;">
+                                <span class="box-icon">📍</span>
+                                Станція ${escapeHtml(st)}
+                            </span>
+                        </div>
+                `;
+                list.forEach((item, i) => {
+                    html += `
+                        <div
+                            class="article-row"
+                            ${toSearchAttr(item.search)}
+                            style="cursor:pointer;${i === 0 ? ' border-top:none; padding-top:0;' : ''}">
+                            <span class="article-number" style="font-size:20px; font-weight:800;">
+                                ${escapeHtml(item.shown)}
+                            </span>
+                            <span class="result-address-new">
+                                ${escapeHtml(item.addr)}
+                            </span>
+                        </div>
+                    `;
+                });
+                html +=
+                    `</div>`;
+            });
         } else if (state.action === 'ізострічка') {
             const grouped = {};
             rows.forEach(x => {
@@ -2240,6 +2395,7 @@ function buildArticlesLevelHtml(
                 `;
             }
         }
+    /* ---------- КАТЕГОРІЇ ПЕРЕДМОНТАЖУ ---------- */
     } else if (
         state.level === 'premontage-categories'
     ) {
@@ -2278,6 +2434,7 @@ function buildArticlesLevelHtml(
             html +=
                 '</div>';
         }
+    /* ---------- ПРОВОДИ ПЕРЕДМОНТАЖУ ---------- */
     } else if (
         state.level === 'premontage-wires'
     ) {
@@ -2294,6 +2451,7 @@ function buildArticlesLevelHtml(
         } else {
             html +=
                 '<div class="wire-list">';
+            /* Спочатку матеріали з примітками (за алфавітом приміток) */
             const noteOf = w =>
                 String(w.colD || "").trim();
             const sortedWires =
@@ -2344,6 +2502,7 @@ function buildArticlesLevelHtml(
                     String(
                         w.address || ""
                     ).trim();
+                /* Примітка (4-й стовпець): назва, примітка, адреса */
                 const note =
                     String(
                         w.colD || ""
@@ -2368,6 +2527,7 @@ function buildArticlesLevelHtml(
             html +=
                 '</div>';
         }
+    /* ---------- СТАНЦІЇ ПРОВОДІВ ---------- */
     } else if (
         state.level === 'wire-stations'
     ) {
@@ -2396,6 +2556,7 @@ function buildArticlesLevelHtml(
             html +=
                 '</div>';
         }
+    /* ---------- РЕЗУЛЬТАТИ ПРОВОДІВ ---------- */
     } else if (
         state.level === 'wire-results'
     ) {
@@ -2448,6 +2609,7 @@ function buildArticlesLevelHtml(
                 '</div>';
         }
     }
+    /* ---------- ШАПКА: ліворуч артикул, праворуч назва кнопки ---------- */
     if (
         state.level !== 'articles' &&
         state.level !== 'actions'
@@ -2539,12 +2701,19 @@ function articleHeadHtml(article) {
     }
     return escapeHtml(full);
 }
+/* Передмонтаж: коротка назва (без номера на 158) і сам номер 158… */
 function premontageShortName(full) {
     const f = String(full || "").trim();
     const short =
         f.replace(/\s*158\d+/g, "").trim();
     return short || f;
 }
+function premontage158(full) {
+    const m =
+        String(full || "").match(/158\d+/);
+    return m ? m[0] : "";
+}
+/* Станція для показу: у назвах передмонтажу прибираємо число на 158 */
 function displayStation(st) {
     const t = String(st || "");
     return isPremontageName(t)
@@ -2566,9 +2735,16 @@ function plainActionName(key) {
     }
     return k.charAt(0).toUpperCase() + k.slice(1);
 }
+/* ==================== РЕНДЕР АРТИКУЛІВ ==================== */
 function renderArticlesPage(
     forceRebuild
 ) {
+    /*
+        ВАЖЛИВО:
+        Крапочки оновлюємо ПЕРЕД рендером контенту.
+        Тому при переході на наступний рівень
+        вони одразу змінюють кількість.
+    */
     renderArticlesDots();
     const container =
         document.getElementById(
@@ -2610,6 +2786,7 @@ function renderArticlesPage(
     }
     container.innerHTML = html;
 }
+/* ==================== КЛІКИ НА АРТИКУЛАХ ==================== */
 articlesPageContent.addEventListener(
     'click',
     (e) => {
@@ -2624,6 +2801,7 @@ articlesPageContent.addEventListener(
             articlesPageStack[
                 articlesPageStack.length - 1
             ];
+        /* ---------- ПЕРЕМИКАЧІ РОЗМІЩЕННЯ ---------- */
         if (
             nav === 'toggle-shared' ||
             nav === 'toggle-qty'
@@ -2643,6 +2821,7 @@ articlesPageContent.addEventListener(
             }
             return;
         }
+        /* ---------- ДО ПОШУКУ ---------- */
         if (nav === 'to-search') {
             const material =
                 decodeURIComponent(
@@ -2656,6 +2835,7 @@ articlesPageContent.addEventListener(
             search();
             return;
         }
+        /* ---------- ОБРАНЕ ---------- */
         if (
             nav === 'article-favorite'
         ) {
@@ -2670,6 +2850,7 @@ articlesPageContent.addEventListener(
             );
             return;
         }
+        /* ---------- АРТИКУЛ ---------- */
         if (nav === 'article') {
             articlesPageStack.push({
                 level: 'actions',
@@ -2678,6 +2859,7 @@ articlesPageContent.addEventListener(
             renderArticlesPage();
             return;
         }
+        /* ---------- ДІЯ ---------- */
         if (nav === 'action') {
             const action =
                 btn.dataset.action;
@@ -2705,6 +2887,7 @@ articlesPageContent.addEventListener(
             renderArticlesPage();
             return;
         }
+        /* ---------- КАТЕГОРІЯ ---------- */
         if (nav === 'category') {
             articlesPageStack.push({
                 level: 'premontage-wires',
@@ -2714,6 +2897,7 @@ articlesPageContent.addEventListener(
             renderArticlesPage();
             return;
         }
+        /* ---------- СТАНЦІЯ ПРОВОДУ ---------- */
         if (nav === 'wire-station') {
             articlesPageStack.push({
                 level: 'wire-results',
@@ -2725,6 +2909,7 @@ articlesPageContent.addEventListener(
         }
     }
 );
+/* ==================== ПОШУК ==================== */
 function search() {
     const v =
         input.value.toLowerCase();
@@ -2931,6 +3116,22 @@ function search() {
     resultBox.innerHTML =
         html;
 }
+/* ==================== ДАТА ==================== */
+function formatDate(ts) {
+    const d =
+        new Date(
+            parseInt(
+                ts,
+                10
+            )
+        );
+    const pad =
+        n =>
+            String(n)
+                .padStart(2, '0');
+    return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+/* ==================== ПЕРЕХІД МІЖ ГОЛОВНИМИ СТОРІНКАМИ ==================== */
 function goToPage(n) {
     n =
         Math.max(
@@ -2943,6 +3144,11 @@ function goToPage(n) {
     currentPage = n;
     pagesEl.style.transform =
         `translateX(-${n * pageWidthPercent}%)`;
+    /*
+        Оновлюємо крапочки тут також.
+        Це гарантує, що коли залишаємо сторінку
+        "Артикули", вони одразу зникають.
+    */
     renderArticlesDots();
     if (
         n === SEARCH_PAGE_INDEX
@@ -2963,6 +3169,7 @@ function goToPage(n) {
         }
     }
 }
+/* ==================== ГОРИЗОНТАЛЬНИЙ СВАЙП ==================== */
 let pageDragStartX = 0;
 let pageDragStartY = 0;
 let pageDragBasePage = 0;
@@ -2971,8 +3178,11 @@ let pageMoved = false;
 let pageDragPxWidth = 0;
 let pageSwipeCandidate = false;
 let suppressNextClick = false;
+/*
+    ЗБІЛЬШЕНО з 14 до 24: дрейф пальця при звичайному натисканні
+    більше не сприймається як початок свайпу.
+*/
 const PAGE_SWIPE_START_PX = 24;
-
 function finishPageDrag(dx) {
     const SWIPE_THRESHOLD =
         Math.max(
@@ -2983,6 +3193,9 @@ function finishPageDrag(dx) {
         document.getElementById(
             'page-articles'
         );
+    /*
+        ВНУТРІШНЯ НАВІГАЦІЯ АРТИКУЛІВ
+    */
     if (
         pageDragBasePage === ARTICLES_PAGE_INDEX &&
         articlesPageStack.length > 1
@@ -3017,6 +3230,12 @@ function finishPageDrag(dx) {
         };
         wrapper.style.transition =
             'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+        /*
+            Крапочки оновлюємо ВІДРАЗУ, в момент прийняття рішення —
+            ще до того, як почалась/завершилась сама анімація зсуву.
+            Інакше вони чекали б на transitionend (чи й цілих 400мс
+            запасного таймауту) і помітно відставали б від переходу.
+        */
         const willGoBack =
             dx >= SWIPE_THRESHOLD;
         renderArticlesDots(
@@ -3025,7 +3244,9 @@ function finishPageDrag(dx) {
                 ? articlesPageStack.length - 1
                 : articlesPageStack.length
         );
-        if (willGoBack) {
+        if (
+            willGoBack
+        ) {
             wrapper.style.transform =
                 'translateX(0px)';
             const onDone = (ev) => {
@@ -3098,6 +3319,9 @@ function finishPageDrag(dx) {
     currentPage = target;
     pagesEl.style.transform =
         `translateX(-${target * pageWidthPercent}%)`;
+    /*
+        Оновлення крапочок після завершення свайпу.
+    */
     renderArticlesDots();
     if (
         target === SEARCH_PAGE_INDEX
@@ -3118,6 +3342,7 @@ function finishPageDrag(dx) {
         }
     }
 }
+/* ==================== TOUCH START ==================== */
 document.addEventListener(
     'touchstart',
     e => {
@@ -3150,6 +3375,7 @@ document.addEventListener(
         passive: true
     }
 );
+/* ==================== TOUCH MOVE ==================== */
 document.addEventListener(
     'touchmove',
     e => {
@@ -3314,6 +3540,10 @@ document.addEventListener(
                 'none';
             wrapper.style.transform =
                 `translateX(${visualDx - pageDragPxWidth}px)`;
+            /*
+                Крапочки "йдуть за пальцем" ще під час самого свайпу —
+                так зміна помітна ще швидше, ніж сам перехід.
+            */
             const liveThreshold =
                 Math.max(
                     55,
@@ -3349,6 +3579,7 @@ document.addEventListener(
         passive: false
     }
 );
+/* ==================== TOUCH END ==================== */
 document.addEventListener(
     'touchend',
     e => {
@@ -3377,6 +3608,13 @@ document.addEventListener(
                     'hidden'
                 );
             }
+            /*
+                Швидкий тап: виконуємо клік ОДРАЗУ на touchend,
+                не чекаючи окремого синтетичного "click" від браузера
+                (той приходить із помітною затримкою). Справжній
+                наступний click від цього ж тапу гасимо нижче —
+                інакше дія виконалась би двічі.
+            */
             const tappable =
                 e.target.closest(
                     'button, [data-anav]'
@@ -3416,6 +3654,11 @@ document.addEventListener(
         passive: true
     }
 );
+/* ==================== TOUCH CANCEL ==================== */
+/*
+    Якщо браузер сам скасував жест (наприклад, перехопив скрол),
+    скидаємо стан, щоб не лишалось "зависшого" свайпу.
+*/
 document.addEventListener(
     'touchcancel',
     () => {
@@ -3430,9 +3673,14 @@ document.addEventListener(
         passive: true
     }
 );
+/* ==================== БЛОКУВАННЯ CLICK ПІСЛЯ SWIPE ==================== */
 document.addEventListener(
     'click',
     e => {
+        /*
+            Наш власний click() з touchend (isTrusted === false)
+            ніколи не гасимо — тільки справжній клік від браузера.
+        */
         if (!e.isTrusted) {
             return;
         }
@@ -3445,6 +3693,7 @@ document.addEventListener(
     },
     true
 );
+/* ==================== ХОВАННЯ КЛАВІАТУРИ ПРИ СКРОЛІ ==================== */
 const scrollAreaEl =
     document.querySelector(
         '#page0 .scroll-area'
@@ -3501,6 +3750,7 @@ scrollAreaEl.addEventListener(
         passive: true
     }
 );
+/* ==================== ПЕРВИННИЙ СТАН КРАПОЧОК ==================== */
 renderArticlesDots();
 </script>
 </body>
