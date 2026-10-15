@@ -521,20 +521,27 @@ mark.hl {
     border: 1px solid #222;
     border-radius: 8px;
     background: #fff;
-    color: #222;
+    color: #000;
     font: 600 14px -apple-system, Arial, sans-serif;
     text-align: center;
     cursor: pointer;
     touch-action: manipulation;
 }
 .filter-option.active {
-    border-color: #4338ca;
-    background: #eef2ff;
-    color: #3730a3;
+    border-color: #9ca3af;
+    background: #e5e7eb;
+    color: #000;
+}
+.filter-menu:not(.filter-options-open) .filter-choice {
+    visibility: hidden;
+    pointer-events: none;
+}
+.filter-menu.filter-options-open [data-filter-expand] {
+    display: none;
 }
 .filter-menu-heading {
     background: #f1f5f9;
-    color: #4338ca;
+    color: #000;
 }
 .filter-empty {
     border: 0;
@@ -568,7 +575,7 @@ mark.hl {
 }
 .btn-version {
     background: #f1f5f9;
-    color: #4338ca;
+    color: #000;
     font-size: 13px;
     font-weight: 600;
     display: flex;
@@ -664,18 +671,18 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v58</button>
+                    aria-expanded="false">v63</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
             <div id="filter-menu" class="filter-menu hidden" role="group" aria-label="Фільтри пошуку">
-                <button type="button" class="filter-option filter-menu-heading" data-filter-close>Фільтр</button>
-                <button type="button" class="filter-option" data-search-filter="all">Усі дані</button>
-                <button type="button" class="filter-option" data-search-filter="wires">Проводи</button>
-                <button type="button" class="filter-option" data-search-filter="materials">Матеріал</button>
-                <button type="button" class="filter-option" data-search-filter="premontage">Передмонтажі</button>
-                <button type="button" class="filter-option" data-search-filter="audi">Audi</button>
-                <button type="button" class="filter-option" data-search-filter="bmw">BMW</button>
+                <button type="button" class="filter-option filter-menu-heading" data-filter-expand aria-expanded="false">Фільтр</button>
+                <button type="button" class="filter-option filter-choice" data-search-filter="all">Усі дані</button>
+                <button type="button" class="filter-option filter-choice" data-search-filter="wires">Проводи</button>
+                <button type="button" class="filter-option filter-choice" data-search-filter="materials">Матеріал</button>
+                <button type="button" class="filter-option filter-choice" data-search-filter="premontage">Передмонтажі</button>
+                <button type="button" class="filter-option filter-choice" data-search-filter="audi">Audi</button>
+                <button type="button" class="filter-option filter-choice" data-search-filter="bmw">BMW</button>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
@@ -696,7 +703,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 58;
+const CODE_VERSION = 63;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -716,6 +723,7 @@ const ARTICLES_PAGE_INDEX = 2;
 let currentPage = SEARCH_PAGE_INDEX;
 let searchData = [];
 let selectedSearchFilters = [];
+let filterOptionsOpen = false;
 let pageWidthPercent = 100 / TOTAL_PAGES;
 let articleGroups = [];
 /* ==================== СТЕК РІВНІВ АРТИКУЛІВ ==================== */
@@ -755,6 +763,45 @@ const articlesDots =
     document.getElementById('articles-dots');
 const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
+const CACHE_KEY_SEARCH_FILTERS = "searchActiveFilters";
+const SEARCH_FILTER_KEYS = [
+    'wires',
+    'materials',
+    'premontage',
+    'audi',
+    'bmw'
+];
+function loadSearchFilters() {
+    try {
+        const saved =
+            JSON.parse(
+                localStorage.getItem(
+                    CACHE_KEY_SEARCH_FILTERS
+                ) || "[]"
+            );
+        if (!Array.isArray(saved)) return [];
+        return [...new Set(
+            saved
+                .map(String)
+                .filter(filter =>
+                    SEARCH_FILTER_KEYS.includes(filter)
+                )
+        )];
+    } catch (e) {
+        return [];
+    }
+}
+function saveSearchFilters() {
+    try {
+        localStorage.setItem(
+            CACHE_KEY_SEARCH_FILTERS,
+            JSON.stringify(selectedSearchFilters)
+        );
+    } catch (e) {
+        /* Збереження фільтрів не має блокувати пошук. */
+    }
+}
+selectedSearchFilters = loadSearchFilters();
 /* ==================== КРАПОЧКИ ГЛИБИНИ ==================== */
 function renderArticlesDots(overridePage, overrideDepth) {
     if (!articlesDots) return;
@@ -888,6 +935,9 @@ function updateSearchFilterButton() {
 updateSearchFilterButton();
 function setFilterPanelOpen(open) {
     if (!filterMenu) return;
+    if (!open) {
+        setFilterOptionsOpen(false);
+    }
     filterMenu.classList.toggle(
         'hidden',
         !open
@@ -898,6 +948,22 @@ function setFilterPanelOpen(open) {
     );
     if (kbVersionEl) {
         kbVersionEl.setAttribute(
+            'aria-expanded',
+            String(open)
+        );
+    }
+}
+function setFilterOptionsOpen(open) {
+    if (!filterMenu) return;
+    filterOptionsOpen = open;
+    filterMenu.classList.toggle(
+        'filter-options-open',
+        open
+    );
+    const trigger =
+        filterMenu.querySelector('[data-filter-expand]');
+    if (trigger) {
+        trigger.setAttribute(
             'aria-expanded',
             String(open)
         );
@@ -1086,12 +1152,12 @@ function refreshArticleGroups() {
 document
     .getElementById('kb-wrapper')
     .addEventListener('click', (e) => {
-        const closeFilterButton =
-            e.target.closest('[data-filter-close]');
-        if (closeFilterButton) {
+        const expandFilterButton =
+            e.target.closest('[data-filter-expand]');
+        if (expandFilterButton) {
             e.preventDefault();
             e.stopPropagation();
-            setFilterPanelOpen(false);
+            setFilterOptionsOpen(!filterOptionsOpen);
             return;
         }
         const filterOption =
@@ -1114,6 +1180,7 @@ document
             } else {
                 selectedSearchFilters.push(filter);
             }
+            saveSearchFilters();
             updateSearchFilterButton();
             search();
             return;
@@ -1143,7 +1210,9 @@ document.addEventListener(
         if (
             !filterMenu ||
             filterMenu.classList.contains('hidden') ||
-            filterMenu.contains(e.target) ||
+            e.target.closest(
+                '#filter-menu .filter-option'
+            ) ||
             e.target.closest('#kb-version')
         ) {
             return;
@@ -1763,9 +1832,17 @@ function getSearchRowsForFilters() {
                 if (filter === 'materials') {
                     const material =
                         String(row.material || "").trim();
+                    const hasNote =
+                        String(row.colD || "").trim();
+                    const noted152 =
+                        /^152/.test(material) &&
+                        Boolean(hasNote);
                     return material &&
-                        !isWireMaterial(material) &&
-                        !/^158/.test(material);
+                        !/^158/.test(material) &&
+                        (
+                            noted152 ||
+                            !isWireMaterial(material)
+                        );
                 }
                 return premontageRows.has(row);
             });
