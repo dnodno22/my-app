@@ -448,6 +448,34 @@ input#input {
     text-align: right;
     white-space: nowrap;
 }
+#pull-indicator {
+    position: fixed;
+    top: calc(14px + env(safe-area-inset-top));
+    left: 50%;
+    width: 38px;
+    height: 38px;
+    margin-left: 0;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    color: #4338ca;
+    opacity: 0;
+    transform: translate(-50%, -30px) scale(0.6);
+    pointer-events: none;
+    z-index: 50;
+}
+#pull-indicator.ready {
+    background: #eef2ff;
+}
+#pull-indicator .pull-arrow {
+    display: inline-block;
+    line-height: 1;
+}
 /* ==================== HIGHLIGHT ==================== */
 mark.hl {
     background: #fde047;
@@ -601,7 +629,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 50;
+const CODE_VERSION = 51;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* Усі аркуші (gid), з яких тягнуться дані. Додай сюди нові gid через кому. */
@@ -3754,14 +3782,21 @@ scrollAreaEl.addEventListener(
 /*
     На будь-якій сторінці/рівні, крім пошуку, якщо контент прокручений
     до самого верху (scrollTop === 0) і користувач тягне палець вниз,
-    повертаємось на сторінку пошуку. Якщо є куди скролити вгору —
-    жест не спрацьовує (там це звичайний скрол).
+    контент слідує за пальцем (з опором), зверху з'являється індикатор.
+    Якщо потягнути достатньо далеко і відпустити — повертаємось на пошук.
+    Якщо є куди скролити вгору — жест не спрацьовує (звичайний скрол).
 */
-const PULL_DOWN_PX = 80;
+const PULL_DOWN_PX = 90;
 let pullStartX = 0;
 let pullStartY = 0;
 let pullArea = null;
 let pullActive = false;
+let pullDy = 0;
+const pullIndicator = document.createElement('div');
+pullIndicator.id = 'pull-indicator';
+pullIndicator.innerHTML = '<span class="pull-arrow">↓</span>';
+document.body.appendChild(pullIndicator);
+const pullArrowEl = pullIndicator.firstChild;
 function getActiveScrollArea() {
     if (currentPage === ARTICLES_PAGE_INDEX) {
         return document.querySelector('#page-articles .scroll-area');
@@ -3771,11 +3806,45 @@ function getActiveScrollArea() {
     }
     return null;
 }
+function pullApply(dy) {
+    /* Опір: чим далі тягнеш, тим важче */
+    const shift = Math.min(150, dy * 0.55);
+    const p = Math.min(1, dy / PULL_DOWN_PX);
+    if (pullArea) {
+        pullArea.style.transition = 'none';
+        pullArea.style.transform = `translateY(${shift}px)`;
+    }
+    pullIndicator.style.transition = 'none';
+    pullIndicator.style.opacity = String(Math.min(1, p * 1.4));
+    pullIndicator.style.transform =
+        `translate(-50%, ${Math.min(shift, 70) - 6}px) scale(${0.6 + 0.4 * p})`;
+    const ready = p >= 1;
+    pullIndicator.classList.toggle('ready', ready);
+    pullArrowEl.textContent = ready ? '🔍' : '↓';
+    pullArrowEl.style.transform =
+        ready ? 'none' : `rotate(${p * 180}deg)`;
+}
+function pullReset(animated) {
+    if (pullArea) {
+        pullArea.style.transition = animated
+            ? 'transform 0.28s cubic-bezier(0.2,0.8,0.2,1)'
+            : 'none';
+        pullArea.style.transform = '';
+        const a = pullArea;
+        setTimeout(() => { a.style.transition = ''; }, 320);
+    }
+    pullIndicator.style.transition =
+        'opacity 0.2s ease, transform 0.28s ease';
+    pullIndicator.style.opacity = '0';
+    pullIndicator.style.transform =
+        'translate(-50%, -30px) scale(0.6)';
+    pullIndicator.classList.remove('ready');
+}
 document.addEventListener(
     'touchstart',
     e => {
         pullActive = false;
-        pullArea = null;
+        pullDy = 0;
         if (
             currentPage === SEARCH_PAGE_INDEX ||
             !e.touches ||
@@ -3813,40 +3882,88 @@ document.addEventListener(
         /* Контент зрушив від верху — це вже звичайний скрол */
         if (!pullArea || pullArea.scrollTop > 0) {
             pullActive = false;
+            pullReset(true);
             return;
         }
         const dx = e.touches[0].clientX - pullStartX;
         const dy = e.touches[0].clientY - pullStartY;
-        /* Тягнемо вгору або більше вбік — це не наш жест */
-        if (dy < -10 || Math.abs(dx) > Math.abs(dy)) {
-            if (Math.abs(dx) > 24 || dy < -10) {
+        /* Горизонтальний свайп між сторінками — не наш жест */
+        if (pullDy === 0 && Math.abs(dx) > Math.abs(dy)) {
+            if (Math.abs(dx) > 24) {
                 pullActive = false;
             }
             return;
         }
-        if (dy >= PULL_DOWN_PX) {
-            pullActive = false;
-            pageDragging = false;
-            pageSwipeCandidate = false;
-            suppressNextClick = true;
-            setTimeout(() => {
-                suppressNextClick = false;
-            }, 400);
-            pagesEl.style.transition =
-                'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
-            goToPage(SEARCH_PAGE_INDEX);
+        if (dy <= 0) {
+            pullDy = 0;
+            if (dy < -10) {
+                pullActive = false;
+            }
+            pullReset(false);
+            return;
         }
+        /* Свайп уже перехоплено горизонтальною логікою — не заважаємо */
+        if (pageMoved) {
+            pullActive = false;
+            pullReset(true);
+            return;
+        }
+        pullDy = dy;
+        /* Не даємо цьому жесту стати "кліком" чи вертикальним скролом */
+        pageDragging = false;
+        pageSwipeCandidate = false;
+        if (e.cancelable) {
+            try { e.preventDefault(); } catch (_) {}
+        }
+        pullApply(dy);
     },
-    { passive: true }
+    { passive: false }
 );
+function pullFinish() {
+    if (!pullActive && pullDy === 0) {
+        return;
+    }
+    const dy = pullDy;
+    const ok = pullActive && dy >= PULL_DOWN_PX;
+    pullActive = false;
+    pullDy = 0;
+    if (dy > 0) {
+        suppressNextClick = true;
+        setTimeout(() => {
+            suppressNextClick = false;
+        }, 400);
+    }
+    if (ok) {
+        const a = pullArea;
+        pullIndicator.style.transition =
+            'opacity 0.25s ease';
+        pullIndicator.style.opacity = '0';
+        pagesEl.style.transition =
+            'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
+        goToPage(SEARCH_PAGE_INDEX);
+        setTimeout(() => {
+            if (a) {
+                a.style.transition = 'none';
+                a.style.transform = '';
+            }
+            pullIndicator.classList.remove('ready');
+        }, 400);
+    } else {
+        pullReset(true);
+    }
+}
 document.addEventListener(
     'touchend',
-    () => { pullActive = false; },
+    pullFinish,
     { passive: true }
 );
 document.addEventListener(
     'touchcancel',
-    () => { pullActive = false; },
+    () => {
+        pullActive = false;
+        pullDy = 0;
+        pullReset(true);
+    },
     { passive: true }
 );
 /* ==================== ПЕРВИННИЙ СТАН КРАПОЧОК ==================== */
