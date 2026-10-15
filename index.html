@@ -486,6 +486,7 @@ mark.hl {
 }
 /* ==================== KEYBOARDS ==================== */
 .kb-container {
+    position: relative;
     flex-shrink: 0;
     background: #fff;
     border-top: 1px solid #e5e7eb;
@@ -497,6 +498,51 @@ mark.hl {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
+}
+.filter-menu {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    bottom: calc(28px + env(safe-area-inset-bottom));
+    z-index: 45;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    padding: 0;
+    background: transparent;
+}
+.filter-option {
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    padding: 4px 6px;
+    border: 1px solid #222;
+    border-radius: 8px;
+    background: #fff;
+    color: #222;
+    font: 600 14px -apple-system, Arial, sans-serif;
+    text-align: center;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.filter-option.active {
+    border-color: #4338ca;
+    background: #eef2ff;
+    color: #3730a3;
+}
+.filter-menu-heading {
+    background: #f1f5f9;
+    color: #4338ca;
+}
+.filter-empty {
+    border: 0;
+    background: transparent;
+    pointer-events: none;
+}
+.filter-panel-open #kb1 {
+    visibility: hidden;
 }
 .hidden {
     display: none !important;
@@ -522,13 +568,14 @@ mark.hl {
 }
 .btn-version {
     background: #f1f5f9;
-    color: #9ca3af;
+    color: #4338ca;
     font-size: 13px;
     font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
     user-select: none;
+    cursor: pointer;
 }
 /* ==================== TABLE PAGES ==================== */
 .table-page {
@@ -611,9 +658,29 @@ tr:nth-child(even) td {
                 <button class="btn" data-v="7">7</button>
                 <button class="btn" data-v="8">8</button>
                 <button class="btn" data-v="9">9</button>
-                <div class="btn btn-version" id="kb-version"></div>
+                <button
+                    type="button"
+                    class="btn btn-version"
+                    id="kb-version"
+                    aria-label="Фільтр пошуку"
+                    aria-haspopup="true"
+                    aria-expanded="false">v58</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
+            </div>
+            <div id="filter-menu" class="filter-menu hidden" role="group" aria-label="Фільтри пошуку">
+                <button type="button" class="filter-option filter-menu-heading" data-filter-close>Фільтр</button>
+                <button type="button" class="filter-option" data-search-filter="all">Усі дані</button>
+                <button type="button" class="filter-option" data-search-filter="wires">Проводи</button>
+                <button type="button" class="filter-option" data-search-filter="materials">Матеріал</button>
+                <button type="button" class="filter-option" data-search-filter="premontage">Передмонтажі</button>
+                <button type="button" class="filter-option" data-search-filter="audi">Audi</button>
+                <button type="button" class="filter-option" data-search-filter="bmw">BMW</button>
+                <div class="filter-empty" aria-hidden="true"></div>
+                <div class="filter-empty" aria-hidden="true"></div>
+                <div class="filter-empty" aria-hidden="true"></div>
+                <div class="filter-empty" aria-hidden="true"></div>
+                <div class="filter-empty" aria-hidden="true"></div>
             </div>
         </div>
     </div>
@@ -629,11 +696,14 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 51;
+const CODE_VERSION = 58;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
+const AUDI_GID = SEARCH_GID;
+const BMW_GID = "421001458";
+const PREMONTAGE_AUDI_GID = "1146686549";
 /* Усі аркуші (gid), з яких тягнуться дані. Додай сюди нові gid через кому. */
-const SEARCH_GIDS = [SEARCH_GID, "421001458", "1146686549", "2115582321", "994923423"];
+const SEARCH_GIDS = [AUDI_GID, BMW_GID, PREMONTAGE_AUDI_GID, "2115582321", "994923423"];
 /* ================================================================ */
 /* Кеші для швидкодії */
 const _expandCache = new Map();
@@ -645,6 +715,7 @@ const SEARCH_PAGE_INDEX = 1;
 const ARTICLES_PAGE_INDEX = 2;
 let currentPage = SEARCH_PAGE_INDEX;
 let searchData = [];
+let selectedSearchFilters = [];
 let pageWidthPercent = 100 / TOTAL_PAGES;
 let articleGroups = [];
 /* ==================== СТЕК РІВНІВ АРТИКУЛІВ ==================== */
@@ -761,8 +832,76 @@ function renderArticlesDots(overridePage, overrideDepth) {
 }
 /* ==================== РОЗМІР СТОРІНОК ==================== */
 const kbVersionEl = document.getElementById('kb-version');
-if (kbVersionEl) {
-    kbVersionEl.textContent = 'v' + CODE_VERSION;
+const filterMenu = document.getElementById('filter-menu');
+const SEARCH_FILTER_LABELS = {
+    all: 'Усі дані',
+    wires: 'Проводи',
+    materials: 'Матеріал',
+    premontage: 'Передмонт.',
+    audi: 'Audi',
+    bmw: 'BMW'
+};
+function updateSearchFilterButton() {
+    if (kbVersionEl) {
+        const selectedLabels =
+            selectedSearchFilters
+                .map(filter =>
+                    SEARCH_FILTER_LABELS[filter]
+                )
+                .filter(Boolean);
+        kbVersionEl.textContent =
+            'v' + CODE_VERSION;
+        kbVersionEl.title =
+            `Фільтр: ${
+                selectedLabels.length
+                    ? selectedLabels.join(', ')
+                    : SEARCH_FILTER_LABELS.all
+            }`;
+        kbVersionEl.setAttribute(
+            'aria-label',
+            `Фільтр пошуку, версія ${CODE_VERSION}`
+        );
+    }
+    if (filterMenu) {
+        filterMenu
+            .querySelectorAll('[data-search-filter]')
+            .forEach(option => {
+                const filter =
+                    option.dataset.searchFilter;
+                const selected =
+                    filter === 'all'
+                        ? selectedSearchFilters.length === 0
+                        : selectedSearchFilters.includes(
+                            filter
+                        );
+                option.classList.toggle(
+                    'active',
+                    selected
+                );
+                option.setAttribute(
+                    'aria-pressed',
+                    String(selected)
+                );
+            });
+    }
+}
+updateSearchFilterButton();
+function setFilterPanelOpen(open) {
+    if (!filterMenu) return;
+    filterMenu.classList.toggle(
+        'hidden',
+        !open
+    );
+    kbWrapper.classList.toggle(
+        'filter-panel-open',
+        open
+    );
+    if (kbVersionEl) {
+        kbVersionEl.setAttribute(
+            'aria-expanded',
+            String(open)
+        );
+    }
 }
 document.querySelectorAll('.page').forEach(p => {
     p.style.width = pageWidthPercent + '%';
@@ -947,10 +1086,48 @@ function refreshArticleGroups() {
 document
     .getElementById('kb-wrapper')
     .addEventListener('click', (e) => {
+        const closeFilterButton =
+            e.target.closest('[data-filter-close]');
+        if (closeFilterButton) {
+            e.preventDefault();
+            e.stopPropagation();
+            setFilterPanelOpen(false);
+            return;
+        }
+        const filterOption =
+            e.target.closest('[data-search-filter]');
+        if (filterOption) {
+            e.preventDefault();
+            e.stopPropagation();
+            const filter =
+                filterOption.dataset.searchFilter ||
+                'all';
+            if (filter === 'all') {
+                selectedSearchFilters = [];
+            } else if (
+                selectedSearchFilters.includes(filter)
+            ) {
+                selectedSearchFilters =
+                    selectedSearchFilters.filter(
+                        item => item !== filter
+                    );
+            } else {
+                selectedSearchFilters.push(filter);
+            }
+            updateSearchFilterButton();
+            search();
+            return;
+        }
         const btn =
             e.target.closest('.btn');
         if (!btn) return;
         e.stopPropagation();
+        if (btn.id === 'kb-version') {
+            const isOpening =
+                filterMenu.classList.contains('hidden');
+            setFilterPanelOpen(isOpening);
+            return;
+        }
         if (btn.dataset.del) {
             input.value = "";
         } else if (
@@ -960,21 +1137,44 @@ document
         }
         search();
     });
+document.addEventListener(
+    'click',
+    e => {
+        if (
+            !filterMenu ||
+            filterMenu.classList.contains('hidden') ||
+            filterMenu.contains(e.target) ||
+            e.target.closest('#kb-version')
+        ) {
+            return;
+        }
+        setFilterPanelOpen(false);
+    }
+);
 /* ==================== CSV ==================== */
-function parseSearchCSV(t) {
+function parseSearchCSV(parts) {
     _actionsCache = {};
     _fullCodeMap = null;
     _isotapeSet = null;
     searchData =
-        t.trim().split("\n").map(r => {
-            const c = r.split(",");
-            return {
-                station: c[0] || "",
-                material: c[1] || "",
-                article: c[2] || "",
-                colD: c[3] || "",
-                address: c[4] || ""
-            };
+        (Array.isArray(parts)
+            ? parts
+            : [{ gid: SEARCH_GID, text: parts }]
+        ).flatMap(part => {
+            const csv =
+                String(part.text || "").trim();
+            if (!csv) return [];
+            return csv.split(/\r?\n/).map(r => {
+                const c = r.split(",");
+                return {
+                    station: c[0] || "",
+                    material: c[1] || "",
+                    article: c[2] || "",
+                    colD: c[3] || "",
+                    address: c[4] || "",
+                    sourceGid: String(part.gid || "")
+                };
+            });
         });
 }
 /* ==================== CACHE ==================== */
@@ -991,12 +1191,13 @@ function joinCsvParts(parts) {
         .join("\n");
 }
 const cachedSearch =
-    joinCsvParts(
-        SEARCH_GIDS.map(g =>
-            localStorage.getItem(gidCacheKey(g))
-        )
-    );
-if (cachedSearch) {
+    SEARCH_GIDS.map(g => ({
+        gid: g,
+        text:
+            localStorage.getItem(gidCacheKey(g)) ||
+            ""
+    })).filter(part => part.text.trim());
+if (cachedSearch.length) {
     parseSearchCSV(cachedSearch);
     if (input.value) {
         search();
@@ -1046,11 +1247,12 @@ function fetchSearchData() {
             /* Дані не змінились — нічого не перебудовуємо */
             return;
         }
-        const all = joinCsvParts(
-            SEARCH_GIDS.map(g =>
-                localStorage.getItem(gidCacheKey(g))
-            )
-        );
+        const all = SEARCH_GIDS.map(g => ({
+            gid: g,
+            text:
+                localStorage.getItem(gidCacheKey(g)) ||
+                ""
+        }));
         parseSearchCSV(all);
         refreshArticleGroups();
         if (input.value) {
@@ -1534,6 +1736,48 @@ function getPremontageRows() {
             isPremontageName(row.station) &&
             row.article
     );
+}
+function getSearchRowsForFilters() {
+    const typeFilters =
+        selectedSearchFilters.filter(filter =>
+            ['wires', 'materials', 'premontage']
+                .includes(filter)
+        );
+    const sourceFilters =
+        selectedSearchFilters.filter(filter =>
+            ['audi', 'bmw'].includes(filter)
+        );
+    const premontageRows =
+        typeFilters.includes('premontage')
+            ? new Set(getPremontageRows())
+            : null;
+    return searchData.filter(row => {
+        const matchesType =
+            !typeFilters.length ||
+            typeFilters.some(filter => {
+                if (filter === 'wires') {
+                    return isWireMaterial(
+                        row.material
+                    );
+                }
+                if (filter === 'materials') {
+                    const material =
+                        String(row.material || "").trim();
+                    return material &&
+                        !isWireMaterial(material) &&
+                        !/^158/.test(material);
+                }
+                return premontageRows.has(row);
+            });
+        const matchesSource =
+            !sourceFilters.length ||
+            sourceFilters.some(filter =>
+                filter === 'audi'
+                    ? row.sourceGid === AUDI_GID
+                    : row.sourceGid === BMW_GID
+            );
+        return matchesType && matchesSource;
+    });
 }
 function premontageArticleMatches(
     row,
@@ -2952,7 +3196,7 @@ function search() {
         v.includes("мм") ||
         v.includes("ts");
     const filtered =
-        searchData.filter(x => {
+        getSearchRowsForFilters().filter(x => {
             if (isSpecialSearch) {
                 return x.colD
                     .toLowerCase()
@@ -3701,6 +3945,201 @@ document.addEventListener(
         passive: true
     }
 );
+/* ==================== КЕРУВАННЯ НА ПК ==================== */
+document.addEventListener(
+    'keydown',
+    e => {
+        if (
+            e.key !== 'ArrowLeft' &&
+            e.key !== 'ArrowRight'
+        ) {
+            return;
+        }
+        if (
+            e.altKey ||
+            e.ctrlKey ||
+            e.metaKey ||
+            e.shiftKey ||
+            e.target.closest(
+                'textarea, select, [contenteditable="true"], input:not([readonly])'
+            )
+        ) {
+            return;
+        }
+        e.preventDefault();
+        if (
+            currentPage === ARTICLES_PAGE_INDEX &&
+            articlesPageStack.length > 1
+        ) {
+            if (e.key === 'ArrowRight') {
+                popArticlesPageLevel();
+            }
+            return;
+        }
+        goToPage(
+            currentPage +
+            (e.key === 'ArrowLeft' ? 1 : -1)
+        );
+    }
+);
+let mouseSwipeActive = false;
+let mousePullActive = false;
+let mousePullArea = null;
+let mousePullDy = 0;
+document.addEventListener(
+    'mousedown',
+    e => {
+        if (
+            e.button !== 0 ||
+            e.target.closest(
+                'button, input, textarea, select'
+            )
+        ) {
+            return;
+        }
+        mouseSwipeActive = true;
+        mousePullActive = false;
+        mousePullArea = null;
+        mousePullDy = 0;
+        const activeArea = getActiveScrollArea();
+        const candidate =
+            e.target.closest('.scroll-area');
+        if (
+            activeArea &&
+            candidate === activeArea &&
+            activeArea.scrollTop <= 0
+        ) {
+            mousePullArea = activeArea;
+        }
+        pageDragStartX = e.clientX;
+        pageDragStartY = e.clientY;
+        pageDragBasePage = currentPage;
+        pageDragPxWidth =
+            (
+                pagesEl.parentElement
+                    ? pagesEl.parentElement.clientWidth
+                    : window.innerWidth
+            ) ||
+            window.innerWidth;
+        pageMoved = false;
+    }
+);
+document.addEventListener(
+    'mousemove',
+    e => {
+        if (mousePullActive) {
+            const dy = e.clientY - pageDragStartY;
+            if (dy <= 0) {
+                mousePullActive = false;
+                pullActive = false;
+                pullDy = 0;
+                pullReset(true);
+                return;
+            }
+            mousePullDy = dy;
+            pullArea = mousePullArea;
+            pullActive = true;
+            pullDy = dy;
+            pullApply(dy);
+            e.preventDefault();
+            return;
+        }
+        if (!mouseSwipeActive) return;
+        const dx = e.clientX - pageDragStartX;
+        const dy = e.clientY - pageDragStartY;
+        if (!pageMoved) {
+            const absX = Math.abs(dx);
+            const absY = Math.abs(dy);
+            if (
+                Math.max(absX, absY) <
+                PAGE_SWIPE_START_PX
+            ) {
+                return;
+            }
+            if (absY > absX) {
+                mouseSwipeActive = false;
+                if (dy > 0 && mousePullArea) {
+                    mousePullActive = true;
+                    mousePullDy = dy;
+                    pullArea = mousePullArea;
+                    pullActive = true;
+                    pullDy = dy;
+                    pullApply(dy);
+                    e.preventDefault();
+                }
+                return;
+            }
+            pageMoved = true;
+        }
+        e.preventDefault();
+        if (
+            pageDragBasePage === ARTICLES_PAGE_INDEX &&
+            articlesPageStack.length > 1
+        ) {
+            return;
+        }
+        const limitedDx = Math.max(
+            -pageDragPxWidth,
+            Math.min(pageDragPxWidth, dx)
+        );
+        const livePos = Math.max(
+            0,
+            Math.min(
+                TOTAL_PAGES - 1,
+                pageDragBasePage -
+                    limitedDx / pageDragPxWidth
+            )
+        );
+        pagesEl.style.transition = 'none';
+        pagesEl.style.transform =
+            `translateX(-${livePos * pageWidthPercent}%)`;
+        renderArticlesDots(Math.round(livePos));
+    },
+    { passive: false }
+);
+document.addEventListener(
+    'mouseup',
+    e => {
+        if (mousePullActive) {
+            mousePullActive = false;
+            mousePullDy = Math.max(
+                0,
+                e.clientY - pageDragStartY
+            );
+            pullArea = mousePullArea;
+            pullActive = mousePullDy > 0;
+            pullDy = mousePullDy;
+            pullFinish();
+            mousePullArea = null;
+            mousePullDy = 0;
+            return;
+        }
+        if (!mouseSwipeActive) return;
+        mouseSwipeActive = false;
+        if (!pageMoved) return;
+        const dx = e.clientX - pageDragStartX;
+        const threshold = Math.max(
+            55,
+            pageDragPxWidth * 0.20
+        );
+        if (
+            pageDragBasePage === ARTICLES_PAGE_INDEX &&
+            articlesPageStack.length > 1
+        ) {
+            if (dx >= threshold) {
+                popArticlesPageLevel();
+            } else {
+                renderArticlesPage();
+            }
+        } else {
+            finishPageDrag(dx);
+        }
+        suppressNextClick = true;
+        setTimeout(() => {
+            suppressNextClick = false;
+        }, 400);
+    }
+);
 /* ==================== БЛОКУВАННЯ CLICK ПІСЛЯ SWIPE ==================== */
 document.addEventListener(
     'click',
@@ -3781,8 +4220,8 @@ scrollAreaEl.addEventListener(
 /* ==================== ЖЕСТ "ПОТЯГНУТИ ВНИЗ" → ПОВЕРНЕННЯ НА ПОШУК ==================== */
 /*
     На будь-якій сторінці/рівні, крім пошуку, якщо контент прокручений
-    до самого верху (scrollTop === 0) і користувач тягне палець вниз,
-    контент слідує за пальцем (з опором), зверху з'являється індикатор.
+    до самого верху (scrollTop === 0) і користувач тягне вниз,
+    контент слідує за жестом (з опором), зверху з'являється індикатор.
     Якщо потягнути достатньо далеко і відпустити — повертаємось на пошук.
     Якщо є куди скролити вгору — жест не спрацьовує (звичайний скрол).
 */
@@ -3798,6 +4237,9 @@ pullIndicator.innerHTML = '<span class="pull-arrow">↓</span>';
 document.body.appendChild(pullIndicator);
 const pullArrowEl = pullIndicator.firstChild;
 function getActiveScrollArea() {
+    if (currentPage === SEARCH_PAGE_INDEX) {
+        return document.querySelector('#page0 .scroll-area');
+    }
     if (currentPage === ARTICLES_PAGE_INDEX) {
         return document.querySelector('#page-articles .scroll-area');
     }
@@ -3846,20 +4288,28 @@ document.addEventListener(
         pullActive = false;
         pullDy = 0;
         if (
-            currentPage === SEARCH_PAGE_INDEX ||
             !e.touches ||
             e.touches.length !== 1
         ) {
             return;
         }
-        if (
+        const area = getActiveScrollArea();
+        if (!area || area.scrollTop > 0) {
+            return;
+        }
+        if (currentPage === SEARCH_PAGE_INDEX) {
+            if (
+                !area.contains(e.target) ||
+                e.target.closest(
+                    'button, input, textarea, select, [data-anav]'
+                )
+            ) {
+                return;
+            }
+        } else if (
             e.target.closest &&
             e.target.closest('textarea')
         ) {
-            return;
-        }
-        const area = getActiveScrollArea();
-        if (!area || area.scrollTop > 0) {
             return;
         }
         pullArea = area;
@@ -3935,17 +4385,22 @@ function pullFinish() {
     }
     if (ok) {
         const a = pullArea;
-        /* Повертаємось до пошуку з кореневою панеллю артикулів. */
-        articlesPageStack = [
-            { level: 'articles' }
-        ];
-        renderArticlesPage(true);
         pullIndicator.style.transition =
             'opacity 0.25s ease';
         pullIndicator.style.opacity = '0';
-        pagesEl.style.transition =
-            'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
-        goToPage(SEARCH_PAGE_INDEX);
+        if (currentPage === SEARCH_PAGE_INDEX) {
+            input.value = '';
+            search();
+        } else {
+            /* Повертаємось до пошуку з кореневою панеллю артикулів. */
+            articlesPageStack = [
+                { level: 'articles' }
+            ];
+            renderArticlesPage(true);
+            pagesEl.style.transition =
+                'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
+            goToPage(SEARCH_PAGE_INDEX);
+        }
         setTimeout(() => {
             if (a) {
                 a.style.transition = 'none';
