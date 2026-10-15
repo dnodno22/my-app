@@ -601,7 +601,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 49;
+const CODE_VERSION = 50;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 /* Усі аркуші (gid), з яких тягнуться дані. Додай сюди нові gid через кому. */
@@ -3749,6 +3749,105 @@ scrollAreaEl.addEventListener(
     {
         passive: true
     }
+);
+/* ==================== ЖЕСТ "ПОТЯГНУТИ ВНИЗ" → ПОВЕРНЕННЯ НА ПОШУК ==================== */
+/*
+    На будь-якій сторінці/рівні, крім пошуку, якщо контент прокручений
+    до самого верху (scrollTop === 0) і користувач тягне палець вниз,
+    повертаємось на сторінку пошуку. Якщо є куди скролити вгору —
+    жест не спрацьовує (там це звичайний скрол).
+*/
+const PULL_DOWN_PX = 80;
+let pullStartX = 0;
+let pullStartY = 0;
+let pullArea = null;
+let pullActive = false;
+function getActiveScrollArea() {
+    if (currentPage === ARTICLES_PAGE_INDEX) {
+        return document.querySelector('#page-articles .scroll-area');
+    }
+    if (currentPage === 0) {
+        return document.querySelector('#page-waitlist .scroll-area');
+    }
+    return null;
+}
+document.addEventListener(
+    'touchstart',
+    e => {
+        pullActive = false;
+        pullArea = null;
+        if (
+            currentPage === SEARCH_PAGE_INDEX ||
+            !e.touches ||
+            e.touches.length !== 1
+        ) {
+            return;
+        }
+        if (
+            e.target.closest &&
+            e.target.closest('textarea')
+        ) {
+            return;
+        }
+        const area = getActiveScrollArea();
+        if (!area || area.scrollTop > 0) {
+            return;
+        }
+        pullArea = area;
+        pullStartX = e.touches[0].clientX;
+        pullStartY = e.touches[0].clientY;
+        pullActive = true;
+    },
+    { passive: true }
+);
+document.addEventListener(
+    'touchmove',
+    e => {
+        if (
+            !pullActive ||
+            !e.touches ||
+            e.touches.length !== 1
+        ) {
+            return;
+        }
+        /* Контент зрушив від верху — це вже звичайний скрол */
+        if (!pullArea || pullArea.scrollTop > 0) {
+            pullActive = false;
+            return;
+        }
+        const dx = e.touches[0].clientX - pullStartX;
+        const dy = e.touches[0].clientY - pullStartY;
+        /* Тягнемо вгору або більше вбік — це не наш жест */
+        if (dy < -10 || Math.abs(dx) > Math.abs(dy)) {
+            if (Math.abs(dx) > 24 || dy < -10) {
+                pullActive = false;
+            }
+            return;
+        }
+        if (dy >= PULL_DOWN_PX) {
+            pullActive = false;
+            pageDragging = false;
+            pageSwipeCandidate = false;
+            suppressNextClick = true;
+            setTimeout(() => {
+                suppressNextClick = false;
+            }, 400);
+            pagesEl.style.transition =
+                'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
+            goToPage(SEARCH_PAGE_INDEX);
+        }
+    },
+    { passive: true }
+);
+document.addEventListener(
+    'touchend',
+    () => { pullActive = false; },
+    { passive: true }
+);
+document.addEventListener(
+    'touchcancel',
+    () => { pullActive = false; },
+    { passive: true }
 );
 /* ==================== ПЕРВИННИЙ СТАН КРАПОЧОК ==================== */
 renderArticlesDots();
