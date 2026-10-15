@@ -3820,9 +3820,9 @@ function pullApply(dy) {
         `translate(-50%, ${Math.min(shift, 70) - 6}px) scale(${0.6 + 0.4 * p})`;
     const ready = p >= 1;
     pullIndicator.classList.toggle('ready', ready);
-    pullArrowEl.textContent = ready ? '🔍' : '↓';
+    pullArrowEl.textContent = '↓';
     pullArrowEl.style.transform =
-        ready ? 'none' : `rotate(${p * 180}deg)`;
+        `rotate(${p * 180}deg)`;
 }
 function pullReset(animated) {
     if (pullArea) {
@@ -3935,6 +3935,11 @@ function pullFinish() {
     }
     if (ok) {
         const a = pullArea;
+        /* Повертаємось до пошуку з кореневою панеллю артикулів. */
+        articlesPageStack = [
+            { level: 'articles' }
+        ];
+        renderArticlesPage(true);
         pullIndicator.style.transition =
             'opacity 0.25s ease';
         pullIndicator.style.opacity = '0';
