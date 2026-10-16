@@ -671,7 +671,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v63</button>
+                    aria-expanded="false">v66</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -703,7 +703,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 63;
+const CODE_VERSION = 66;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -771,20 +771,41 @@ const SEARCH_FILTER_KEYS = [
     'audi',
     'bmw'
 ];
+const SEARCH_SOURCE_FILTERS = [
+    'audi',
+    'bmw',
+    'premontage'
+];
 function loadSearchFilters() {
     try {
         const saved =
             JSON.parse(
                 localStorage.getItem(
                     CACHE_KEY_SEARCH_FILTERS
-                ) || "[]"
+                ) || "null"
             );
-        if (!Array.isArray(saved)) return [];
+        if (saved && saved.version === 3 &&
+            Array.isArray(saved.filters)) {
+            return [...new Set(
+                saved.filters
+                    .map(String)
+                    .filter(filter =>
+                        SEARCH_FILTER_KEYS.includes(filter)
+                    )
+            )];
+        }
+        const previousFilters =
+            saved && Array.isArray(saved.filters)
+                ? saved.filters
+                : Array.isArray(saved)
+                    ? saved
+                    : [];
         return [...new Set(
-            saved
+            previousFilters
                 .map(String)
                 .filter(filter =>
-                    SEARCH_FILTER_KEYS.includes(filter)
+                    ['wires', 'materials', 'premontage']
+                        .includes(filter)
                 )
         )];
     } catch (e) {
@@ -795,7 +816,10 @@ function saveSearchFilters() {
     try {
         localStorage.setItem(
             CACHE_KEY_SEARCH_FILTERS,
-            JSON.stringify(selectedSearchFilters)
+            JSON.stringify({
+                version: 3,
+                filters: selectedSearchFilters
+            })
         );
     } catch (e) {
         /* Збереження фільтрів не має блокувати пошук. */
@@ -1807,23 +1831,19 @@ function getPremontageRows() {
     );
 }
 function getSearchRowsForFilters() {
-    const typeFilters =
+    const materialFilters =
         selectedSearchFilters.filter(filter =>
-            ['wires', 'materials', 'premontage']
+            ['wires', 'materials']
                 .includes(filter)
         );
     const sourceFilters =
         selectedSearchFilters.filter(filter =>
-            ['audi', 'bmw'].includes(filter)
+            SEARCH_SOURCE_FILTERS.includes(filter)
         );
-    const premontageRows =
-        typeFilters.includes('premontage')
-            ? new Set(getPremontageRows())
-            : null;
     return searchData.filter(row => {
-        const matchesType =
-            !typeFilters.length ||
-            typeFilters.some(filter => {
+        const matchesMaterial =
+            !materialFilters.length ||
+            materialFilters.some(filter => {
                 if (filter === 'wires') {
                     return isWireMaterial(
                         row.material
@@ -1844,16 +1864,23 @@ function getSearchRowsForFilters() {
                             !isWireMaterial(material)
                         );
                 }
-                return premontageRows.has(row);
+                return false;
             });
         const matchesSource =
             !sourceFilters.length ||
-            sourceFilters.some(filter =>
-                filter === 'audi'
-                    ? row.sourceGid === AUDI_GID
-                    : row.sourceGid === BMW_GID
-            );
-        return matchesType && matchesSource;
+            sourceFilters.some(filter => {
+                if (filter === 'audi') {
+                    return row.sourceGid === AUDI_GID;
+                }
+                if (filter === 'bmw') {
+                    return row.sourceGid === BMW_GID;
+                }
+                return row.sourceGid === PREMONTAGE_AUDI_GID;
+            });
+        return (
+            matchesMaterial &&
+            matchesSource
+        );
     });
 }
 function premontageArticleMatches(
