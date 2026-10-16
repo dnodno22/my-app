@@ -193,6 +193,47 @@ input#input {
     text-align: right;
     line-height: 1.3;
 }
+.article-row .article-stations {
+    flex: 1;
+    min-width: 0;
+}
+.station-list-classic {
+    display: none;
+}
+.station-list-readable {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+}
+.station-chip {
+    display: inline-flex;
+    min-width: 34px;
+    min-height: 30px;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: #111;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+body.interface-classic .station-list-classic {
+    display: block;
+}
+body.interface-classic .station-list-readable {
+    display: none;
+}
+body.interface-readable .station-list-classic {
+    display: none;
+}
+body.interface-readable .station-list-readable {
+    display: flex;
+}
 /* ==================== СПИСОК ОЧІКУВАННЯ ==================== */
 .waitlist-title {
     font-size: 18px;
@@ -533,10 +574,15 @@ mark.hl {
     color: #000;
 }
 .filter-menu:not(.filter-options-open) .filter-choice {
-    visibility: hidden;
-    pointer-events: none;
+    display: none;
 }
-.filter-menu.filter-options-open [data-filter-expand] {
+.filter-menu:not(.interface-options-open) .interface-choice {
+    display: none;
+}
+.filter-menu.filter-options-open [data-filter-expand],
+.filter-menu.filter-options-open [data-interface-expand],
+.filter-menu.interface-options-open [data-filter-expand],
+.filter-menu.interface-options-open [data-interface-expand] {
     display: none;
 }
 .filter-menu-heading {
@@ -671,18 +717,21 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v66</button>
+                    aria-expanded="false">v67</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
-            <div id="filter-menu" class="filter-menu hidden" role="group" aria-label="Фільтри пошуку">
+            <div id="filter-menu" class="filter-menu hidden" role="group" aria-label="Параметри пошуку">
                 <button type="button" class="filter-option filter-menu-heading" data-filter-expand aria-expanded="false">Фільтр</button>
+                <button type="button" class="filter-option filter-menu-heading" data-interface-expand aria-expanded="false">Інтерфейс</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="all">Усі дані</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="wires">Проводи</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="materials">Матеріал</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="premontage">Передмонтажі</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="audi">Audi</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="bmw">BMW</button>
+                <button type="button" class="filter-option interface-choice" data-interface-mode="classic">Класичний · v66</button>
+                <button type="button" class="filter-option interface-choice" data-interface-mode="readable">Читабельний · v67</button>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
@@ -703,7 +752,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 66;
+const CODE_VERSION = 67;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -724,6 +773,7 @@ let currentPage = SEARCH_PAGE_INDEX;
 let searchData = [];
 let selectedSearchFilters = [];
 let filterOptionsOpen = false;
+let interfaceOptionsOpen = false;
 let pageWidthPercent = 100 / TOTAL_PAGES;
 let articleGroups = [];
 /* ==================== СТЕК РІВНІВ АРТИКУЛІВ ==================== */
@@ -776,6 +826,26 @@ const SEARCH_SOURCE_FILTERS = [
     'bmw',
     'premontage'
 ];
+const CACHE_KEY_INTERFACE_MODE =
+    "searchInterfaceMode";
+const INTERFACE_MODE_KEYS = [
+    'classic',
+    'readable'
+];
+function loadInterfaceMode() {
+    try {
+        const saved =
+            localStorage.getItem(
+                CACHE_KEY_INTERFACE_MODE
+            );
+        return INTERFACE_MODE_KEYS.includes(saved)
+            ? saved
+            : 'readable';
+    } catch (e) {
+        return 'readable';
+    }
+}
+let interfaceMode = loadInterfaceMode();
 function loadSearchFilters() {
     try {
         const saved =
@@ -961,6 +1031,7 @@ function setFilterPanelOpen(open) {
     if (!filterMenu) return;
     if (!open) {
         setFilterOptionsOpen(false);
+        setInterfaceOptionsOpen(false);
     }
     filterMenu.classList.toggle(
         'hidden',
@@ -980,6 +1051,22 @@ function setFilterPanelOpen(open) {
 function setFilterOptionsOpen(open) {
     if (!filterMenu) return;
     filterOptionsOpen = open;
+    if (open) {
+        interfaceOptionsOpen = false;
+        filterMenu.classList.remove(
+            'interface-options-open'
+        );
+        const interfaceTrigger =
+            filterMenu.querySelector(
+                '[data-interface-expand]'
+            );
+        if (interfaceTrigger) {
+            interfaceTrigger.setAttribute(
+                'aria-expanded',
+                'false'
+            );
+        }
+    }
     filterMenu.classList.toggle(
         'filter-options-open',
         open
@@ -993,6 +1080,79 @@ function setFilterOptionsOpen(open) {
         );
     }
 }
+function setInterfaceOptionsOpen(open) {
+    if (!filterMenu) return;
+    interfaceOptionsOpen = open;
+    if (open) {
+        filterOptionsOpen = false;
+        filterMenu.classList.remove(
+            'filter-options-open'
+        );
+        const filterTrigger =
+            filterMenu.querySelector(
+                '[data-filter-expand]'
+            );
+        if (filterTrigger) {
+            filterTrigger.setAttribute(
+                'aria-expanded',
+                'false'
+            );
+        }
+    }
+    filterMenu.classList.toggle(
+        'interface-options-open',
+        open
+    );
+    const trigger =
+        filterMenu.querySelector(
+            '[data-interface-expand]'
+        );
+    if (trigger) {
+        trigger.setAttribute(
+            'aria-expanded',
+            String(open)
+        );
+    }
+}
+function setInterfaceMode(mode) {
+    if (!INTERFACE_MODE_KEYS.includes(mode)) {
+        return;
+    }
+    interfaceMode = mode;
+    document.body.classList.toggle(
+        'interface-classic',
+        mode === 'classic'
+    );
+    document.body.classList.toggle(
+        'interface-readable',
+        mode === 'readable'
+    );
+    try {
+        localStorage.setItem(
+            CACHE_KEY_INTERFACE_MODE,
+            mode
+        );
+    } catch (e) {
+        /* Режим інтерфейсу залишається доступним у цій сесії. */
+    }
+    if (filterMenu) {
+        filterMenu
+            .querySelectorAll('[data-interface-mode]')
+            .forEach(option => {
+                const selected =
+                    option.dataset.interfaceMode === mode;
+                option.classList.toggle(
+                    'active',
+                    selected
+                );
+                option.setAttribute(
+                    'aria-pressed',
+                    String(selected)
+                );
+            });
+    }
+}
+setInterfaceMode(interfaceMode);
 document.querySelectorAll('.page').forEach(p => {
     p.style.width = pageWidthPercent + '%';
 });
@@ -1176,6 +1336,26 @@ function refreshArticleGroups() {
 document
     .getElementById('kb-wrapper')
     .addEventListener('click', (e) => {
+        const expandInterfaceButton =
+            e.target.closest('[data-interface-expand]');
+        if (expandInterfaceButton) {
+            e.preventDefault();
+            e.stopPropagation();
+            setInterfaceOptionsOpen(
+                !interfaceOptionsOpen
+            );
+            return;
+        }
+        const interfaceOption =
+            e.target.closest('[data-interface-mode]');
+        if (interfaceOption) {
+            e.preventDefault();
+            e.stopPropagation();
+            setInterfaceMode(
+                interfaceOption.dataset.interfaceMode
+            );
+            return;
+        }
         const expandFilterButton =
             e.target.closest('[data-filter-expand]');
         if (expandFilterButton) {
@@ -1404,7 +1584,20 @@ function buildStationsHtml(stationHtmlArr) {
                 .join(" | ")
         );
     }
-    return lines.join("<br>");
+    const readableStations =
+        stationHtmlArr
+            .map(station =>
+                `<span class="station-chip">${station}</span>`
+            )
+            .join("");
+    return `
+        <span class="station-list-classic">
+            ${lines.join("<br>")}
+        </span>
+        <span class="station-list-readable">
+            ${readableStations}
+        </span>
+    `;
 }
 /* ==================== НОМЕР АРТИКУЛУ ==================== */
 function renderArticleNumber(
