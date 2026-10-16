@@ -234,6 +234,52 @@ body.interface-readable .station-list-classic {
 body.interface-readable .station-list-readable {
     display: flex;
 }
+/* Читабельний вигляд артикулу: проєкт (сірий) · НАЗВА (акцент) · стан (сірий) */
+.art-classic {
+    display: inline;
+}
+.art-readable {
+    display: none;
+}
+body.interface-classic .art-classic {
+    display: inline;
+}
+body.interface-classic .art-readable {
+    display: none;
+}
+body.interface-readable .art-classic {
+    display: none;
+}
+body.interface-readable .art-readable {
+    display: inline-flex;
+}
+.art-r {
+    align-items: baseline;
+    gap: 2px;
+    white-space: nowrap;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    border-radius: 14px;
+    padding: 8px 14px;
+}
+.art-r-base {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.15;
+    color: #111;
+}
+.art-r-stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+.art-r-stan {
+    font-size: 14px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-left: 1px;
+}
 /* ==================== СПИСОК ОЧІКУВАННЯ ==================== */
 .waitlist-title {
     font-size: 18px;
@@ -731,7 +777,7 @@ tr:nth-child(even) td {
                 <button type="button" class="filter-option filter-choice" data-search-filter="audi">Audi</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="bmw">BMW</button>
                 <button type="button" class="filter-option interface-choice" data-interface-mode="classic">Класичний · v66</button>
-                <button type="button" class="filter-option interface-choice" data-interface-mode="readable">Читабельний · v67</button>
+                <button type="button" class="filter-option interface-choice" data-interface-mode="readable">Читабельний · v73</button>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
@@ -752,7 +798,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 67;
+const CODE_VERSION = 73;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1600,11 +1646,78 @@ function buildStationsHtml(stationHtmlArr) {
     `;
 }
 /* ==================== НОМЕР АРТИКУЛУ ==================== */
+/*
+    "7370112/013" — це ДВА артикули (7370112 і 7370013), а не стан.
+    У читабельному вигляді вони йдуть в ОДНОМУ рядку один під одним
+    (станції справа — спільні), кожен зі своїм станом. Скорочена частина
+    без власного стану успадковує стан першого артикулу.
+*/
+function readableMultiArticleHtml(art, v, isNumOnly, isSpecialSearch) {
+    const parts = String(art)
+        .split("/")
+        .map(p => normalizeArticlePart(p))
+        .filter(Boolean);
+    const first = parts[0] || "";
+    const firstBase =
+        /^\d{7}/.test(first) ? first.slice(0, 7) : first;
+    const firstTail = first.slice(firstBase.length);
+    const prefix =
+        /^\d{4,}$/.test(firstBase)
+            ? firstBase.slice(0, -3)
+            : "";
+    const items = parts.map((p, i) => {
+        if (i === 0) {
+            return { base: firstBase, tail: firstTail };
+        }
+        const m = p.match(/^(\d{1,3})(\D.*)?$/);
+        if (m && prefix) {
+            return {
+                base: prefix + m[1].padStart(3, "0"),
+                tail: m[2] || firstTail
+            };
+        }
+        const b = /^\d{7}/.test(p) ? p.slice(0, 7) : p;
+        return { base: b, tail: p.slice(b.length) };
+    });
+    const baseHtmlOf = base => {
+        if (
+            !isSpecialSearch && v && isNumOnly &&
+            base.toLowerCase().endsWith(v)
+        ) {
+            const idx = base.length - v.length;
+            return escapeHtml(base.slice(0, idx)) +
+                '<mark class="hl">' +
+                escapeHtml(base.slice(idx)) +
+                '</mark>';
+        }
+        if (
+            !isSpecialSearch && v && !isNumOnly &&
+            base.toLowerCase().startsWith(v)
+        ) {
+            return '<mark class="hl">' +
+                escapeHtml(base.slice(0, v.length)) +
+                '</mark>' +
+                escapeHtml(base.slice(v.length));
+        }
+        return escapeHtml(base);
+    };
+    return '<span class="art-r-stack">' +
+        items.map(it =>
+            '<span class="art-r">' +
+            `<span class="art-r-base">${baseHtmlOf(it.base)}</span>` +
+            (it.tail
+                ? `<span class="art-r-stan">${escapeHtml(it.tail)}</span>`
+                : '') +
+            '</span>'
+        ).join('') +
+        '</span>';
+}
 function renderArticleNumber(
     art,
     v,
     isNumOnly,
-    isSpecialSearch
+    isSpecialSearch,
+    fancy
 ) {
     let matchStart = -1;
     let matchEnd = -1;
@@ -1660,24 +1773,42 @@ function renderArticleNumber(
         return out;
     }
     const len = art.length;
-    if (len <= 4) {
-        return `<span class="art-g1">${part(0, len)}</span>`;
-    }
     const g1end =
         Math.min(4, len);
     const g2end =
         Math.min(7, len);
-    let html =
-        `<span class="art-g1">${part(0, g1end)}</span>`;
-    if (len > 4) {
+    let html;
+    if (len <= 4) {
+        html = `<span class="art-g1">${part(0, len)}</span>`;
+    } else {
+        html =
+            `<span class="art-g1">${part(0, g1end)}</span>`;
         html +=
             `<span class="art-g2">${part(g1end, g2end)}</span>`;
+        if (len > 7) {
+            html +=
+                `<span class="art-g3">${part(g2end, len)}</span>`;
+        }
     }
+    if (!fancy) {
+        return html;
+    }
+    /* Кілька артикулів в одному записі (через "/") — в одній рамці */
+    if (String(art).includes("/")) {
+        return `<span class="art-classic">${html}</span>` +
+            `<span class="art-readable">${readableMultiArticleHtml(art, v, isNumOnly, isSpecialSearch)}</span>`;
+    }
+    /* Читабельний варіант: як у шапці рівня — артикул + дрібний сірий стан, в рамці */
+    let readable = '<span class="art-r">';
+    readable +=
+        `<span class="art-r-base">${part(0, g2end)}</span>`;
     if (len > 7) {
-        html +=
-            `<span class="art-g3">${part(g2end, len)}</span>`;
+        readable +=
+            `<span class="art-r-stan">${part(g2end, len)}</span>`;
     }
-    return html;
+    readable += '</span>';
+    return `<span class="art-classic">${html}</span>` +
+        `<span class="art-readable">${readable}</span>`;
 }
 /* ==================== СПИСОК ОЧІКУВАННЯ ==================== */
 const CACHE_KEY_WAITLIST =
@@ -3649,7 +3780,8 @@ function search() {
                     art,
                     v,
                     isNumOnly,
-                    isSpecialSearch
+                    isSpecialSearch,
+                    true
                 );
             const stationHtmlArr =
                 uniqueDisplayStations(
