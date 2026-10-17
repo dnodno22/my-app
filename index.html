@@ -151,22 +151,18 @@ input#input {
     line-height: 1.1;
     white-space: nowrap;
 }
-/* hide original small icons */
 .result-material-badge .box-icon,
 .box-icon,
 .icon {
     display: none;
 }
-.result-material-badge .box-icon {
-    font-size: 0.85em;
-}
 .result-address-new {
     font-weight: 600;
     font-size: 14px;
-    color: #111; /* changed to black */
+    color: #111;
     white-space: nowrap;
     text-align: right;
-    border: 1px solid #e5e7eb; /* border like other elements */
+    border: 1px solid #e5e7eb;
     background: #f9fafb;
     border-radius: 10px;
     padding: 6px 10px;
@@ -245,7 +241,6 @@ body.interface-readable .station-list-classic {
 body.interface-readable .station-list-readable {
     display: flex;
 }
-/* Читабельний вигляд артикулу: проєкт (сірий) · НАЗВА (акцент) · стан (сірий) */
 .art-classic {
     display: inline;
 }
@@ -291,12 +286,10 @@ body.interface-readable .art-readable {
     color: #6b7280;
     margin-left: 1px;
 }
-/* Ensure favorite button appears on the left of material name in result cards */
 .result-top .article-favorite-btn {
     order: -1;
     margin-right: 8px;
 }
-/* ==================== СПИСОК ОЧІКУВАННЯ ==================== */
 .waitlist-title {
     font-size: 18px;
     font-weight: 700;
@@ -426,7 +419,6 @@ body.interface-readable .art-readable {
     white-space: pre-wrap;
     word-break: break-word;
 }
-/* ==================== ПАНЕЛЬ ПЕРЕДМОНТАЖУ ==================== */
 .premontage-toolbar {
     display: flex;
     align-items: center;
@@ -579,7 +571,6 @@ body.interface-readable .art-readable {
     display: inline-block;
     line-height: 1;
 }
-/* ==================== HIGHLIGHT ==================== */
 mark.hl {
     background: #fde047;
     color: #111;
@@ -587,14 +578,12 @@ mark.hl {
     padding: 0 2px;
     font-weight: inherit;
 }
-/* ==================== KEYBOARDS ==================== */
 .kb-container {
     position: relative;
     flex-shrink: 0;
     background: #fff;
     border-top: 1px solid #e5e7eb;
     padding: 12px;
-    /* Extra space below 0-key for depth dots */
     padding-bottom: calc(28px + env(safe-area-inset-bottom));
 }
 .kb-grid {
@@ -692,7 +681,6 @@ mark.hl {
     user-select: none;
     cursor: pointer;
 }
-/* ==================== TABLE PAGES ==================== */
 .table-page {
     background: #fff;
 }
@@ -745,7 +733,6 @@ tr:nth-child(even) td {
 </head>
 <body>
 <div id="pages">
-    <!-- PAGE (waitlist): свайп управо від пошуку -->
     <div class="page" id="page-waitlist">
         <div class="search-header">
             <div class="waitlist-title">Обрані матеріали</div>
@@ -754,7 +741,6 @@ tr:nth-child(even) td {
             <div id="waitlist-result"></div>
         </div>
     </div>
-    <!-- PAGE (search) -->
     <div class="page" id="page0">
         <div class="search-header">
             <input id="input" readonly>
@@ -773,13 +759,7 @@ tr:nth-child(even) td {
                 <button class="btn" data-v="7">7</button>
                 <button class="btn" data-v="8">8</button>
                 <button class="btn" data-v="9">9</button>
-                <button
-                    type="button"
-                    class="btn btn-version"
-                    id="kb-version"
-                    aria-label="Фільтр пошуку"
-                    aria-haspopup="true"
-                    aria-expanded="false">v67</button>
+                <button type="button" class="btn btn-version" id="kb-version" aria-label="Фільтр пошуку" aria-haspopup="true" aria-expanded="false">v74</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -792,8 +772,8 @@ tr:nth-child(even) td {
                 <button type="button" class="filter-option filter-choice" data-search-filter="premontage">Передмонтажі</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="audi">Audi</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="bmw">BMW</button>
-                <button type="button" class="filter-option interface-choice" data-interface-mode="classic">Класичний · v66</button>
-                <button type="button" class="filter-option interface-choice" data-interface-mode="readable">Читабельний · v73</button>
+                <button type="button" class="filter-option interface-choice" data-interface-mode="classic">Класичний · v74</button>
+                <button type="button" class="filter-option interface-choice" data-interface-mode="readable">Читабельний · v74</button>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
@@ -802,28 +782,21 @@ tr:nth-child(even) td {
             </div>
         </div>
     </div>
-    <!-- PAGE (артикули): свайп ліворуч від пошуку -->
     <div class="page" id="page-articles">
         <div class="scroll-area">
             <div id="articles-page-content"></div>
         </div>
     </div>
 </div>
-<!-- КРАПОЧКИ ГЛИБИНИ (глобально: пошук + артикули) -->
 <div class="articles-dots" id="articles-dots"></div>
 <script>
-/* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
-/* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 73;
+const CODE_VERSION = 74;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
 const BMW_GID = "421001458";
 const PREMONTAGE_AUDI_GID = "1146686549";
-/* Усі аркуші (gid), з яких тягнуться дані. Додай сюди нові gid через кому. */
 const SEARCH_GIDS = [AUDI_GID, BMW_GID, PREMONTAGE_AUDI_GID, "2115582321", "994923423"];
-/* ================================================================ */
-/* Кеші для швидкодії */
 const _expandCache = new Map();
 let _actionsCache = {};
 let _fullCodeMap = null;
@@ -838,7 +811,6 @@ let filterOptionsOpen = false;
 let interfaceOptionsOpen = false;
 let pageWidthPercent = 100 / TOTAL_PAGES;
 let articleGroups = [];
-/* ==================== СТЕК РІВНІВ АРТИКУЛІВ ==================== */
 let articlesPageStack = [
     { level: 'articles' }
 ];
@@ -863,7 +835,6 @@ const ACTION_LABELS = {
 function actionLabel(key) {
     return ACTION_LABELS[key] || escapeHtml(key);
 }
-/* ==================== ELEMENTS ==================== */
 const input = document.getElementById('input');
 const resultBox = document.getElementById('result');
 const waitlistBox = document.getElementById('waitlist-result');
@@ -896,13 +867,8 @@ const INTERFACE_MODE_KEYS = [
 ];
 function loadInterfaceMode() {
     try {
-        const saved =
-            localStorage.getItem(
-                CACHE_KEY_INTERFACE_MODE
-            );
-        return INTERFACE_MODE_KEYS.includes(saved)
-            ? saved
-            : 'readable';
+        const saved = localStorage.getItem(CACHE_KEY_INTERFACE_MODE);
+        return INTERFACE_MODE_KEYS.includes(saved) ? saved : 'readable';
     } catch (e) {
         return 'readable';
     }
@@ -910,107 +876,36 @@ function loadInterfaceMode() {
 let interfaceMode = loadInterfaceMode();
 function loadSearchFilters() {
     try {
-        const saved =
-            JSON.parse(
-                localStorage.getItem(
-                    CACHE_KEY_SEARCH_FILTERS
-                ) || "null"
-            );
-        if (saved && saved.version === 3 &&
-            Array.isArray(saved.filters)) {
-            return [...new Set(
-                saved.filters
-                    .map(String)
-                    .filter(filter =>
-                        SEARCH_FILTER_KEYS.includes(filter)
-                    )
-            )];
+        const saved = JSON.parse(localStorage.getItem(CACHE_KEY_SEARCH_FILTERS) || "null");
+        if (saved && saved.version === 3 && Array.isArray(saved.filters)) {
+            return [...new Set(saved.filters.map(String).filter(filter => SEARCH_FILTER_KEYS.includes(filter)))];
         }
-        const previousFilters =
-            saved && Array.isArray(saved.filters)
-                ? saved.filters
-                : Array.isArray(saved)
-                    ? saved
-                    : [];
-        return [...new Set(
-            previousFilters
-                .map(String)
-                .filter(filter =>
-                    ['wires', 'materials', 'premontage']
-                        .includes(filter)
-                )
-        )];
+        const previousFilters = saved && Array.isArray(saved.filters) ? saved.filters : Array.isArray(saved) ? saved : [];
+        return [...new Set(previousFilters.map(String).filter(filter => ['wires', 'materials', 'premontage'].includes(filter)))];
     } catch (e) {
         return [];
     }
 }
 function saveSearchFilters() {
     try {
-        localStorage.setItem(
-            CACHE_KEY_SEARCH_FILTERS,
-            JSON.stringify({
-                version: 3,
-                filters: selectedSearchFilters
-            })
-        );
+        localStorage.setItem(CACHE_KEY_SEARCH_FILTERS, JSON.stringify({version: 3, filters: selectedSearchFilters}));
     } catch (e) {
-        /* Збереження фільтрів не має блокувати пошук. */
     }
 }
 selectedSearchFilters = loadSearchFilters();
-/* ==================== КРАПОЧКИ ГЛИБИНИ ==================== */
 function renderArticlesDots(overridePage, overrideDepth) {
     if (!articlesDots) return;
-    /*
-        overridePage / overrideDepth дозволяють показати крапочки
-        "наперед" — просто щоб ПІД ЧАС самого свайпу (ще до того, як
-        currentPage чи articlesPageStack реально зміняться) крапочки
-        вже відображали стан, в який ми прямуємо. Так вони йдуть
-        синхронно з переходом, а не з запізненням після нього.
-    */
-    const page =
-        overridePage !== undefined
-            ? overridePage
-            : currentPage;
-    /*
-        Крапочки показуємо на сторінках "Пошук" і "Артикули".
-        На "Обрані матеріали" їх немає.
-    */
-    if (
-        page !== ARTICLES_PAGE_INDEX &&
-        page !== SEARCH_PAGE_INDEX
-    ) {
+    const page = overridePage !== undefined ? overridePage : currentPage;
+    if (page !== ARTICLES_PAGE_INDEX && page !== SEARCH_PAGE_INDEX) {
         articlesDots.style.display = 'none';
         articlesDots.innerHTML = '';
         return;
     }
-    /*
-        Кількість крапочок = кількість рівнів у стеку.
-        1:
-        Артикули
-        2:
-        Артикули → Артикул
-        3:
-        Артикули → Артикул → Дія
-        4:
-        Артикули → Артикул → Передмонтаж → Категорія
-        і т.д.
-    */
-    /*
-        Пошук завжди 1-а крапочка (перша сторінка).
-        Панель артикулів = 2-а крапочка, кожен рівень углиб додає ще одну.
-        Тому на сторінці артикулів: глибина стеку + 1.
-    */
     let depth;
     if (page === SEARCH_PAGE_INDEX) {
         depth = 1;
     } else {
-        depth =
-            (
-                overrideDepth !== undefined
-                    ? overrideDepth
-                    : articlesPageStack.length
-            ) + 1;
+        depth = (overrideDepth !== undefined ? overrideDepth : articlesPageStack.length) + 1;
     }
     if (depth <= 0) {
         articlesDots.style.display = 'none';
@@ -1026,8 +921,6 @@ function renderArticlesDots(overridePage, overrideDepth) {
         articlesDots.appendChild(dot);
     }
 }
-/* Rest of JS unchanged... (file continues) */
-
 </script>
 </body>
 </html>
