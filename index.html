@@ -193,6 +193,11 @@ body.interface-readable #result .result-address-new {
     border-top: none;
     padding-top: 0;
 }
+/* Обраний артикул у результатах пошуку: смужка зліва без заливки рядка */
+.article-row.article-fav {
+    box-shadow: inset 4px 0 0 #003366;
+    padding-left: 12px;
+}
 .article-number {
     font-size: 15px;
     font-weight: 700;
@@ -818,7 +823,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 73;
+const CODE_VERSION = 74;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -988,18 +993,6 @@ function renderArticlesDots(overridePage, overrideDepth) {
         articlesDots.innerHTML = '';
         return;
     }
-    /*
-        Кількість крапочок = кількість рівнів у стеку.
-        1:
-        Артикули
-        2:
-        Артикули → Артикул
-        3:
-        Артикули → Артикул → Дія
-        4:
-        Артикули → Артикул → Передмонтаж → Категорія
-        і т.д.
-    */
     /*
         Пошук завжди 1-а крапочка (перша сторінка).
         Панель артикулів = 2-а крапочка, кожен рівень углиб додає ще одну.
@@ -3713,6 +3706,8 @@ function search() {
     let html = "";
     searchCardKeys = [];
     searchResultLookup = {};
+    const favSet =
+        new Set(loadArticleFavorites());
     const grouped = {};
     filtered.forEach(x => {
         const matKey =
@@ -3832,8 +3827,11 @@ function search() {
                 buildStationsHtml(
                     stationHtmlArr
                 );
+            const isFavArt =
+                expandArticleValue(art)
+                    .some(a => favSet.has(a));
             html += `
-                <div class="article-row">
+                <div class="article-row${isFavArt ? ' article-fav' : ''}">
                     <span class="article-number">
                         ${artHtml}
                     </span>
@@ -3889,6 +3887,7 @@ function goToPage(n) {
         kbWrapper.classList.remove(
             'hidden'
         );
+        if (input.value) search();
     } else {
         kbWrapper.classList.add(
             'hidden'
@@ -4062,6 +4061,7 @@ function finishPageDrag(dx) {
         kbWrapper.classList.remove(
             'hidden'
         );
+        if (input.value) search();
     } else {
         kbWrapper.classList.add(
             'hidden'
@@ -4892,5 +4892,3 @@ renderArticlesDots();
 </script>
 </body>
 </html>
-Grok finished responding
-зроби так щоб ті артикули я обрав на панелі артикулів в панелі пошуку коли випадають результати виділялася такою самою коьоровою позначкою зліва кусок рамки з кольором як в передмонтажах виділяються м - Grok
