@@ -158,8 +158,18 @@ input#input {
     white-space: nowrap;
     text-align: right;
 }
-/* Адреса на сторінці пошуку: чорний шрифт у рамці */
-#result .result-address-new {
+/* Іконки та зірочка: лише у класичному режимі / лише в читабельному */
+body.interface-readable .ico {
+    display: none;
+}
+body.interface-readable .star-right {
+    display: none;
+}
+body.interface-classic .star-left {
+    display: none;
+}
+/* Адреса на сторінці пошуку (читабельний режим): чорний шрифт у рамці */
+body.interface-readable #result .result-address-new {
     color: #111111;
     font-size: 15px;
     font-weight: 700;
@@ -739,7 +749,7 @@ tr:nth-child(even) td {
     <!-- PAGE (waitlist): свайп управо від пошуку -->
     <div class="page" id="page-waitlist">
         <div class="search-header">
-            <div class="waitlist-title">Обрані матеріали</div>
+            <div class="waitlist-title"><span class="ico">⭐ </span>Обрані матеріали</div>
         </div>
         <div class="scroll-area">
             <div id="waitlist-result"></div>
@@ -843,13 +853,13 @@ const ARTICLE_ACTION_KEYS = [
     "проводи"
 ];
 const ACTION_LABELS = {
-    "розміщення": "Розміщення",
-    "sp": "SP",
-    "ts": "TS",
-    "ізострічка": "Ізострічка",
-    "мм": "ММ",
-    "передмонтаж": "Передмонтаж",
-    "проводи": "Проводи"
+    "розміщення": '<span class="ico">📍 </span>Розміщення',
+    "sp": '<span class="ico">🔩 </span>SP',
+    "ts": '<span class="ico">🧷 </span>TS',
+    "ізострічка": '<span class="ico">📏 </span>Ізострічка',
+    "мм": '<span class="ico">📐 </span>ММ',
+    "передмонтаж": '<span class="ico">🧵 </span>Передмонтаж',
+    "проводи": '<span class="ico">⚡ </span>Проводи'
 };
 function actionLabel(key) {
     return ACTION_LABELS[key] || escapeHtml(key);
@@ -1903,6 +1913,7 @@ function renderWaitlistPage() {
             <div class="result-card">
                 <div class="result-top">
                     <span class="result-material-badge">
+                        <span class="box-icon ico">📦</span>
                         ${escapeHtml(item.material)}
                     </span>
                     <div style="display:flex; align-items:center; gap:8px;">
@@ -1943,12 +1954,12 @@ function renderWaitlistPage() {
                 <button
                     class="waitlist-remove-btn"
                     data-idx="${idx}">
-                    Прибрати зі списку
+                    <span class="ico">★ </span>Прибрати зі списку
                 </button>
                 <button
                     class="comment-toggle-btn"
                     data-idx="${idx}">
-                    Коментар
+                    <span class="ico">${hasComment ? '✎ ' : '💬 '}</span>Коментар
                 </button>
             </div>
             <div
@@ -2084,12 +2095,19 @@ resultBox.addEventListener('click', (e) => {
             data.address,
             data.articles
         );
-    btn.classList.toggle(
-        'selected',
-        nowSelected
-    );
-    btn.textContent =
-        nowSelected ? '★' : '☆';
+    /* Дві зірочки (читабельний / класичний) тримаємо синхронними */
+    resultBox
+        .querySelectorAll(
+            `.select-btn[data-idx="${btn.dataset.idx}"]`
+        )
+        .forEach(b => {
+            b.classList.toggle(
+                'selected',
+                nowSelected
+            );
+            b.textContent =
+                nowSelected ? '★' : '☆';
+        });
 });
 /* ==================== MERGE ARTICLE ==================== */
 function mergeAbbreviatedArticles(articleMap) {
@@ -2749,12 +2767,12 @@ function buildArticlesLevelHtml(
                     <button
                         class="premontage-nav-btn${state.shared ? ' active' : ''}"
                         data-anav="toggle-shared">
-                        Спільні
+                        <span class="ico">🔗 </span>Спільні
                     </button>
                     <button
                         class="premontage-nav-btn${state.sortQty ? ' active' : ''}"
                         data-anav="toggle-qty">
-                        Кількість
+                        <span class="ico">🔢 </span>Кількість
                     </button>
                 </div>
             `;
@@ -2958,6 +2976,7 @@ function buildArticlesLevelHtml(
                     <div class="result-card">
                         <div class="result-top">
                             <span class="result-material-badge" style="font-size:15px;">
+                                <span class="box-icon ico">📍</span>
                                 Станція ${escapeHtml(st)}
                             </span>
                         </div>
@@ -3027,6 +3046,7 @@ function buildArticlesLevelHtml(
                         style="cursor:pointer;">
                         <div class="result-top">
                             <span class="result-material-badge">
+                                <span class="box-icon ico">📦</span>
                                 ${escapeHtml(matName)}
                             </span>
                             <span class="result-address-new">
@@ -3081,6 +3101,7 @@ function buildArticlesLevelHtml(
                         style="cursor:pointer;">
                         <div class="result-top">
                             <span class="result-material-badge">
+                                <span class="box-icon ico">📦</span>
                                 ${escapeHtml(matName)}
                             </span>
                             <span class="result-address-new">
@@ -3760,15 +3781,24 @@ function search() {
                 <div class="result-top">
                     <span class="result-material-badge">
                         <button
-                            class="select-btn${selected ? ' selected' : ''}"
+                            class="select-btn star-left${selected ? ' selected' : ''}"
                             data-idx="${cardIdx}">
                             ${selected ? '★' : '☆'}
                         </button>
+                        <span class="box-icon ico">📦</span>
                         ${matHtml}
                     </span>
-                    <span class="result-address-new">
-                        ${addrHtml}
-                    </span>
+                    <div
+                        style="display:flex; align-items:center; gap:8px;">
+                        <span class="result-address-new">
+                            ${addrHtml}
+                        </span>
+                        <button
+                            class="select-btn star-right${selected ? ' selected' : ''}"
+                            data-idx="${cardIdx}">
+                            ${selected ? '★' : '☆'}
+                        </button>
+                    </div>
                 </div>
         `;
         for (
