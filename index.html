@@ -151,15 +151,22 @@ input#input {
     line-height: 1.1;
     white-space: nowrap;
 }
-.result-material-badge .box-icon {
-    font-size: 0.85em;
-}
 .result-address-new {
     font-weight: 600;
     font-size: 14px;
     color: #059669;
     white-space: nowrap;
     text-align: right;
+}
+/* Адреса на сторінці пошуку: чорний шрифт у рамці */
+#result .result-address-new {
+    color: #111111;
+    font-size: 15px;
+    font-weight: 700;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    border-radius: 14px;
+    padding: 8px 14px;
 }
 .article-row {
     display: flex;
@@ -732,7 +739,7 @@ tr:nth-child(even) td {
     <!-- PAGE (waitlist): свайп управо від пошуку -->
     <div class="page" id="page-waitlist">
         <div class="search-header">
-            <div class="waitlist-title">⭐ Обрані матеріали</div>
+            <div class="waitlist-title">Обрані матеріали</div>
         </div>
         <div class="scroll-area">
             <div id="waitlist-result"></div>
@@ -836,13 +843,13 @@ const ARTICLE_ACTION_KEYS = [
     "проводи"
 ];
 const ACTION_LABELS = {
-    "розміщення": "📍 Розміщення",
-    "sp": "🔩 SP",
-    "ts": "🧷 TS",
-    "ізострічка": "📏 Ізострічка",
-    "мм": "📐 ММ",
-    "передмонтаж": "🧵 Передмонтаж",
-    "проводи": "⚡ Проводи"
+    "розміщення": "Розміщення",
+    "sp": "SP",
+    "ts": "TS",
+    "ізострічка": "Ізострічка",
+    "мм": "ММ",
+    "передмонтаж": "Передмонтаж",
+    "проводи": "Проводи"
 };
 function actionLabel(key) {
     return ACTION_LABELS[key] || escapeHtml(key);
@@ -1896,7 +1903,6 @@ function renderWaitlistPage() {
             <div class="result-card">
                 <div class="result-top">
                     <span class="result-material-badge">
-                        <span class="box-icon">📦</span>
                         ${escapeHtml(item.material)}
                     </span>
                     <div style="display:flex; align-items:center; gap:8px;">
@@ -1937,12 +1943,12 @@ function renderWaitlistPage() {
                 <button
                     class="waitlist-remove-btn"
                     data-idx="${idx}">
-                    ★ Прибрати зі списку
+                    Прибрати зі списку
                 </button>
                 <button
                     class="comment-toggle-btn"
                     data-idx="${idx}">
-                    ${hasComment ? '✎ Коментар' : '💬 Коментар'}
+                    Коментар
                 </button>
             </div>
             <div
@@ -2743,12 +2749,12 @@ function buildArticlesLevelHtml(
                     <button
                         class="premontage-nav-btn${state.shared ? ' active' : ''}"
                         data-anav="toggle-shared">
-                        🔗 Спільні
+                        Спільні
                     </button>
                     <button
                         class="premontage-nav-btn${state.sortQty ? ' active' : ''}"
                         data-anav="toggle-qty">
-                        🔢 Кількість
+                        Кількість
                     </button>
                 </div>
             `;
@@ -2952,7 +2958,6 @@ function buildArticlesLevelHtml(
                     <div class="result-card">
                         <div class="result-top">
                             <span class="result-material-badge" style="font-size:15px;">
-                                <span class="box-icon">📍</span>
                                 Станція ${escapeHtml(st)}
                             </span>
                         </div>
@@ -3022,7 +3027,6 @@ function buildArticlesLevelHtml(
                         style="cursor:pointer;">
                         <div class="result-top">
                             <span class="result-material-badge">
-                                <span class="box-icon">📦</span>
                                 ${escapeHtml(matName)}
                             </span>
                             <span class="result-address-new">
@@ -3077,7 +3081,6 @@ function buildArticlesLevelHtml(
                         style="cursor:pointer;">
                         <div class="result-top">
                             <span class="result-material-badge">
-                                <span class="box-icon">📦</span>
                                 ${escapeHtml(matName)}
                             </span>
                             <span class="result-address-new">
@@ -3756,20 +3759,16 @@ function search() {
             <div class="result-card">
                 <div class="result-top">
                     <span class="result-material-badge">
-                        <span class="box-icon">📦</span>
-                        ${matHtml}
-                    </span>
-                    <div
-                        style="display:flex; align-items:center; gap:8px;">
-                        <span class="result-address-new">
-                            ${addrHtml}
-                        </span>
                         <button
                             class="select-btn${selected ? ' selected' : ''}"
                             data-idx="${cardIdx}">
                             ${selected ? '★' : '☆'}
                         </button>
-                    </div>
+                        ${matHtml}
+                    </span>
+                    <span class="result-address-new">
+                        ${addrHtml}
+                    </span>
                 </div>
         `;
         for (
