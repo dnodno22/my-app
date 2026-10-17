@@ -194,9 +194,10 @@ body.interface-readable #result .result-address-new {
     padding-top: 0;
 }
 /* Обраний артикул у результатах пошуку: смужка зліва без заливки рядка */
-.article-row.article-fav {
-    box-shadow: inset 4px 0 0 #003366;
-    padding-left: 12px;
+/* Обраний артикул у результатах пошуку: лівий край рамки кольорового відтінку */
+.art-r.art-r-fav {
+    border-left: 4px solid #003366;
+    padding-left: 11px;
 }
 .article-number {
     font-size: 15px;
@@ -1714,9 +1715,11 @@ function readableMultiArticleHtml(art, v, isNumOnly, isSpecialSearch) {
         }
         return escapeHtml(base);
     };
+    const favs = new Set(loadArticleFavorites());
     return '<span class="art-r-stack">' +
         items.map(it =>
-            '<span class="art-r">' +
+            '<span class="art-r' +
+            (favs.has(it.base) ? ' art-r-fav' : '') + '">' +
             `<span class="art-r-base">${baseHtmlOf(it.base)}</span>` +
             (it.tail
                 ? `<span class="art-r-stan">${escapeHtml(it.tail)}</span>`
@@ -1812,7 +1815,13 @@ function renderArticleNumber(
             `<span class="art-readable">${readableMultiArticleHtml(art, v, isNumOnly, isSpecialSearch)}</span>`;
     }
     /* Читабельний варіант: як у шапці рівня — артикул + дрібний сірий стан, в рамці */
-    let readable = '<span class="art-r">';
+    const favBase = expandArticleValue(art)[0];
+    const isFav =
+        Boolean(favBase) &&
+        loadArticleFavorites().includes(favBase);
+    let readable =
+        '<span class="art-r' +
+        (isFav ? ' art-r-fav' : '') + '">';
     readable +=
         `<span class="art-r-base">${part(0, g2end)}</span>`;
     if (len > 7) {
@@ -3706,8 +3715,6 @@ function search() {
     let html = "";
     searchCardKeys = [];
     searchResultLookup = {};
-    const favSet =
-        new Set(loadArticleFavorites());
     const grouped = {};
     filtered.forEach(x => {
         const matKey =
@@ -3827,11 +3834,8 @@ function search() {
                 buildStationsHtml(
                     stationHtmlArr
                 );
-            const isFavArt =
-                expandArticleValue(art)
-                    .some(a => favSet.has(a));
             html += `
-                <div class="article-row${isFavArt ? ' article-fav' : ''}">
+                <div class="article-row">
                     <span class="article-number">
                         ${artHtml}
                     </span>
