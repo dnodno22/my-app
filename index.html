@@ -214,6 +214,26 @@ body.interface-readable #result .result-address-new {
     flex: 1;
     min-width: 0;
 }
+/* Читабельний режим, сторінка пошуку: станції займають лише праву
+   половину екрана і притиснуті до середини (а не до правого краю) */
+body.interface-readable #result .article-row .article-stations {
+    flex: 0 0 50%;
+    max-width: 50%;
+    text-align: left;
+}
+body.interface-readable #result .station-list-readable {
+    justify-content: flex-start;
+}
+/* Класичний режим: замість рисок між станціями — маленькі бліді крапки */
+.st-sep {
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #d1d5db;
+    margin: 0 7px;
+    vertical-align: middle;
+}
 .station-list-classic {
     display: none;
 }
@@ -1644,7 +1664,7 @@ function buildStationsHtml(stationHtmlArr) {
         lines.push(
             stationHtmlArr
                 .slice(i, i + STATIONS_PER_LINE)
-                .join(" | ")
+                .join('<span class="st-sep"></span>')
         );
     }
     const readableStations =
