@@ -825,7 +825,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 74;
+const CODE_VERSION = 76;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3639,7 +3639,7 @@ articlesPageContent.addEventListener(
         }
     }
 );
-/* ==================== ПОШУК ==================== */
+/* ==================== ПОШУК (тільки по колонці B — матеріал) ==================== */
 function search() {
     const v =
         input.value.toLowerCase();
@@ -3649,64 +3649,19 @@ function search() {
     }
     const isNumOnly =
         /^\d+$/.test(v);
-    const isSpecialSearch =
-        v.includes("стр") ||
-        v.includes("мм") ||
-        v.includes("ts");
+    const isSpecialSearch = false;
     const filtered =
         getSearchRowsForFilters().filter(x => {
-            if (isSpecialSearch) {
-                return x.colD
-                    .toLowerCase()
-                    .startsWith(v);
-            }
+            const material =
+                String(x.material || "")
+                    .toLowerCase();
             if (isNumOnly) {
                 return (
-                    x.station
-                        .toLowerCase()
-                        .endsWith(v)
-                    ||
-                    x.material
-                        .toLowerCase()
-                        .endsWith(v)
-                    ||
-                    String(x.material || "")
-                        .replace(/\D/g, "") === v
-                    ||
-                    x.article
-                        .toLowerCase()
-                        .endsWith(v)
-                    ||
-                    x.colD
-                        .toLowerCase()
-                        .endsWith(v)
-                    ||
-                    x.address
-                        .toLowerCase()
-                        .endsWith(v)
+                    material.endsWith(v) ||
+                    material.replace(/\D/g, "") === v
                 );
             }
-            return (
-                x.station
-                    .toLowerCase()
-                    .startsWith(v)
-                ||
-                x.material
-                    .toLowerCase()
-                    .startsWith(v)
-                ||
-                x.article
-                    .toLowerCase()
-                    .startsWith(v)
-                ||
-                x.colD
-                    .toLowerCase()
-                    .startsWith(v)
-                ||
-                x.address
-                    .toLowerCase()
-                    .startsWith(v)
-            );
+            return material.startsWith(v);
         });
     if (!filtered.length) {
         resultBox.innerHTML =
@@ -3743,21 +3698,13 @@ function search() {
         ] =
             matKey.split("|");
         const matHtml =
-            isSpecialSearch
-                ? escapeHtml(matName)
-                : highlight(
-                    matName,
-                    v,
-                    isNumOnly
-                );
+            highlight(
+                matName,
+                v,
+                isNumOnly
+            );
         const addrHtml =
-            isSpecialSearch
-                ? escapeHtml(matAddr)
-                : highlight(
-                    matAddr,
-                    v,
-                    isNumOnly
-                );
+            escapeHtml(matAddr);
         const mergedArticles =
             mergeAbbreviatedArticles(
                 grouped[matKey]
@@ -3815,22 +3762,14 @@ function search() {
                     art,
                     v,
                     isNumOnly,
-                    isSpecialSearch,
+                    true,
                     true
                 );
             const stationHtmlArr =
                 uniqueDisplayStations(
                     mergedArticles[art]
                 )
-                    .map(st =>
-                        isSpecialSearch
-                            ? escapeHtml(st)
-                            : highlight(
-                                st,
-                                v,
-                                isNumOnly
-                            )
-                    );
+                    .map(st => escapeHtml(st));
             const stationsHtml =
                 buildStationsHtml(
                     stationHtmlArr
