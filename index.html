@@ -671,7 +671,14 @@ input#input.qty-mode {
     font-size: 20px;
     color: #111;
     margin-left: 12px;
+    padding-left: 12px;
+    border-left: 2px solid #d1d5db;
     white-space: nowrap;
+}
+.waitlist-divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin-top: 14px;
 }
 /* ==================== HIGHLIGHT ==================== */
 mark.hl {
@@ -919,7 +926,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 79;
+const CODE_VERSION = 80;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2077,6 +2084,16 @@ function renderWaitlistPage() {
                 </div>
             `;
         }
+        if (hasComment) {
+            html += `
+                <div class="waitlist-divider"></div>
+                <div
+                    class="waitlist-comment-text"
+                    data-idx="${idx}">
+                    ${escapeHtml(item.comment)}
+                </div>
+            `;
+        }
         html += `
             <div class="waitlist-actions-row">
                 <button
@@ -2104,15 +2121,6 @@ function renderWaitlistPage() {
                 </button>
             </div>
         `;
-        if (hasComment) {
-            html += `
-                <div
-                    class="waitlist-comment-text"
-                    data-idx="${idx}">
-                    ${escapeHtml(item.comment)}
-                </div>
-            `;
-        }
         html += `</div>`;
     });
     waitlistBox.innerHTML = html;
