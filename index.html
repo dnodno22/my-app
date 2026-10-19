@@ -590,6 +590,90 @@ body.interface-readable .art-readable {
     display: inline-block;
     line-height: 1;
 }
+/* ==================== КІЛЬКІСТЬ → ОБРАНЕ ==================== */
+.mat-pick {
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    padding: 4px 6px;
+    margin: -4px -6px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    touch-action: manipulation;
+}
+.mat-pick:active {
+    background: #eef2ff;
+}
+.result-card.qty-target {
+    outline: 2px solid #4338ca;
+}
+input#input.qty-mode {
+    background: #eef2ff;
+    border-color: #4338ca;
+}
+.qty-bar {
+    margin-bottom: 10px;
+}
+.qty-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111;
+    text-align: center;
+    margin-bottom: 8px;
+    word-break: break-word;
+}
+.qty-bar .comment-textarea {
+    min-height: 48px;
+    margin-bottom: 8px;
+}
+.qty-actions {
+    display: flex;
+    gap: 8px;
+}
+.qty-btn {
+    flex: 1;
+    border: 1px solid #222;
+    background: #fff;
+    color: #222;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 8px;
+    padding: 12px 0;
+    touch-action: manipulation;
+    user-select: none;
+}
+.qty-btn:active {
+    transform: scale(.97);
+}
+.qty-btn.qty-comment {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #4338ca;
+}
+.qty-btn.qty-cancel {
+    flex: 0 0 52px;
+    background: #fff7e0;
+    border-color: #f3d37a;
+    color: #b45309;
+}
+.qty-btn.qty-ok {
+    background: #4338ca;
+    border-color: #4338ca;
+    color: #fff;
+}
+.waitlist-qty {
+    font-weight: 800;
+    font-size: 15px;
+    color: #111;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 14px;
+    padding: 6px 12px;
+    white-space: nowrap;
+}
 /* ==================== HIGHLIGHT ==================== */
 mark.hl {
     background: #fde047;
@@ -774,6 +858,18 @@ tr:nth-child(even) td {
             <div id="result"></div>
         </div>
         <div id="kb-wrapper" class="kb-container">
+            <div id="qty-bar" class="qty-bar hidden">
+                <div class="qty-title" id="qty-title"></div>
+                <textarea
+                    id="qty-comment"
+                    class="comment-textarea hidden"
+                    placeholder="Коментар..."></textarea>
+                <div class="qty-actions">
+                    <button type="button" class="qty-btn qty-comment" data-qty="comment">💬 Коментар</button>
+                    <button type="button" class="qty-btn qty-cancel" data-qty="cancel">✕</button>
+                    <button type="button" class="qty-btn qty-ok" data-qty="ok">✓ Додати</button>
+                </div>
+            </div>
             <div id="kb1" class="kb-grid">
                 <button class="btn" data-v="1">1</button>
                 <button class="btn" data-v="2">2</button>
@@ -825,7 +921,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 77;
+const CODE_VERSION = 78;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -849,6 +945,11 @@ let filterOptionsOpen = false;
 let interfaceOptionsOpen = false;
 let pageWidthPercent = 100 / TOTAL_PAGES;
 let articleGroups = [];
+/* Режим введення кількості для матеріалу з пошуку */
+let qtyMode = false;
+let qtyKey = null;
+let qtySavedInput = "";
+let qtyCardEl = null;
 /* ==================== СТЕК РІВНІВ АРТИКУЛІВ ==================== */
 let articlesPageStack = [
     { level: 'articles' }
@@ -1397,6 +1498,24 @@ function refreshArticleGroups() {
 document
     .getElementById('kb-wrapper')
     .addEventListener('click', (e) => {
+        const qtyBtn =
+            e.target.closest('[data-qty]');
+        if (qtyBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const act = qtyBtn.dataset.qty;
+            if (act === 'comment') {
+                qtyComment.classList.toggle('hidden');
+                if (!qtyComment.classList.contains('hidden')) {
+                    qtyComment.focus();
+                }
+            } else if (act === 'cancel') {
+                exitQtyMode();
+            } else if (act === 'ok') {
+                confirmQty();
+            }
+            return;
+        }
         const expandInterfaceButton =
             e.target.closest('[data-interface-expand]');
         if (expandInterfaceButton) {
@@ -1455,6 +1574,7 @@ document
         if (!btn) return;
         e.stopPropagation();
         if (btn.id === 'kb-version') {
+            if (qtyMode) return;
             const isOpening =
                 filterMenu.classList.contains('hidden');
             setFilterPanelOpen(isOpening);
@@ -1467,6 +1587,7 @@ document
         ) {
             input.value += btn.dataset.v;
         }
+        if (qtyMode) return;
         search();
     });
 document.addEventListener(
@@ -1923,6 +2044,9 @@ function renderWaitlistPage() {
                         ${escapeHtml(item.material)}
                     </span>
                     <div style="display:flex; align-items:center; gap:8px;">
+                        ${item.qty
+                            ? `<span class="waitlist-qty">× ${escapeHtml(item.qty)}</span>`
+                            : ''}
                         <span class="result-address-new">
                             ${escapeHtml(item.address)}
                         </span>
@@ -2080,6 +2204,24 @@ waitlistBox.addEventListener('click', (e) => {
 let searchCardKeys = [];
 let searchResultLookup = {};
 resultBox.addEventListener('click', (e) => {
+    const pick =
+        e.target.closest('.mat-pick');
+    if (pick) {
+        const pickKey =
+            searchCardKeys[
+                parseInt(
+                    pick.dataset.idx,
+                    10
+                )
+            ];
+        if (pickKey !== undefined) {
+            enterQtyMode(
+                pickKey,
+                pick.closest('.result-card')
+            );
+        }
+        return;
+    }
     const btn =
         e.target.closest('.select-btn');
     if (!btn) return;
@@ -2115,6 +2257,111 @@ resultBox.addEventListener('click', (e) => {
                 nowSelected ? '★' : '☆';
         });
 });
+/* ==================== КІЛЬКІСТЬ → ОБРАНЕ ==================== */
+const qtyBar = document.getElementById('qty-bar');
+const qtyTitle = document.getElementById('qty-title');
+const qtyComment = document.getElementById('qty-comment');
+function enterQtyMode(key, cardEl) {
+    const data = searchResultLookup[key];
+    if (!data) return;
+    if (!qtyMode) {
+        qtySavedInput = input.value;
+    }
+    qtyMode = true;
+    qtyKey = key;
+    if (qtyCardEl) {
+        qtyCardEl.classList.remove('qty-target');
+    }
+    qtyCardEl = cardEl || null;
+    if (qtyCardEl) {
+        qtyCardEl.classList.add('qty-target');
+    }
+    setFilterPanelOpen(false);
+    const existing =
+        loadWaitlist().find(item => item.key === key);
+    qtyComment.value =
+        existing && existing.comment
+            ? existing.comment
+            : "";
+    qtyComment.classList.toggle(
+        'hidden',
+        !qtyComment.value
+    );
+    qtyTitle.textContent =
+        'Кількість: ' + data.material;
+    qtyBar.classList.remove('hidden');
+    input.classList.add('qty-mode');
+    input.value = "";
+    kbWrapper.classList.remove('hidden');
+}
+function exitQtyMode() {
+    if (!qtyMode) return;
+    qtyMode = false;
+    qtyKey = null;
+    qtyBar.classList.add('hidden');
+    qtyComment.blur();
+    qtyComment.value = "";
+    qtyComment.classList.add('hidden');
+    input.classList.remove('qty-mode');
+    input.value = qtySavedInput;
+    qtySavedInput = "";
+    if (qtyCardEl) {
+        qtyCardEl.classList.remove('qty-target');
+        qtyCardEl = null;
+    }
+}
+function addWaitlistWithQty(key, data, qty, comment) {
+    const list = loadWaitlist();
+    const idx =
+        list.findIndex(item => item.key === key);
+    if (idx >= 0) {
+        list[idx].qty = qty;
+        list[idx].comment = comment;
+    } else {
+        list.push({
+            key,
+            material: data.material,
+            address: data.address,
+            articles: data.articles,
+            qty,
+            comment
+        });
+    }
+    saveWaitlist(list);
+}
+function confirmQty() {
+    if (!qtyMode) return;
+    const raw = input.value.trim();
+    const qty = parseInt(raw, 10);
+    if (!/^\d+$/.test(raw) || !(qty > 0)) {
+        input.style.borderColor = '#ef4444';
+        setTimeout(() => {
+            input.style.borderColor = '';
+        }, 600);
+        return;
+    }
+    const data = searchResultLookup[qtyKey];
+    if (!data) {
+        exitQtyMode();
+        return;
+    }
+    addWaitlistWithQty(
+        qtyKey,
+        data,
+        qty,
+        qtyComment.value.trim()
+    );
+    const cardIdx = searchCardKeys.indexOf(qtyKey);
+    resultBox
+        .querySelectorAll(
+            `.select-btn[data-idx="${cardIdx}"]`
+        )
+        .forEach(b => {
+            b.classList.add('selected');
+            b.textContent = '★';
+        });
+    exitQtyMode();
+}
 /* ==================== MERGE ARTICLE ==================== */
 function mergeAbbreviatedArticles(articleMap) {
     const arts =
@@ -3653,6 +3900,7 @@ articlesPageContent.addEventListener(
 );
 /* ==================== ПОШУК (тільки по колонці B — матеріал) ==================== */
 function search() {
+    if (qtyMode) return;
     const v =
         input.value.toLowerCase();
     if (!v) {
@@ -3751,7 +3999,10 @@ function search() {
                             ${selected ? '★' : '☆'}
                         </button>
                         <span class="box-icon ico">📦</span>
-                        ${matHtml}
+                        <button
+                            type="button"
+                            class="mat-pick"
+                            data-idx="${cardIdx}">${matHtml}</button>
                     </span>
                     <div
                         style="display:flex; align-items:center; gap:8px;">
@@ -3828,6 +4079,9 @@ function goToPage(n) {
                 n
             )
         );
+    if (n !== SEARCH_PAGE_INDEX) {
+        exitQtyMode();
+    }
     currentPage = n;
     pagesEl.style.transform =
         `translateX(-${n * pageWidthPercent}%)`;
@@ -4004,6 +4258,9 @@ function finishPageDrag(dx) {
     }
     pagesEl.style.transition =
         'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
+    if (target !== SEARCH_PAGE_INDEX) {
+        exitQtyMode();
+    }
     currentPage = target;
     pagesEl.style.transform =
         `translateX(-${target * pageWidthPercent}%)`;
@@ -4283,11 +4540,15 @@ document.addEventListener(
         if (!wasSwipe) {
             if (
                 currentPage === SEARCH_PAGE_INDEX &&
+                !qtyMode &&
                 !kbWrapper.contains(
                     e.target
                 ) &&
                 !e.target.closest(
                     '.select-btn'
+                ) &&
+                !e.target.closest(
+                    '.mat-pick'
                 ) &&
                 !e.target.closest(
                     '[data-anav]'
@@ -4603,6 +4864,9 @@ scrollAreaEl.addEventListener(
         ) {
             return;
         }
+        if (qtyMode) {
+            return;
+        }
         const dy =
             e.touches[0].clientY -
             resultStartY;
@@ -4620,6 +4884,7 @@ scrollAreaEl.addEventListener(
     'scroll',
     () => {
         if (
+            !qtyMode &&
             scrollAreaEl.scrollTop > 4 &&
             !kbWrapper.classList.contains(
                 'hidden'
@@ -4806,6 +5071,7 @@ function pullFinish() {
             'opacity 0.25s ease';
         pullIndicator.style.opacity = '0';
         if (currentPage === SEARCH_PAGE_INDEX) {
+            exitQtyMode();
             input.value = '';
             search();
         } else {
