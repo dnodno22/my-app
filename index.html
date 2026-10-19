@@ -680,6 +680,83 @@ input#input.qty-mode {
     background: #e5e7eb;
     margin-top: 14px;
 }
+/* ==================== ПО ЛІНІЇ ==================== */
+.line-section {
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+    margin: 4px 2px 8px;
+}
+.line-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.line-row {
+    display: flex;
+    align-items: stretch;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    overflow: hidden;
+}
+.line-row.marked {
+    border-left: 4px solid #4338ca;
+}
+.line-check {
+    flex: 0 0 56px;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    touch-action: manipulation;
+}
+.line-name {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border: none;
+    background: transparent;
+    padding: 14px 14px 14px 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #111;
+    text-align: left;
+    touch-action: manipulation;
+}
+.line-arrow {
+    font-size: 20px;
+    color: #9ca3af;
+}
+.line-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: 2px solid #9ca3af;
+    border-radius: 8px;
+    background: #fff;
+    color: transparent;
+    font-size: 16px;
+    font-weight: 800;
+}
+.line-box.on {
+    background: #4338ca;
+    border-color: #4338ca;
+    color: #fff;
+}
+.wire-row.line-wire.marked {
+    border-left: 4px solid #4338ca;
+    padding-left: 11px;
+}
 /* ==================== HIGHLIGHT ==================== */
 mark.hl {
     background: #fde047;
@@ -926,7 +1003,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 80;
+const CODE_VERSION = 81;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -966,7 +1043,8 @@ const ARTICLE_ACTION_KEYS = [
     "ізострічка",
     "мм",
     "передмонтаж",
-    "проводи"
+    "проводи",
+    "по лінії"
 ];
 const ACTION_LABELS = {
     "розміщення": '<span class="ico">📍 </span>Розміщення',
@@ -975,7 +1053,8 @@ const ACTION_LABELS = {
     "ізострічка": '<span class="ico">📏 </span>Ізострічка',
     "мм": '<span class="ico">📐 </span>ММ',
     "передмонтаж": '<span class="ico">🧵 </span>Передмонтаж',
-    "проводи": '<span class="ico">⚡ </span>Проводи'
+    "проводи": '<span class="ico">⚡ </span>Проводи',
+    "по лінії": '<span class="ico">📋 </span>По лінії'
 };
 function actionLabel(key) {
     return ACTION_LABELS[key] || escapeHtml(key);
@@ -2788,6 +2867,16 @@ function articleHasAction(
             article
         ).length > 0;
     }
+    if (action === 'по лінії') {
+        return (
+            computePremontageCategoriesForArticle(
+                article
+            ).length > 0 ||
+            computeWireStationsForArticle(
+                article
+            ).length > 0
+        );
+    }
     return computeArticleActionResults(
         article,
         action
@@ -3600,6 +3689,13 @@ function buildArticlesLevelHtml(
             html +=
                 '</div>';
         }
+    /* ---------- ПО ЛІНІЇ ---------- */
+    } else if (state.level === 'line') {
+        html += buildLineHtml(state);
+    } else if (state.level === 'line-premontage') {
+        html += buildLineWiresHtml(state, 'cat');
+    } else if (state.level === 'line-station') {
+        html += buildLineWiresHtml(state, 'station');
     }
     /* ---------- ШАПКА: ліворуч артикул, праворуч назва кнопки ---------- */
     if (
@@ -3625,6 +3721,13 @@ function buildArticlesLevelHtml(
             state.level === 'wire-results'
         ) {
             right = state.station ? 'Станція ' + state.station : '';
+        } else if (state.level === 'line') {
+            const cnt = countLineMarks(state.article);
+            right = 'По лінії' + (cnt > 0 ? ' · ' + cnt : '');
+        } else if (state.level === 'line-premontage') {
+            right = state.category || '';
+        } else if (state.level === 'line-station') {
+            right = state.station ? 'Станція ' + state.station : '';
         }
         html =
             html.replace(
@@ -3637,6 +3740,284 @@ function buildArticlesLevelHtml(
                 right
             ) + html;
     }
+    return html;
+}
+/* ==================== ПО ЛІНІЇ: ПОЗНАЧКИ ==================== */
+const CACHE_KEY_LINE_MARKS = "lineMarks";
+function loadLineMarks() {
+    try {
+        const value =
+            JSON.parse(
+                localStorage.getItem(
+                    CACHE_KEY_LINE_MARKS
+                ) || "[]"
+            );
+        return Array.isArray(value) ? value : [];
+    } catch (e) {
+        return [];
+    }
+}
+function saveLineMarks(list) {
+    try {
+        localStorage.setItem(
+            CACHE_KEY_LINE_MARKS,
+            JSON.stringify(list)
+        );
+    } catch (e) {
+        /* Позначки не мають ламати інтерфейс. */
+    }
+}
+function lineMarkKey(m) {
+    return [
+        m.type,
+        m.article,
+        m.category || "",
+        m.station || "",
+        m.material || "",
+        m.address || ""
+    ].map(String).join("|||");
+}
+function lineMarkKeySet() {
+    return new Set(
+        loadLineMarks().map(lineMarkKey)
+    );
+}
+function toggleLineMark(mark) {
+    const key = lineMarkKey(mark);
+    const list = loadLineMarks();
+    const idx =
+        list.findIndex(
+            x => lineMarkKey(x) === key
+        );
+    if (idx >= 0) {
+        list.splice(idx, 1);
+    } else {
+        list.push(mark);
+    }
+    saveLineMarks(list);
+}
+function countLineMarks(article) {
+    const a = String(article);
+    return loadLineMarks()
+        .filter(x => String(x.article) === a)
+        .length;
+}
+function clearLineMarks(article) {
+    const a = String(article);
+    saveLineMarks(
+        loadLineMarks()
+            .filter(x => String(x.article) !== a)
+    );
+}
+function lineMarkAttr(mark) {
+    return encodeURIComponent(
+        JSON.stringify(mark)
+    );
+}
+function lineBoxHtml(on) {
+    return '<span class="line-box' +
+        (on ? ' on' : '') +
+        '">✓</span>';
+}
+function buildLineGroupRow(mark, on, label, enterAttr) {
+    return `
+        <div class="line-row${on ? ' marked' : ''}">
+            <button
+                type="button"
+                class="line-check"
+                data-anav="line-toggle"
+                data-mark="${lineMarkAttr(mark)}"
+                aria-label="Позначити">
+                ${lineBoxHtml(on)}
+            </button>
+            <button
+                type="button"
+                class="line-name"
+                ${enterAttr}>
+                ${escapeHtml(label)}
+                <span class="line-arrow">›</span>
+            </button>
+        </div>
+    `;
+}
+function buildLineHtml(state) {
+    const article = state.article;
+    let html =
+        '<div class="premontage-title"></div>';
+    const categories =
+        computePremontageCategoriesForArticle(
+            article
+        );
+    const stations =
+        computeWireStationsForArticle(article);
+    if (!categories.length && !stations.length) {
+        return html +
+            '<div style="text-align:center; padding:40px; color:#aaa;">Немає даних для цього артикулу</div>';
+    }
+    if (countLineMarks(article) > 0) {
+        html += `
+            <div class="premontage-toolbar">
+                <button
+                    class="premontage-nav-btn premontage-close-btn"
+                    data-anav="line-clear">
+                    Очистити
+                </button>
+            </div>
+        `;
+    }
+    const keys = lineMarkKeySet();
+    if (categories.length) {
+        const shortCount = {};
+        categories.forEach(c => {
+            const k = premontageShortName(c);
+            shortCount[k] =
+                (shortCount[k] || 0) + 1;
+        });
+        html +=
+            '<div class="line-section">Передмонтаж</div><div class="line-list">';
+        categories.forEach(c => {
+            const mark = {
+                type: "premontage",
+                article,
+                category: c
+            };
+            const label =
+                shortCount[premontageShortName(c)] > 1
+                    ? c
+                    : premontageShortName(c);
+            html += buildLineGroupRow(
+                mark,
+                keys.has(lineMarkKey(mark)),
+                label,
+                `data-anav="line-enter-cat" data-category="${escapeHtml(c)}"`
+            );
+        });
+        html += '</div>';
+    }
+    if (stations.length) {
+        html +=
+            '<div class="line-section">Проводи</div><div class="line-list">';
+        stations.forEach(st => {
+            const mark = {
+                type: "wire-station",
+                article,
+                station: st
+            };
+            html += buildLineGroupRow(
+                mark,
+                keys.has(lineMarkKey(mark)),
+                'Станція ' + st,
+                `data-anav="line-enter-station" data-station="${escapeHtml(st)}"`
+            );
+        });
+        html += '</div>';
+    }
+    return html;
+}
+function buildLineWiresHtml(state, kind) {
+    const article = state.article;
+    const wires =
+        kind === 'cat'
+            ? computeWiresForCategory(
+                article,
+                state.category
+            )
+            : computeWiresForStation(
+                article,
+                state.station
+            );
+    let html =
+        '<div class="premontage-title"></div>';
+    if (!wires.length) {
+        return html +
+            '<div style="text-align:center; padding:40px; color:#aaa;">Проводів не знайдено</div>';
+    }
+    const noteOf = w =>
+        String(w.colD || "").trim();
+    const sorted =
+        kind === 'cat'
+            ? [...wires].sort((a, b) => {
+                const an = noteOf(a);
+                const bn = noteOf(b);
+                if (!an !== !bn) {
+                    return an ? -1 : 1;
+                }
+                if (an && bn) {
+                    const byNote =
+                        an.localeCompare(
+                            bn,
+                            'uk',
+                            {
+                                numeric: true,
+                                sensitivity: 'base'
+                            }
+                        );
+                    if (byNote !== 0) {
+                        return byNote;
+                    }
+                }
+                return String(a.material || "")
+                    .localeCompare(
+                        String(b.material || ""),
+                        'uk',
+                        {
+                            numeric: true,
+                            sensitivity: 'base'
+                        }
+                    );
+            })
+            : wires;
+    const keys = lineMarkKeySet();
+    const seen = new Set();
+    html += '<div class="wire-list">';
+    sorted.forEach(w => {
+        const name =
+            String(w.material || "").trim();
+        const address =
+            String(w.address || "").trim();
+        const note = noteOf(w);
+        const dedupe = name + "|" + address;
+        if (seen.has(dedupe)) {
+            return;
+        }
+        seen.add(dedupe);
+        const mark =
+            kind === 'cat'
+                ? {
+                    type: "premontage-wire",
+                    article,
+                    category: state.category,
+                    material: name,
+                    address
+                }
+                : {
+                    type: "wire",
+                    article,
+                    station: state.station,
+                    material: name,
+                    address
+                };
+        const on = keys.has(lineMarkKey(mark));
+        html += `
+            <div
+                class="wire-row line-wire${on ? ' marked' : ''}"
+                data-anav="line-toggle"
+                data-mark="${lineMarkAttr(mark)}"
+                style="cursor:pointer;">
+                ${lineBoxHtml(on)}
+                <span class="wire-name">
+                    ${escapeHtml(name)}
+                </span>
+                <span class="wire-code level-head-tail" style="margin-left:0; font-size:11px; font-weight:700; color:#6b7280;">
+                    ${escapeHtml(note)}
+                </span>
+                <span class="wire-location">
+                    ${escapeHtml(address)}
+                </span>
+            </div>
+        `;
+    });
+    html += '</div>';
     return html;
 }
 function buildLevelHeadHtml(article, right) {
@@ -3813,6 +4194,57 @@ articlesPageContent.addEventListener(
             }
             return;
         }
+        /* ---------- ПО ЛІНІЇ ---------- */
+        if (nav === 'line-toggle') {
+            let mark = null;
+            try {
+                mark = JSON.parse(
+                    decodeURIComponent(
+                        btn.dataset.mark || ""
+                    )
+                );
+            } catch (_) {}
+            if (mark) {
+                toggleLineMark(mark);
+                articlesPageStack.forEach(st => {
+                    delete st.cachedHtml;
+                });
+                renderArticlesPage(true);
+            }
+            return;
+        }
+        if (nav === 'line-enter-cat') {
+            articlesPageStack.push({
+                level: 'line-premontage',
+                article: current.article,
+                category: btn.dataset.category
+            });
+            renderArticlesPage();
+            return;
+        }
+        if (nav === 'line-enter-station') {
+            articlesPageStack.push({
+                level: 'line-station',
+                article: current.article,
+                station: btn.dataset.station
+            });
+            renderArticlesPage();
+            return;
+        }
+        if (nav === 'line-clear') {
+            if (
+                confirm(
+                    'Очистити всі позначки цього артикулу?'
+                )
+            ) {
+                clearLineMarks(current.article);
+                articlesPageStack.forEach(st => {
+                    delete st.cachedHtml;
+                });
+                renderArticlesPage(true);
+            }
+            return;
+        }
         /* ---------- ДО ПОШУКУ ---------- */
         if (nav === 'to-search') {
             const material =
@@ -3867,6 +4299,13 @@ articlesPageContent.addEventListener(
             ) {
                 articlesPageStack.push({
                     level: 'wire-stations',
+                    article: current.article
+                });
+            } else if (
+                action === 'по лінії'
+            ) {
+                articlesPageStack.push({
+                    level: 'line',
                     article: current.article
                 });
             } else {
