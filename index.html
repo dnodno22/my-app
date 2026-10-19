@@ -709,6 +709,20 @@ input#input.qty-mode {
     font-weight: 700;
     color: #6b7280;
 }
+.line-subhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 12px 2px 6px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #374151;
+}
+.line-subhead-meta {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+}
 .line-chev {
     font-size: 16px;
 }
@@ -1069,7 +1083,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 82;
+const CODE_VERSION = 84;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3964,6 +3978,39 @@ articlesPageContent.addEventListener(
         }
     }
 );
+const CACHE_KEY_LINE_FILTER = "lineFilter";
+function loadLineFilter() {
+    try {
+        const v =
+            JSON.parse(
+                localStorage.getItem(
+                    CACHE_KEY_LINE_FILTER
+                ) || "{}"
+            );
+        return {
+            wires: !!(v && v.wires),
+            materials: !!(v && v.materials)
+        };
+    } catch (e) {
+        return { wires: false, materials: false };
+    }
+}
+function saveLineFilter(f) {
+    try {
+        localStorage.setItem(
+            CACHE_KEY_LINE_FILTER,
+            JSON.stringify(f)
+        );
+    } catch (e) {}
+}
+/* Фільтр: лише проводи / лише матеріали; обидва або жоден — усе */
+function lineRowVisible(r, f) {
+    if (f.wires === f.materials) {
+        return true;
+    }
+    const wire = isWireMaterial(r.material);
+    return f.wires ? wire : !wire;
+}
 function lineBoxHtml(on) {
     return '<span class="line-box' +
         (on ? ' on' : '') +
@@ -3987,17 +4034,28 @@ function buildLineHtml(state) {
     const map = new Map(
         entries.map(e => [lineRowKey(e), e])
     );
-    if (entries.length) {
-        html += `
-            <div class="premontage-toolbar">
-                <button
-                    class="premontage-nav-btn premontage-close-btn"
-                    data-anav="line-clear">
-                    Очистити
-                </button>
-            </div>
-        `;
-    }
+    const lf = loadLineFilter();
+    html += `
+        <div class="premontage-toolbar">
+            <button
+                class="premontage-nav-btn${lf.wires ? ' active' : ''}"
+                data-anav="line-filter"
+                data-filter="wires">
+                Проводи
+            </button>
+            <button
+                class="premontage-nav-btn${lf.materials ? ' active' : ''}"
+                data-anav="line-filter"
+                data-filter="materials">
+                Матеріали
+            </button>
+            <button
+                class="premontage-nav-btn premontage-close-btn"
+                data-anav="line-clear">
+                Очистити
+            </button>
+        </div>
+    `;
     const collapsed = state.collapsed || {};
     const editing = state.editing || "";
     const noteOf = w =>
@@ -4065,9 +4123,10 @@ function buildLineHtml(state) {
             )
         });
     });
+    const prepared = [];
     groups.forEach(g => {
         const seen = new Set();
-        const rows = [];
+        let rows = [];
         g.wires.forEach(w => {
             const name =
                 String(w.material || "").trim();
@@ -4087,94 +4146,132 @@ function buildLineHtml(state) {
                 note: noteOf(w)
             });
         });
-        const gk = g.type + '::' + g.group;
-        const isCollapsed = !!collapsed[gk];
-        const checkedCount =
-            rows.filter(r => {
-                const e = map.get(lineRowKey(r));
-                return e && e.checked;
-            }).length;
+        rows = rows.filter(r => lineRowVisible(r, lf));
+        if (!rows.length) {
+            return;
+        }
+        prepared.push({ g, rows });
+    });
+    const shown = prepared.length;
+    const sectionTitles = {
+        premontage: 'Передмонтаж',
+        wire: 'Проводи'
+    };
+    const isChecked = r => {
+        const e = map.get(lineRowKey(r));
+        return !!(e && e.checked);
+    };
+    ['premontage', 'wire'].forEach(type => {
+        const items =
+            prepared.filter(x => x.g.type === type);
+        if (!items.length) {
+            return;
+        }
+        /* Згортається лише весь блок: «Передмонтаж» або «Проводи» */
+        const isCollapsed = !!collapsed[type];
+        const total =
+            items.reduce((n, x) => n + x.rows.length, 0);
+        const checkedTotal =
+            items.reduce(
+                (n, x) => n + x.rows.filter(isChecked).length,
+                0
+            );
         html += `
             <div class="line-block">
                 <button
                     type="button"
                     class="line-group-head"
                     data-anav="line-group"
-                    data-gtype="${g.type}"
-                    data-group="${escapeHtml(g.group)}">
-                    <span class="line-group-name">${escapeHtml(g.label)}</span>
+                    data-gtype="${type}">
+                    <span class="line-group-name">${sectionTitles[type]}</span>
                     <span class="line-group-meta">
-                        ${checkedCount
-                            ? checkedCount + '/' + rows.length
+                        ${checkedTotal
+                            ? checkedTotal + '/' + total
                             : ''}
                         <span class="line-chev">${isCollapsed ? '▸' : '▾'}</span>
                     </span>
                 </button>
         `;
         if (!isCollapsed) {
-            rows.forEach(r => {
-                const rk = lineRowKey(r);
-                const e = map.get(rk);
-                const checked = !!(e && e.checked);
-                const qty =
-                    e && Number(e.qty) > 0
-                        ? Number(e.qty)
-                        : 0;
-                const attr = lineRowAttr(r);
+            items.forEach(({ g, rows }) => {
+                const checkedCount =
+                    rows.filter(isChecked).length;
                 html += `
-                    <div class="line-item${checked ? ' marked' : ''}">
-                        <button
-                            type="button"
-                            class="line-check"
-                            data-anav="line-check"
-                            data-row="${attr}"
-                            aria-label="Позначити">
-                            ${lineBoxHtml(checked)}
-                        </button>
-                        <div
-                            class="line-info"
-                            data-anav="line-edit"
-                            data-row="${attr}">
-                            <span class="wire-name">${escapeHtml(r.material)}</span>
-                            ${qty
-                                ? `<span class="line-qty-badge">× ${qty}</span>`
-                                : ''}
-                            <span class="line-note">${escapeHtml(r.note)}</span>
-                            <span class="wire-location">${escapeHtml(r.address)}</span>
-                        </div>
+                    <div class="line-subhead">
+                        <span>${escapeHtml(g.label)}</span>
+                        <span class="line-subhead-meta">${checkedCount
+                            ? checkedCount + '/' + rows.length
+                            : ''}</span>
                     </div>
                 `;
-                if (editing === rk) {
+                rows.forEach(r => {
+                    const rk = lineRowKey(r);
+                    const e = map.get(rk);
+                    const checked = !!(e && e.checked);
+                    const qty =
+                        e && Number(e.qty) > 0
+                            ? Number(e.qty)
+                            : 0;
+                    const attr = lineRowAttr(r);
                     html += `
-                        <div class="line-qty-edit">
-                            <input
-                                type="text"
-                                inputmode="numeric"
-                                pattern="[0-9]*"
-                                class="line-qty-input"
+                        <div class="line-item${checked ? ' marked' : ''}">
+                            <button
+                                type="button"
+                                class="line-check"
+                                data-anav="line-check"
                                 data-row="${attr}"
-                                placeholder="Кількість"
-                                value="${qty || ''}">
-                            <button
-                                type="button"
-                                class="line-qty-ok"
-                                data-anav="line-qty-ok"
+                                aria-label="Позначити">
+                                ${lineBoxHtml(checked)}
+                            </button>
+                            <div
+                                class="line-info"
+                                data-anav="line-edit"
                                 data-row="${attr}">
-                                OK
-                            </button>
-                            <button
-                                type="button"
-                                class="line-qty-cancel"
-                                data-anav="line-qty-cancel">
-                                ✕
-                            </button>
+                                <span class="wire-name">${escapeHtml(r.material)}</span>
+                                ${qty
+                                    ? `<span class="line-qty-badge">× ${qty}</span>`
+                                    : ''}
+                                <span class="line-note">${escapeHtml(r.note)}</span>
+                                <span class="wire-location">${escapeHtml(r.address)}</span>
+                            </div>
                         </div>
                     `;
-                }
+                    if (editing === rk) {
+                        html += `
+                            <div class="line-qty-edit">
+                                <input
+                                    type="text"
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
+                                    class="line-qty-input"
+                                    data-row="${attr}"
+                                    placeholder="Кількість"
+                                    value="${qty || ''}">
+                                <button
+                                    type="button"
+                                    class="line-qty-ok"
+                                    data-anav="line-qty-ok"
+                                    data-row="${attr}">
+                                    OK
+                                </button>
+                                <button
+                                    type="button"
+                                    class="line-qty-cancel"
+                                    data-anav="line-qty-cancel">
+                                    ✕
+                                </button>
+                            </div>
+                        `;
+                    }
+                });
             });
         }
         html += '</div>';
     });
+    if (!shown) {
+        html +=
+            '<div style="text-align:center; padding:40px; color:#aaa;">Нічого не знайдено за фільтром</div>';
+    }
     return html;
 }
 function buildLevelHeadHtml(article, right) {
@@ -4358,6 +4455,7 @@ articlesPageContent.addEventListener(
             nav === 'line-edit' ||
             nav === 'line-qty-ok' ||
             nav === 'line-qty-cancel' ||
+            nav === 'line-filter' ||
             nav === 'line-clear'
         ) {
             if (
@@ -4375,10 +4473,7 @@ articlesPageContent.addEventListener(
                 );
             } catch (_) {}
             if (nav === 'line-group') {
-                const gk =
-                    btn.dataset.gtype +
-                    '::' +
-                    btn.dataset.group;
+                const gk = btn.dataset.gtype;
                 current.collapsed =
                     current.collapsed || {};
                 current.collapsed[gk] =
@@ -4416,7 +4511,18 @@ articlesPageContent.addEventListener(
             } else if (nav === 'line-qty-cancel') {
                 current.editing = "";
                 refreshLineLevel();
+            } else if (nav === 'line-filter') {
+                const f = loadLineFilter();
+                const k = btn.dataset.filter;
+                if (k === 'wires' || k === 'materials') {
+                    f[k] = !f[k];
+                    saveLineFilter(f);
+                    refreshLineLevel();
+                }
             } else if (nav === 'line-clear') {
+                if (!lineEntriesFor(current.article).length) {
+                    return;
+                }
                 if (
                     confirm(
                         'Очистити всі позначки та кількості цього артикулу?'
