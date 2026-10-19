@@ -752,6 +752,72 @@ input#input.qty-mode {
 .line-card .line-item:last-child {
     margin-bottom: 0;
 }
+.line-card-head .line-check {
+    flex: 0 0 40px;
+    justify-content: flex-start;
+}
+.line-card-name-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    margin: -6px 0;
+    border-radius: 10px;
+    cursor: pointer;
+}
+.line-card-name-wrap.editing,
+.line-item.editing {
+    outline: 2px solid #4338ca;
+}
+#line-kb {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    padding: 10px 12px calc(14px + env(safe-area-inset-bottom));
+}
+.line-kb-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-weight: 800;
+}
+#line-kb-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+    color: #111;
+}
+#line-kb-value {
+    min-width: 60px;
+    text-align: right;
+    font-size: 26px;
+    color: #4338ca;
+}
+.line-kb-ok {
+    width: 100%;
+    margin-top: 10px;
+    border: none;
+    background: #4338ca;
+    color: #fff;
+    font-weight: 800;
+    font-size: 17px;
+    border-radius: 10px;
+    padding: 14px 0;
+    touch-action: manipulation;
+}
+#page-articles.line-kb-open .scroll-area {
+    padding-bottom: 400px;
+}
 .line-chev {
     font-size: 16px;
 }
@@ -1109,10 +1175,32 @@ tr:nth-child(even) td {
 </div>
 <!-- КРАПОЧКИ ГЛИБИНИ (глобально: пошук + артикули) -->
 <div class="articles-dots" id="articles-dots"></div>
+<!-- Цифрова клавіатура додатку для кількості («По лінії») -->
+<div id="line-kb" class="hidden">
+    <div class="line-kb-top">
+        <span id="line-kb-label"></span>
+        <span id="line-kb-value">—</span>
+    </div>
+    <div class="kb-grid">
+        <button type="button" class="btn" data-lkb="1">1</button>
+        <button type="button" class="btn" data-lkb="2">2</button>
+        <button type="button" class="btn" data-lkb="3">3</button>
+        <button type="button" class="btn" data-lkb="4">4</button>
+        <button type="button" class="btn" data-lkb="5">5</button>
+        <button type="button" class="btn" data-lkb="6">6</button>
+        <button type="button" class="btn" data-lkb="7">7</button>
+        <button type="button" class="btn" data-lkb="8">8</button>
+        <button type="button" class="btn" data-lkb="9">9</button>
+        <button type="button" class="btn btn-special" data-lkb="cancel">✕</button>
+        <button type="button" class="btn" data-lkb="0">0</button>
+        <button type="button" class="btn btn-special" data-lkb="del">⌫</button>
+    </div>
+    <button type="button" class="line-kb-ok" data-lkb="ok">OK</button>
+</div>
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 86;
+const CODE_VERSION = 87;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1178,6 +1266,9 @@ const articlesPageContent =
     document.getElementById('articles-page-content');
 const articlesDots =
     document.getElementById('articles-dots');
+const lineKbEl = document.getElementById('line-kb');
+const lineKbLabel = document.getElementById('line-kb-label');
+const lineKbValue = document.getElementById('line-kb-value');
 const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 const CACHE_KEY_SEARCH_FILTERS = "searchActiveFilters";
@@ -1277,6 +1368,7 @@ function renderArticlesDots(overridePage, overrideDepth) {
         overridePage !== undefined
             ? overridePage
             : currentPage;
+    updateLineKb(page);
     /*
         Крапочки показуємо на сторінках "Пошук" і "Артикули".
         На "Обрані матеріали" їх немає.
@@ -3954,60 +4046,156 @@ function refreshLineLevel() {
     });
     renderArticlesPage(true);
 }
-function commitLineQty(el) {
-    const current =
+/* Матеріали групи (передмонтаж / станція) з урахуванням фільтра */
+function lineGroupMaterialRows(gRow) {
+    const base =
+        String(gRow.type).replace(/-group$/, "");
+    const wires =
+        base === 'premontage'
+            ? computeWiresForCategory(
+                gRow.article,
+                gRow.group
+            )
+            : computeWiresForStation(
+                gRow.article,
+                gRow.group
+            );
+    const f = loadLineFilter();
+    const seen = new Set();
+    const out = [];
+    wires.forEach(w => {
+        const name =
+            String(w.material || "").trim();
+        const address =
+            String(w.address || "").trim();
+        const dk = name + "|" + address;
+        if (seen.has(dk)) {
+            return;
+        }
+        seen.add(dk);
+        const r = {
+            article: gRow.article,
+            type: base,
+            group: gRow.group,
+            material: name,
+            address
+        };
+        if (lineRowVisible(r, f)) {
+            out.push(r);
+        }
+    });
+    return out;
+}
+/* Галочка на назві групи ставиться / знімається на всіх її матеріалах */
+function setLineGroupChecked(gRow, on) {
+    updateLineMark(gRow, { checked: on });
+    lineGroupMaterialRows(gRow).forEach(r => {
+        updateLineMark(r, { checked: on });
+        syncLineToWaitlist(r.material, r.address);
+    });
+}
+function currentLineState() {
+    const cur =
         articlesPageStack[
             articlesPageStack.length - 1
         ];
-    if (!current || current.level !== 'line') {
+    return cur && cur.level === 'line'
+        ? cur
+        : null;
+}
+function commitLineQty() {
+    const cur = currentLineState();
+    if (!cur || !cur.editRow) {
         return;
     }
-    let row = null;
-    try {
-        row = JSON.parse(
-            decodeURIComponent(
-                el.dataset.row || ""
-            )
-        );
-    } catch (_) {}
-    if (!row) return;
-    const inp =
-        articlesPageContent.querySelector(
-            '.line-qty-input'
-        );
-    const n =
-        parseInt(
-            String(inp ? inp.value : "")
-                .replace(/\D/g, ""),
-            10
-        );
+    const row = cur.editRow;
+    const n = parseInt(cur.editBuf || "", 10);
+    const isGroup =
+        /-group$/.test(String(row.type));
     if (n > 0) {
         updateLineMark(
             row,
             { qty: n, checked: true }
         );
+        if (isGroup) {
+            setLineGroupChecked(row, true);
+        } else {
+            syncLineToWaitlist(
+                row.material,
+                row.address
+            );
+        }
     } else {
         updateLineMark(row, { qty: "" });
-    }
-    syncLineToWaitlist(row.material, row.address);
-    current.editing = "";
-    refreshLineLevel();
-}
-articlesPageContent.addEventListener(
-    'keydown',
-    e => {
-        if (
-            e.key === 'Enter' &&
-            e.target.classList &&
-            e.target.classList.contains(
-                'line-qty-input'
-            )
-        ) {
-            e.preventDefault();
-            commitLineQty(e.target);
+        if (!isGroup) {
+            syncLineToWaitlist(
+                row.material,
+                row.address
+            );
         }
     }
-);
+    cur.editing = "";
+    cur.editRow = null;
+    cur.editBuf = "";
+    refreshLineLevel();
+}
+function lineEditTitle(row) {
+    if (!row) return "";
+    if (row.material) return row.material;
+    return String(row.type).indexOf('wire') === 0
+        ? 'Станція ' + row.group
+        : premontageShortName(row.group);
+}
+/* Власна цифрова клавіатура додатку для кількості на екрані «По лінії» */
+function updateLineKb(page) {
+    if (!lineKbEl) return;
+    const cur = currentLineState();
+    const on =
+        page === ARTICLES_PAGE_INDEX &&
+        !!cur &&
+        !!cur.editing &&
+        !!cur.editRow;
+    lineKbEl.classList.toggle('hidden', !on);
+    const pe =
+        document.getElementById('page-articles');
+    if (pe) {
+        pe.classList.toggle('line-kb-open', on);
+    }
+    if (on) {
+        lineKbLabel.textContent =
+            lineEditTitle(cur.editRow);
+        lineKbValue.textContent =
+            cur.editBuf || '—';
+    }
+}
+if (lineKbEl) {
+    lineKbEl.addEventListener('click', e => {
+        const b = e.target.closest('[data-lkb]');
+        if (!b) return;
+        const cur = currentLineState();
+        if (!cur || !cur.editing) return;
+        const k = b.dataset.lkb;
+        if (/^\d$/.test(k)) {
+            if ((cur.editBuf || "").length < 6) {
+                cur.editBuf =
+                    (cur.editBuf || "") + k;
+            }
+        } else if (k === 'del') {
+            cur.editBuf =
+                (cur.editBuf || "").slice(0, -1);
+        } else if (k === 'cancel') {
+            cur.editing = "";
+            cur.editRow = null;
+            cur.editBuf = "";
+            refreshLineLevel();
+            return;
+        } else if (k === 'ok') {
+            commitLineQty();
+            return;
+        }
+        updateLineKb(ARTICLES_PAGE_INDEX);
+    });
+}
 const CACHE_KEY_LINE_FILTER = "lineFilter";
 function loadLineFilter() {
     try {
@@ -4283,14 +4471,33 @@ function buildLineHtml(state) {
                 };
                 const gEntry = map.get(lineRowKey(gRow));
                 const gOn = !!(gEntry && gEntry.checked);
+                const gQty =
+                    gEntry && Number(gEntry.qty) > 0
+                        ? Number(gEntry.qty)
+                        : 0;
+                const gEditing =
+                    editing === lineRowKey(gRow);
+                const gAttr = lineRowAttr(gRow);
                 html += `
                     <div class="line-card${gOn ? ' marked' : ''}">
-                        <div
-                            class="line-card-head"
-                            data-anav="line-gcheck"
-                            data-row="${lineRowAttr(gRow)}">
-                            ${lineBoxHtml(gOn)}
-                            <span class="line-card-name">${escapeHtml(g.label)}</span>
+                        <div class="line-card-head">
+                            <button
+                                type="button"
+                                class="line-check"
+                                data-anav="line-gcheck"
+                                data-row="${gAttr}"
+                                aria-label="Позначити всі">
+                                ${lineBoxHtml(gOn)}
+                            </button>
+                            <div
+                                class="line-card-name-wrap${gEditing ? ' editing' : ''}"
+                                data-anav="line-edit"
+                                data-row="${gAttr}">
+                                <span class="line-card-name">${escapeHtml(g.label)}</span>
+                                ${gQty
+                                    ? `<span class="line-qty-badge">× ${gQty}</span>`
+                                    : ''}
+                            </div>
                             <span class="line-subhead-meta">${checkedCount
                                 ? checkedCount + '/' + rows.length
                                 : ''}</span>
@@ -4306,7 +4513,7 @@ function buildLineHtml(state) {
                             : 0;
                     const attr = lineRowAttr(r);
                     html += `
-                        <div class="line-item${checked ? ' marked' : ''}">
+                        <div class="line-item${checked ? ' marked' : ''}${editing === rk ? ' editing' : ''}">
                             <button
                                 type="button"
                                 class="line-check"
@@ -4328,33 +4535,6 @@ function buildLineHtml(state) {
                             </div>
                         </div>
                     `;
-                    if (editing === rk) {
-                        html += `
-                            <div class="line-qty-edit">
-                                <input
-                                    type="text"
-                                    inputmode="numeric"
-                                    pattern="[0-9]*"
-                                    class="line-qty-input"
-                                    data-row="${attr}"
-                                    placeholder="Кількість"
-                                    value="${qty || ''}">
-                                <button
-                                    type="button"
-                                    class="line-qty-ok"
-                                    data-anav="line-qty-ok"
-                                    data-row="${attr}">
-                                    OK
-                                </button>
-                                <button
-                                    type="button"
-                                    class="line-qty-cancel"
-                                    data-anav="line-qty-cancel">
-                                    ✕
-                                </button>
-                            </div>
-                        `;
-                    }
                 });
                 html += '</div>';
             });
@@ -4577,12 +4757,9 @@ articlesPageContent.addEventListener(
                 if (row) {
                     const curG =
                         lineMarkForRow(row);
-                    updateLineMark(
+                    setLineGroupChecked(
                         row,
-                        {
-                            checked:
-                                !(curG && curG.checked)
-                        }
+                        !(curG && curG.checked)
                     );
                     refreshLineLevel();
                 }
@@ -4607,21 +4784,19 @@ articlesPageContent.addEventListener(
                 if (row) {
                     current.editing =
                         lineRowKey(row);
+                    current.editRow = row;
+                    current.editBuf = "";
                     refreshLineLevel();
-                    const inp =
+                    const ed =
                         articlesPageContent.querySelector(
-                            '.line-qty-input'
+                            '.editing'
                         );
-                    if (inp) {
-                        inp.focus();
-                        inp.select();
+                    if (ed && ed.scrollIntoView) {
+                        ed.scrollIntoView({
+                            block: 'center'
+                        });
                     }
                 }
-            } else if (nav === 'line-qty-ok') {
-                commitLineQty(btn);
-            } else if (nav === 'line-qty-cancel') {
-                current.editing = "";
-                refreshLineLevel();
             } else if (nav === 'line-filter') {
                 const f = loadLineFilter();
                 const k = btn.dataset.filter;
