@@ -723,6 +723,35 @@ input#input.qty-mode {
     font-weight: 700;
     color: #6b7280;
 }
+.line-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 10px;
+    margin-top: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+}
+.line-card.marked {
+    border-left: 4px solid #4338ca;
+    padding-left: 7px;
+}
+.line-card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 2px 4px 10px;
+    cursor: pointer;
+}
+.line-card-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: #111;
+}
+.line-card .line-item:last-child {
+    margin-bottom: 0;
+}
 .line-chev {
     font-size: 16px;
 }
@@ -1083,7 +1112,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 85;
+const CODE_VERSION = 86;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -4014,6 +4043,9 @@ function lineRowVisible(r, f) {
 }
 /* Позначене «По лінії» → обрані матеріали (ключ як у пошуку: матеріал|адреса) */
 function syncLineToWaitlist(material, address) {
+    if (!material) {
+        return;
+    }
     const key = material + "|" + address;
     const checked =
         loadLineMarks().filter(x =>
@@ -4241,13 +4273,28 @@ function buildLineHtml(state) {
             items.forEach(({ g, rows }) => {
                 const checkedCount =
                     rows.filter(isChecked).length;
+                /* Галочка на самій назві передмонтажу / станції */
+                const gRow = {
+                    article,
+                    type: g.type + '-group',
+                    group: g.group,
+                    material: '',
+                    address: ''
+                };
+                const gEntry = map.get(lineRowKey(gRow));
+                const gOn = !!(gEntry && gEntry.checked);
                 html += `
-                    <div class="line-subhead">
-                        <span>${escapeHtml(g.label)}</span>
-                        <span class="line-subhead-meta">${checkedCount
-                            ? checkedCount + '/' + rows.length
-                            : ''}</span>
-                    </div>
+                    <div class="line-card${gOn ? ' marked' : ''}">
+                        <div
+                            class="line-card-head"
+                            data-anav="line-gcheck"
+                            data-row="${lineRowAttr(gRow)}">
+                            ${lineBoxHtml(gOn)}
+                            <span class="line-card-name">${escapeHtml(g.label)}</span>
+                            <span class="line-subhead-meta">${checkedCount
+                                ? checkedCount + '/' + rows.length
+                                : ''}</span>
+                        </div>
                 `;
                 rows.forEach(r => {
                     const rk = lineRowKey(r);
@@ -4309,6 +4356,7 @@ function buildLineHtml(state) {
                         `;
                     }
                 });
+                html += '</div>';
             });
         }
         html += '</div>';
@@ -4496,6 +4544,7 @@ articlesPageContent.addEventListener(
         /* ---------- ПО ЛІНІЇ ---------- */
         if (
             nav === 'line-group' ||
+            nav === 'line-gcheck' ||
             nav === 'line-check' ||
             nav === 'line-edit' ||
             nav === 'line-qty-ok' ||
@@ -4524,6 +4573,19 @@ articlesPageContent.addEventListener(
                 current.collapsed[gk] =
                     !current.collapsed[gk];
                 refreshLineLevel();
+            } else if (nav === 'line-gcheck') {
+                if (row) {
+                    const curG =
+                        lineMarkForRow(row);
+                    updateLineMark(
+                        row,
+                        {
+                            checked:
+                                !(curG && curG.checked)
+                        }
+                    );
+                    refreshLineLevel();
+                }
             } else if (nav === 'line-check') {
                 if (row) {
                     const cur =
