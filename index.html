@@ -173,7 +173,8 @@ body.interface-classic .star-left {
     display: none;
 }
 /* Адреса на сторінці пошуку (читабельний режим): чорний шрифт у рамці */
-body.interface-readable #result .result-address-new {
+body.interface-readable #result .result-address-new,
+body.interface-readable #waitlist-result .result-address-new {
     color: #111111;
     font-size: 15px;
     font-weight: 700;
@@ -607,8 +608,9 @@ body.interface-readable .art-readable {
 .mat-pick:active {
     background: #eef2ff;
 }
-.result-card.qty-target {
+.mat-pick.qty-target {
     outline: 2px solid #4338ca;
+    background: #eef2ff;
 }
 input#input.qty-mode {
     background: #eef2ff;
@@ -666,12 +668,9 @@ input#input.qty-mode {
 }
 .waitlist-qty {
     font-weight: 800;
-    font-size: 15px;
+    font-size: 20px;
     color: #111;
-    background: #eef2ff;
-    border: 1px solid #c7d2fe;
-    border-radius: 14px;
-    padding: 6px 12px;
+    margin-left: 12px;
     white-space: nowrap;
 }
 /* ==================== HIGHLIGHT ==================== */
@@ -859,7 +858,6 @@ tr:nth-child(even) td {
         </div>
         <div id="kb-wrapper" class="kb-container">
             <div id="qty-bar" class="qty-bar hidden">
-                <div class="qty-title" id="qty-title"></div>
                 <textarea
                     id="qty-comment"
                     class="comment-textarea hidden"
@@ -921,7 +919,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 78;
+const CODE_VERSION = 79;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2042,11 +2040,11 @@ function renderWaitlistPage() {
                     <span class="result-material-badge">
                         <span class="box-icon ico">📦</span>
                         ${escapeHtml(item.material)}
+                        ${item.qty
+                            ? `<span class="waitlist-qty">${escapeHtml(item.qty)}</span>`
+                            : ''}
                     </span>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        ${item.qty
-                            ? `<span class="waitlist-qty">× ${escapeHtml(item.qty)}</span>`
-                            : ''}
                         <span class="result-address-new">
                             ${escapeHtml(item.address)}
                         </span>
@@ -2217,7 +2215,7 @@ resultBox.addEventListener('click', (e) => {
         if (pickKey !== undefined) {
             enterQtyMode(
                 pickKey,
-                pick.closest('.result-card')
+                pick
             );
         }
         return;
@@ -2259,7 +2257,6 @@ resultBox.addEventListener('click', (e) => {
 });
 /* ==================== КІЛЬКІСТЬ → ОБРАНЕ ==================== */
 const qtyBar = document.getElementById('qty-bar');
-const qtyTitle = document.getElementById('qty-title');
 const qtyComment = document.getElementById('qty-comment');
 function enterQtyMode(key, cardEl) {
     const data = searchResultLookup[key];
@@ -2287,8 +2284,6 @@ function enterQtyMode(key, cardEl) {
         'hidden',
         !qtyComment.value
     );
-    qtyTitle.textContent =
-        'Кількість: ' + data.material;
     qtyBar.classList.remove('hidden');
     input.classList.add('qty-mode');
     input.value = "";
@@ -2322,7 +2317,7 @@ function addWaitlistWithQty(key, data, qty, comment) {
             key,
             material: data.material,
             address: data.address,
-            articles: data.articles,
+            articles: {},
             qty,
             comment
         });
