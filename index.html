@@ -825,7 +825,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 76;
+const CODE_VERSION = 77;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2704,6 +2704,18 @@ function buildArticlesLevelHtml(
             const sorted =
                 placementRows.sort((a, b) => {
                     if (state.sortQty) {
+                        /*
+                            Спочатку рядки з номером станції,
+                            потім ті, де в 1-му стовпчику
+                            назва передмонтажу.
+                        */
+                        const aPre =
+                            isPremontageName(a.station) ? 1 : 0;
+                        const bPre =
+                            isPremontageName(b.station) ? 1 : 0;
+                        if (aPre !== bPre) {
+                            return aPre - bPre;
+                        }
                         const byQty =
                             qtyOf(b) - qtyOf(a);
                         if (byQty !== 0) {
