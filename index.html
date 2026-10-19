@@ -1083,7 +1083,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 84;
+const CODE_VERSION = 85;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3960,6 +3960,7 @@ function commitLineQty(el) {
     } else {
         updateLineMark(row, { qty: "" });
     }
+    syncLineToWaitlist(row.material, row.address);
     current.editing = "";
     refreshLineLevel();
 }
@@ -4010,6 +4011,50 @@ function lineRowVisible(r, f) {
     }
     const wire = isWireMaterial(r.material);
     return f.wires ? wire : !wire;
+}
+/* Позначене «По лінії» → обрані матеріали (ключ як у пошуку: матеріал|адреса) */
+function syncLineToWaitlist(material, address) {
+    const key = material + "|" + address;
+    const checked =
+        loadLineMarks().filter(x =>
+            x.checked &&
+            x.material === material &&
+            x.address === address
+        );
+    const list = loadWaitlist();
+    const idx =
+        list.findIndex(item => item.key === key);
+    if (!checked.length) {
+        if (idx >= 0 && list[idx].fromLine) {
+            list.splice(idx, 1);
+            saveWaitlist(list);
+        }
+        return;
+    }
+    const total =
+        checked.reduce(
+            (n, x) =>
+                n + (Number(x.qty) > 0
+                    ? Number(x.qty)
+                    : 0),
+            0
+        );
+    if (idx >= 0) {
+        if (total > 0) {
+            list[idx].qty = total;
+        }
+    } else {
+        list.push({
+            key,
+            material,
+            address,
+            articles: {},
+            qty: total > 0 ? total : "",
+            comment: "",
+            fromLine: true
+        });
+    }
+    saveWaitlist(list);
 }
 function lineBoxHtml(on) {
     return '<span class="line-box' +
@@ -4490,6 +4535,10 @@ articlesPageContent.addEventListener(
                                 !(cur && cur.checked)
                         }
                     );
+                    syncLineToWaitlist(
+                        row.material,
+                        row.address
+                    );
                     refreshLineLevel();
                 }
             } else if (nav === 'line-edit') {
@@ -4528,8 +4577,16 @@ articlesPageContent.addEventListener(
                         'Очистити всі позначки та кількості цього артикулу?'
                     )
                 ) {
+                    const cleared =
+                        lineEntriesFor(current.article);
                     clearLineMarks(
                         current.article
+                    );
+                    cleared.forEach(x =>
+                        syncLineToWaitlist(
+                            x.material,
+                            x.address
+                        )
                     );
                     current.editing = "";
                     refreshLineLevel();
