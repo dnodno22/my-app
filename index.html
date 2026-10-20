@@ -680,6 +680,24 @@ input#input.qty-mode {
     background: #e5e7eb;
     margin-top: 14px;
 }
+/* ==================== ОБРАНЕ: БЛОК ПЕРЕДМОНТАЖІВ АРТИКУЛУ ==================== */
+.pm-group-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.pm-group-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111;
+    word-break: break-word;
+}
+.pm-group-sep {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #ECECEC;
+}
 /* ==================== ПЕРЕДМОНТАЖ: КІЛЬКІСТЬ ==================== */
 .premontage-item-btn.qty-target {
     outline: 2px solid #4338ca;
@@ -936,7 +954,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v81</button>
+                    aria-expanded="false">v82</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -996,7 +1014,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 81;
+const CODE_VERSION = 82;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2109,7 +2127,21 @@ function renderWaitlistPage() {
     }
     waitlistCardKeys = [];
     let html = "";
+    /* Передмонтажі одного артикулу збираємо в один блок з артикулом зверху */
+    const pmDone = new Set();
     list.forEach(item => {
+        const pmArt = pmArticleOfItem(item);
+        if (pmArt !== null) {
+            if (pmDone.has(pmArt)) return;
+            pmDone.add(pmArt);
+            html += buildPmGroupHtml(
+                pmArt,
+                list.filter(
+                    i => pmArticleOfItem(i) === pmArt
+                )
+            );
+            return;
+        }
         const idx =
             waitlistCardKeys.push(item.key) - 1;
         const hasComment =
@@ -2200,6 +2232,80 @@ function renderWaitlistPage() {
         html += `</div>`;
     });
     waitlistBox.innerHTML = html;
+}
+/* Ключ передмонтажу: "pm|артикул|назва" → повертає артикул (або null) */
+function pmArticleOfItem(item) {
+    const k = String((item && item.key) || "");
+    if (!k.startsWith('pm|')) return null;
+    const art = k.split('|')[1];
+    return art ? art : null;
+}
+function buildPmGroupHtml(article, items) {
+    let html = `
+        <div class="result-card">
+            <div class="result-top" style="margin-bottom:14px;">
+                <span class="result-material-badge">
+                    ${renderArticleNumber(
+                        getArticleFullCode(article),
+                        "",
+                        false,
+                        true,
+                        true
+                    )}
+                </span>
+            </div>
+    `;
+    items.forEach((item, n) => {
+        const idx =
+            waitlistCardKeys.push(item.key) - 1;
+        const hasComment =
+            !!(
+                item.comment &&
+                item.comment.trim()
+            );
+        html += `
+            <div class="pm-group-item${n ? ' pm-group-sep' : ''}">
+                <div class="pm-group-line">
+                    <span class="pm-group-name">
+                        ${escapeHtml(item.material)}
+                    </span>
+                    ${item.qty
+                        ? `<span class="waitlist-qty">${escapeHtml(item.qty)}</span>`
+                        : ''}
+                </div>
+                ${hasComment
+                    ? `<div class="waitlist-comment-text" data-idx="${idx}">${escapeHtml(item.comment)}</div>`
+                    : ''}
+                <div class="waitlist-actions-row">
+                    <button
+                        class="waitlist-remove-btn"
+                        data-idx="${idx}">
+                        <span class="ico">★ </span>Прибрати зі списку
+                    </button>
+                    <button
+                        class="comment-toggle-btn"
+                        data-idx="${idx}">
+                        <span class="ico">${hasComment ? '✎ ' : '💬 '}</span>Коментар
+                    </button>
+                </div>
+                <div
+                    class="comment-edit-area hidden"
+                    data-idx="${idx}">
+                    <textarea
+                        class="comment-textarea"
+                        data-idx="${idx}"
+                        placeholder="Ваш коментар...">${escapeHtml(item.comment || "")}</textarea>
+                    <button
+                        class="comment-save-btn"
+                        data-idx="${idx}">
+                        Зберегти
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    html += `</div>`;
+    return html;
 }
 waitlistBox.addEventListener('click', (e) => {
     const removeBtn =
