@@ -970,7 +970,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v83</button>
+                    aria-expanded="false">v84</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1030,7 +1030,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 83;
+const CODE_VERSION = 84;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1067,6 +1067,7 @@ let pmQtyLabel = "";
 let pmQtyValue = "";
 let pmQtySource = "articles";
 let pmQtyKey = "";
+let pmQtyHad = false;
 /* ==================== СТЕК РІВНІВ АРТИКУЛІВ ==================== */
 let articlesPageStack = [
     { level: 'articles' }
@@ -4077,9 +4078,12 @@ function enterPmQtyMode(article, category, label) {
     pmQtyArticle = article;
     pmQtyCategory = category;
     pmQtyLabel = label;
-    pmQtyValue = "";
     const existing = loadWaitlist()
         .find(i => i.key === pmKey(article, category));
+    /* Якщо вже є збережена кількість — показуємо її в полі */
+    pmQtyHad = !!existing;
+    pmQtyValue =
+        existing && existing.qty ? String(existing.qty) : "";
     pmCommentEl.value =
         existing && existing.comment ? existing.comment : "";
     pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
@@ -4101,6 +4105,7 @@ function enterPmWaitlistEdit(idx) {
     }
     pmQtyMode = true;
     pmQtySource = 'waitlist';
+    pmQtyHad = false;
     pmQtyKey = key;
     pmQtyArticle = "";
     pmQtyCategory = "";
@@ -4134,8 +4139,25 @@ function exitPmQtyMode(rerender) {
         }
     }
 }
+/* Поле очищено у вже позначеного передмонтажу → прибираємо його з обраних */
+function pmRemoveSavedCurrent() {
+    const list = loadWaitlist().filter(i => i.key !== pmQtyKey);
+    saveWaitlist(list);
+    articlesPageStack.forEach(s => {
+        delete s.cachedHtml;
+    });
+}
 function confirmPmQty() {
     if (!pmQtyMode) return;
+    if (
+        pmQtySource === 'articles' &&
+        pmQtyHad &&
+        pmQtyValue === ""
+    ) {
+        pmRemoveSavedCurrent();
+        exitPmQtyMode(true);
+        return;
+    }
     if (pmQtySource === 'waitlist') {
         /* Порожньо = лишаємо кількість, правимо лише коментар; 0 = прибрати з обраних */
         const list = loadWaitlist();
@@ -4209,6 +4231,13 @@ pmPanelEl.addEventListener('click', e => {
             pmCommentEl.focus();
         }
     } else if (a === 'cancel') {
+        if (
+            pmQtySource === 'articles' &&
+            pmQtyHad &&
+            pmQtyValue === ""
+        ) {
+            pmRemoveSavedCurrent();
+        }
         exitPmQtyMode(true);
     } else if (a === 'ok') {
         confirmPmQty();
