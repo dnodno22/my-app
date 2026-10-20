@@ -687,6 +687,21 @@ input#input.qty-mode {
     justify-content: space-between;
     gap: 12px;
 }
+.pm-group-article {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111;
+    margin-bottom: 10px;
+}
+.pm-group-item {
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+.pm-group-item.qty-target {
+    outline: 2px solid #4338ca;
+    background: #eef2ff;
+}
 .pm-group-name {
     font-size: 20px;
     font-weight: 800;
@@ -694,9 +709,10 @@ input#input.qty-mode {
     word-break: break-word;
 }
 .pm-group-sep {
-    margin-top: 18px;
-    padding-top: 18px;
+    margin-top: 6px;
     border-top: 1px solid #ECECEC;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
 }
 /* ==================== ПЕРЕДМОНТАЖ: КІЛЬКІСТЬ ==================== */
 .premontage-item-btn.qty-target {
@@ -954,7 +970,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v82</button>
+                    aria-expanded="false">v83</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1014,7 +1030,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 82;
+const CODE_VERSION = 83;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1049,6 +1065,8 @@ let pmQtyArticle = "";
 let pmQtyCategory = "";
 let pmQtyLabel = "";
 let pmQtyValue = "";
+let pmQtySource = "articles";
+let pmQtyKey = "";
 /* ==================== СТЕК РІВНІВ АРТИКУЛІВ ==================== */
 let articlesPageStack = [
     { level: 'articles' }
@@ -2243,16 +2261,8 @@ function pmArticleOfItem(item) {
 function buildPmGroupHtml(article, items) {
     let html = `
         <div class="result-card">
-            <div class="result-top" style="margin-bottom:14px;">
-                <span class="result-material-badge">
-                    ${renderArticleNumber(
-                        getArticleFullCode(article),
-                        "",
-                        false,
-                        true,
-                        true
-                    )}
-                </span>
+            <div class="pm-group-article">
+                ${articleHeadHtml(article)}
             </div>
     `;
     items.forEach((item, n) => {
@@ -2264,7 +2274,9 @@ function buildPmGroupHtml(article, items) {
                 item.comment.trim()
             );
         html += `
-            <div class="pm-group-item${n ? ' pm-group-sep' : ''}">
+            <div
+                class="pm-group-item${n ? ' pm-group-sep' : ''}"
+                data-pm-edit="${idx}">
                 <div class="pm-group-line">
                     <span class="pm-group-name">
                         ${escapeHtml(item.material)}
@@ -2274,33 +2286,8 @@ function buildPmGroupHtml(article, items) {
                         : ''}
                 </div>
                 ${hasComment
-                    ? `<div class="waitlist-comment-text" data-idx="${idx}">${escapeHtml(item.comment)}</div>`
+                    ? `<div class="waitlist-comment-text">${escapeHtml(item.comment)}</div>`
                     : ''}
-                <div class="waitlist-actions-row">
-                    <button
-                        class="waitlist-remove-btn"
-                        data-idx="${idx}">
-                        <span class="ico">★ </span>Прибрати зі списку
-                    </button>
-                    <button
-                        class="comment-toggle-btn"
-                        data-idx="${idx}">
-                        <span class="ico">${hasComment ? '✎ ' : '💬 '}</span>Коментар
-                    </button>
-                </div>
-                <div
-                    class="comment-edit-area hidden"
-                    data-idx="${idx}">
-                    <textarea
-                        class="comment-textarea"
-                        data-idx="${idx}"
-                        placeholder="Ваш коментар...">${escapeHtml(item.comment || "")}</textarea>
-                    <button
-                        class="comment-save-btn"
-                        data-idx="${idx}">
-                        Зберегти
-                    </button>
-                </div>
             </div>
         `;
     });
@@ -2308,6 +2295,15 @@ function buildPmGroupHtml(article, items) {
     return html;
 }
 waitlistBox.addEventListener('click', (e) => {
+    const editRow =
+        e.target.closest('[data-pm-edit]');
+    if (editRow) {
+        enterPmWaitlistEdit(
+            parseInt(editRow.dataset.pmEdit, 10)
+        );
+        return;
+    }
+    if (pmQtyMode) return;
     const removeBtn =
         e.target.closest(
             '.waitlist-remove-btn'
@@ -3989,17 +3985,65 @@ function pmFindButton() {
     return [...articlesPageContent.querySelectorAll('[data-anav="category"]')]
         .find(b => b.dataset.category === pmQtyCategory) || null;
 }
+function pmWaitlistArea() {
+    return document.querySelector('#page-waitlist .scroll-area');
+}
 function pmSyncSpace() {
-    const area = pmArea();
-    if (!area) return;
-    area.style.paddingBottom =
-        pmQtyMode ? (pmPanelEl.offsetHeight + 16) + 'px' : '';
+    const articlesArea = pmArea();
+    const waitArea = pmWaitlistArea();
+    if (articlesArea) articlesArea.style.paddingBottom = '';
+    if (waitArea) waitArea.style.paddingBottom = '';
+    if (!pmQtyMode) return;
+    const active =
+        pmQtySource === 'waitlist' ? waitArea : articlesArea;
+    if (active) {
+        active.style.paddingBottom =
+            (pmPanelEl.offsetHeight + 16) + 'px';
+    }
+}
+function pmApplyWaitlistTarget(scroll) {
+    waitlistBox
+        .querySelectorAll('.qty-target')
+        .forEach(b => b.classList.remove('qty-target'));
+    const row = [...waitlistBox.querySelectorAll('[data-pm-edit]')]
+        .find(r =>
+            waitlistCardKeys[parseInt(r.dataset.pmEdit, 10)] === pmQtyKey
+        );
+    if (!row) return;
+    row.classList.add('qty-target');
+    let q = row.querySelector('.waitlist-qty');
+    if (row.dataset.orig === undefined) {
+        row.dataset.orig = q ? q.textContent : '';
+    }
+    const shown = pmQtyValue !== "" ? pmQtyValue : row.dataset.orig;
+    if (shown !== "") {
+        if (!q) {
+            q = document.createElement('span');
+            q.className = 'waitlist-qty';
+            row.querySelector('.pm-group-line').appendChild(q);
+        }
+        q.textContent = shown;
+    } else if (q) {
+        q.remove();
+    }
+    if (scroll) {
+        const area = pmWaitlistArea();
+        const r = row.getBoundingClientRect();
+        const limit = pmPanelEl.getBoundingClientRect().top - 12;
+        if (area && r.bottom > limit) {
+            area.scrollTop += r.bottom - limit;
+        }
+    }
 }
 function pmRefreshPanel() {
     pmTitleEl.textContent = pmQtyLabel;
     pmDisplayEl.textContent = pmQtyValue;
 }
 function pmApplyTarget(scroll) {
+    if (pmQtySource === 'waitlist') {
+        pmApplyWaitlistTarget(scroll);
+        return;
+    }
     articlesPageContent
         .querySelectorAll('.qty-target')
         .forEach(b => b.classList.remove('qty-target'));
@@ -4028,6 +4072,8 @@ function pmApplyTarget(scroll) {
 }
 function enterPmQtyMode(article, category, label) {
     pmQtyMode = true;
+    pmQtySource = 'articles';
+    pmQtyKey = pmKey(article, category);
     pmQtyArticle = article;
     pmQtyCategory = category;
     pmQtyLabel = label;
@@ -4042,19 +4088,72 @@ function enterPmQtyMode(article, category, label) {
     pmSyncSpace();
     pmApplyTarget(true);
 }
+/* Редагування передмонтажу тапом по рядку на сторінці "Обрані" */
+function enterPmWaitlistEdit(idx) {
+    const key = waitlistCardKeys[idx];
+    if (key === undefined) return;
+    const item = loadWaitlist().find(i => i.key === key);
+    if (!item) return;
+    if (pmQtyMode) {
+        /* Перемикання на інший рядок: відновлюємо показ попереднього */
+        pmQtyMode = false;
+        renderWaitlistPage();
+    }
+    pmQtyMode = true;
+    pmQtySource = 'waitlist';
+    pmQtyKey = key;
+    pmQtyArticle = "";
+    pmQtyCategory = "";
+    pmQtyLabel =
+        item.material +
+        (item.qty ? ' · зараз ' + item.qty : '');
+    pmQtyValue = "";
+    pmCommentEl.value = item.comment ? item.comment : "";
+    pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
+    pmPanelEl.classList.remove('hidden');
+    pmRefreshPanel();
+    pmSyncSpace();
+    pmApplyTarget(true);
+}
 function exitPmQtyMode(rerender) {
     if (!pmQtyMode) return;
+    const pmSrc = pmQtySource;
     pmQtyMode = false;
+    pmQtySource = 'articles';
     pmQtyValue = "";
     pmCommentEl.blur();
     pmCommentEl.value = "";
     pmCommentEl.classList.add('hidden');
     pmPanelEl.classList.add('hidden');
     pmSyncSpace();
-    if (rerender) renderArticlesPage(true);
+    if (rerender) {
+        if (pmSrc === 'waitlist') {
+            renderWaitlistPage();
+        } else {
+            renderArticlesPage(true);
+        }
+    }
 }
 function confirmPmQty() {
     if (!pmQtyMode) return;
+    if (pmQtySource === 'waitlist') {
+        /* Порожньо = лишаємо кількість, правимо лише коментар; 0 = прибрати з обраних */
+        const list = loadWaitlist();
+        const wi = list.findIndex(i => i.key === pmQtyKey);
+        if (wi >= 0) {
+            if (pmQtyValue !== "" && parseInt(pmQtyValue, 10) === 0) {
+                list.splice(wi, 1);
+            } else {
+                if (pmQtyValue !== "") {
+                    list[wi].qty = parseInt(pmQtyValue, 10);
+                }
+                list[wi].comment = pmCommentEl.value.trim();
+            }
+            saveWaitlist(list);
+        }
+        exitPmQtyMode(true);
+        return;
+    }
     const qty = parseInt(pmQtyValue, 10);
     if (!/^\d+$/.test(pmQtyValue) || !(qty > 0)) {
         pmDisplayEl.style.borderColor = '#ef4444';
@@ -4064,7 +4163,7 @@ function confirmPmQty() {
         return;
     }
     addWaitlistWithQty(
-        pmKey(pmQtyArticle, pmQtyCategory),
+        pmQtyKey,
         {
             material: pmQtyLabel,
             address: String(pmQtyArticle)
@@ -4081,7 +4180,14 @@ pmPanelEl.addEventListener('click', e => {
     const digit = e.target.closest('[data-pmv]');
     if (digit) {
         const v = digit.dataset.pmv;
-        if (pmQtyValue === "" && v === "0") return;
+        if (pmQtyValue === "0") pmQtyValue = "";
+        if (
+            pmQtyValue === "" &&
+            v === "0" &&
+            pmQtySource !== 'waitlist'
+        ) {
+            return;
+        }
         if (pmQtyValue.length < 4) {
             pmQtyValue += v;
             pmRefreshPanel();
