@@ -680,257 +680,50 @@ input#input.qty-mode {
     background: #e5e7eb;
     margin-top: 14px;
 }
-/* ==================== ПО ЛІНІЇ ==================== */
-.line-block {
-    margin-bottom: 14px;
-}
-.line-group-head {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    border: none;
-    background: #f1f5f9;
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    font-size: 16px;
-    font-weight: 800;
-    color: #111;
-    text-align: left;
-    touch-action: manipulation;
-}
-.line-group-meta {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #6b7280;
-}
-.line-subhead {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: 12px 2px 6px;
-    font-size: 14px;
-    font-weight: 800;
-    color: #374151;
-}
-.line-subhead-meta {
-    font-size: 12px;
-    font-weight: 700;
-    color: #6b7280;
-}
-.line-card {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    padding: 10px;
-    margin-top: 10px;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.05);
-}
-.line-card.marked {
-    border-left: 4px solid #4338ca;
-    padding-left: 7px;
-}
-.line-card-head {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 2px 4px 10px;
-    cursor: pointer;
-}
-.line-card-name {
-    flex: 1;
-    min-width: 0;
-    font-size: 16px;
-    font-weight: 800;
-    color: #111;
-}
-.line-card .line-item:last-child {
-    margin-bottom: 0;
-}
-.line-card-head .line-check {
-    flex: 0 0 40px;
-    justify-content: flex-start;
-}
-.line-card-name-wrap {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 8px;
-    margin: -6px 0;
-    border-radius: 10px;
-    cursor: pointer;
-}
-.line-card-name-wrap.editing,
-.line-item.editing {
+/* ==================== ПЕРЕДМОНТАЖ: КІЛЬКІСТЬ ==================== */
+.premontage-item-btn.qty-target {
     outline: 2px solid #4338ca;
+    background: #eef2ff;
 }
-#line-kb {
+.pm-qty-badge {
+    margin-left: 8px;
+    padding-left: 8px;
+    border-left: 2px solid #d1d5db;
+    font-weight: 800;
+    color: #4338ca;
+    white-space: nowrap;
+}
+.pm-qty-panel {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 40;
+    z-index: 60;
     background: #fff;
     border-top: 1px solid #e5e7eb;
-    padding: 10px 12px calc(14px + env(safe-area-inset-bottom));
+    padding: 12px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 18px rgba(0,0,0,0.10);
 }
-.line-kb-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 8px;
-    font-weight: 800;
-}
-#line-kb-label {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 15px;
-    color: #111;
-}
-#line-kb-value {
-    min-width: 60px;
-    text-align: right;
-    font-size: 26px;
-    color: #4338ca;
-}
-.line-kb-ok {
-    width: 100%;
-    margin-top: 10px;
-    border: none;
-    background: #4338ca;
-    color: #fff;
-    font-weight: 800;
-    font-size: 17px;
-    border-radius: 10px;
-    padding: 14px 0;
-    touch-action: manipulation;
-}
-#page-articles.line-kb-open .scroll-area {
-    padding-bottom: 400px;
-}
-.line-chev {
-    font-size: 16px;
-}
-.line-item {
-    display: flex;
-    align-items: stretch;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 8px;
-}
-.line-item.marked {
-    border-left: 4px solid #4338ca;
-}
-.line-check {
-    flex: 0 0 56px;
-    border: none;
-    background: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    touch-action: manipulation;
-}
-.line-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    cursor: pointer;
-}
-.line-info .wire-name {
-    flex-shrink: 0;
-}
-.line-info .wire-location {
-    margin-left: auto;
-}
-.line-note {
-    flex: 1;
-    min-width: 0;
-    text-align: center;
-    font-size: 11px;
-    font-weight: 700;
-    color: #6b7280;
-}
-.line-qty-badge {
-    font-size: 14px;
-    font-weight: 800;
-    color: #4338ca;
+.pm-qty-display {
+    height: 52px;
+    line-height: 50px;
+    margin-bottom: 10px;
+    border: 1px solid #4338ca;
+    border-radius: 14px;
     background: #eef2ff;
-    border: 1px solid #c7d2fe;
-    border-radius: 10px;
-    padding: 2px 8px;
-    white-space: nowrap;
-}
-.line-box {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    border: 2px solid #9ca3af;
-    border-radius: 8px;
-    background: #fff;
-    color: transparent;
-    font-size: 16px;
+    text-align: center;
+    font-size: 22px;
     font-weight: 800;
-}
-.line-box.on {
-    background: #4338ca;
-    border-color: #4338ca;
-    color: #fff;
-}
-.line-qty-edit {
-    display: flex;
-    gap: 8px;
-    margin: -2px 0 8px;
-}
-#page-articles .line-qty-input {
-    -webkit-user-select: text;
-    user-select: text;
-    flex: 1;
-    min-width: 0;
-    border: 1px solid #c7d2fe;
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 18px;
-    font-weight: 700;
-    outline: none;
-    background: #fff;
     color: #111;
 }
-.line-qty-ok {
-    border: none;
-    background: #4338ca;
-    color: #fff;
-    font-weight: 700;
-    font-size: 15px;
-    border-radius: 10px;
-    padding: 0 20px;
+.pm-qty-display:empty::before {
+    content: 'Кількість';
+    color: #9ca3af;
+    font-weight: 500;
 }
-.line-qty-cancel {
-    border: none;
-    background: #fff7e0;
-    color: #b45309;
-    font-weight: 700;
-    font-size: 15px;
-    border-radius: 10px;
-    padding: 0 14px;
+.pm-qty-panel .qty-actions {
+    margin-bottom: 10px;
 }
 /* ==================== HIGHLIGHT ==================== */
 mark.hl {
@@ -1143,7 +936,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v67</button>
+                    aria-expanded="false">v81</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1175,32 +968,35 @@ tr:nth-child(even) td {
 </div>
 <!-- КРАПОЧКИ ГЛИБИНИ (глобально: пошук + артикули) -->
 <div class="articles-dots" id="articles-dots"></div>
-<!-- Цифрова клавіатура додатку для кількості («По лінії») -->
-<div id="line-kb" class="hidden">
-    <div class="line-kb-top">
-        <span id="line-kb-label"></span>
-        <span id="line-kb-value">—</span>
+<!-- КЛАВІАТУРА КІЛЬКОСТІ ДЛЯ ПЕРЕДМОНТАЖУ (довге натискання) -->
+<div id="pm-qty-panel" class="pm-qty-panel hidden">
+    <div class="qty-title" id="pm-qty-title"></div>
+    <div class="pm-qty-display" id="pm-qty-display"></div>
+    <textarea id="pm-qty-comment" class="comment-textarea hidden" placeholder="Коментар..."></textarea>
+    <div class="qty-actions">
+        <button type="button" class="qty-btn qty-comment" data-pm="comment">💬 Коментар</button>
+        <button type="button" class="qty-btn qty-cancel" data-pm="cancel">✕</button>
+        <button type="button" class="qty-btn qty-ok" data-pm="ok">✓ Додати</button>
     </div>
     <div class="kb-grid">
-        <button type="button" class="btn" data-lkb="1">1</button>
-        <button type="button" class="btn" data-lkb="2">2</button>
-        <button type="button" class="btn" data-lkb="3">3</button>
-        <button type="button" class="btn" data-lkb="4">4</button>
-        <button type="button" class="btn" data-lkb="5">5</button>
-        <button type="button" class="btn" data-lkb="6">6</button>
-        <button type="button" class="btn" data-lkb="7">7</button>
-        <button type="button" class="btn" data-lkb="8">8</button>
-        <button type="button" class="btn" data-lkb="9">9</button>
-        <button type="button" class="btn btn-special" data-lkb="cancel">✕</button>
-        <button type="button" class="btn" data-lkb="0">0</button>
-        <button type="button" class="btn btn-special" data-lkb="del">⌫</button>
+        <button class="btn" data-pmv="1">1</button>
+        <button class="btn" data-pmv="2">2</button>
+        <button class="btn" data-pmv="3">3</button>
+        <button class="btn" data-pmv="4">4</button>
+        <button class="btn" data-pmv="5">5</button>
+        <button class="btn" data-pmv="6">6</button>
+        <button class="btn" data-pmv="7">7</button>
+        <button class="btn" data-pmv="8">8</button>
+        <button class="btn" data-pmv="9">9</button>
+        <div></div>
+        <button class="btn" data-pmv="0">0</button>
+        <button class="btn btn-special" data-pm="clear">⌫</button>
     </div>
-    <button type="button" class="line-kb-ok" data-lkb="ok">OK</button>
 </div>
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 88;
+const CODE_VERSION = 81;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1229,6 +1025,12 @@ let qtyMode = false;
 let qtyKey = null;
 let qtySavedInput = "";
 let qtyCardEl = null;
+/* Режим кількості для передмонтажу (довге натискання) */
+let pmQtyMode = false;
+let pmQtyArticle = "";
+let pmQtyCategory = "";
+let pmQtyLabel = "";
+let pmQtyValue = "";
 /* ==================== СТЕК РІВНІВ АРТИКУЛІВ ==================== */
 let articlesPageStack = [
     { level: 'articles' }
@@ -1240,8 +1042,7 @@ const ARTICLE_ACTION_KEYS = [
     "ізострічка",
     "мм",
     "передмонтаж",
-    "проводи",
-    "по лінії"
+    "проводи"
 ];
 const ACTION_LABELS = {
     "розміщення": '<span class="ico">📍 </span>Розміщення',
@@ -1250,8 +1051,7 @@ const ACTION_LABELS = {
     "ізострічка": '<span class="ico">📏 </span>Ізострічка',
     "мм": '<span class="ico">📐 </span>ММ',
     "передмонтаж": '<span class="ico">🧵 </span>Передмонтаж',
-    "проводи": '<span class="ico">⚡ </span>Проводи',
-    "по лінії": '<span class="ico">📋 </span>По лінії'
+    "проводи": '<span class="ico">⚡ </span>Проводи'
 };
 function actionLabel(key) {
     return ACTION_LABELS[key] || escapeHtml(key);
@@ -1266,9 +1066,6 @@ const articlesPageContent =
     document.getElementById('articles-page-content');
 const articlesDots =
     document.getElementById('articles-dots');
-const lineKbEl = document.getElementById('line-kb');
-const lineKbLabel = document.getElementById('line-kb-label');
-const lineKbValue = document.getElementById('line-kb-value');
 const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 const CACHE_KEY_SEARCH_FILTERS = "searchActiveFilters";
@@ -1368,7 +1165,6 @@ function renderArticlesDots(overridePage, overrideDepth) {
         overridePage !== undefined
             ? overridePage
             : currentPage;
-    updateLineKb(page);
     /*
         Крапочки показуємо на сторінках "Пошук" і "Артикули".
         На "Обрані матеріали" їх немає.
@@ -2327,36 +2123,17 @@ function renderWaitlistPage() {
                     <span class="result-material-badge">
                         <span class="box-icon ico">📦</span>
                         ${escapeHtml(item.material)}
-                        ${item.article
-                            ? `<span style="font-size:14px; font-weight:700; color:#6b7280;">${escapeHtml(item.article)}</span>`
-                            : ''}
                         ${item.qty
                             ? `<span class="waitlist-qty">${escapeHtml(item.qty)}</span>`
                             : ''}
                     </span>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        ${item.address
-                            ? `<span class="result-address-new">${escapeHtml(item.address)}</span>`
-                            : ''}
+                        <span class="result-address-new">
+                            ${escapeHtml(item.address)}
+                        </span>
                     </div>
                 </div>
         `;
-        if (item.block && Array.isArray(item.wires)) {
-            item.wires.forEach(w => {
-                html += `
-                    <div class="article-row">
-                        <span class="article-number" style="font-size:18px; font-weight:800;">
-                            ${escapeHtml(w.material)}${w.qty
-                                ? `<span class="waitlist-qty">${escapeHtml(w.qty)}</span>`
-                                : ''}
-                        </span>
-                        <span class="result-address-new">
-                            ${escapeHtml(w.address)}
-                        </span>
-                    </div>
-                `;
-            });
-        }
         for (let art in item.articles) {
             const stationHtmlArr =
                 uniqueDisplayStations(
@@ -3087,16 +2864,6 @@ function articleHasAction(
             article
         ).length > 0;
     }
-    if (action === 'по лінії') {
-        return (
-            computePremontageCategoriesForArticle(
-                article
-            ).length > 0 ||
-            computeWireStationsForArticle(
-                article
-            ).length > 0
-        );
-    }
     return computeArticleActionResults(
         article,
         action
@@ -3121,6 +2888,7 @@ function getAvailableActionsForArticle(
 }
 /* ==================== НАЗАД ==================== */
 function popArticlesPageLevel() {
+    exitPmQtyMode(false);
     if (
         articlesPageStack.length > 1
     ) {
@@ -3718,18 +3486,25 @@ function buildArticlesLevelHtml(
             });
             html +=
                 '<div class="premontage-btn-grid">';
+            const wlItems = loadWaitlist();
             categories.forEach(c => {
+                const label =
+                    shortCount[premontageShortName(c)] > 1
+                        ? c
+                        : premontageShortName(c);
+                const wl = wlItems.find(
+                    i => i.key === pmKey(state.article, c)
+                );
                 html += `
                     <button
-                        class="premontage-item-btn"
+                        class="premontage-item-btn${wl ? ' favorite' : ''}"
                         data-anav="category"
-                        data-category="${escapeHtml(c)}">
-                        ${escapeHtml(
-                            shortCount[premontageShortName(c)] > 1
-                                ? c
-                                : premontageShortName(c)
-                        )}
-                    </button>
+                        data-category="${escapeHtml(c)}"
+                        data-label="${escapeHtml(label)}">${escapeHtml(label)}${
+                            wl && wl.qty
+                                ? `<span class="pm-qty-badge">${escapeHtml(wl.qty)}</span>`
+                                : ''
+                        }</button>
                 `;
             });
             html +=
@@ -3909,9 +3684,6 @@ function buildArticlesLevelHtml(
             html +=
                 '</div>';
         }
-    /* ---------- ПО ЛІНІЇ ---------- */
-    } else if (state.level === 'line') {
-        html += buildLineHtml(state);
     }
     /* ---------- ШАПКА: ліворуч артикул, праворуч назва кнопки ---------- */
     if (
@@ -3937,9 +3709,6 @@ function buildArticlesLevelHtml(
             state.level === 'wire-results'
         ) {
             right = state.station ? 'Станція ' + state.station : '';
-        } else if (state.level === 'line') {
-            const cnt = countLineMarks(state.article);
-            right = 'По лінії' + (cnt > 0 ? ' · ' + cnt : '');
         }
         html =
             html.replace(
@@ -3951,697 +3720,6 @@ function buildArticlesLevelHtml(
                 state.article,
                 right
             ) + html;
-    }
-    return html;
-}
-/* ==================== ПО ЛІНІЇ: ПОЗНАЧКИ ==================== */
-const CACHE_KEY_LINE_MARKS = "lineMarks";
-function loadLineMarks() {
-    try {
-        const value =
-            JSON.parse(
-                localStorage.getItem(
-                    CACHE_KEY_LINE_MARKS
-                ) || "[]"
-            );
-        return Array.isArray(value)
-            ? value.filter(x =>
-                x &&
-                x.group !== undefined &&
-                x.material !== undefined
-            )
-            : [];
-    } catch (e) {
-        return [];
-    }
-}
-function saveLineMarks(list) {
-    try {
-        localStorage.setItem(
-            CACHE_KEY_LINE_MARKS,
-            JSON.stringify(list)
-        );
-    } catch (e) {
-        /* Позначки не мають ламати інтерфейс. */
-    }
-}
-function lineRowKey(r) {
-    return [
-        r.article,
-        r.type,
-        r.group,
-        r.material,
-        r.address
-    ].map(x => String(x || "")).join("|||");
-}
-function lineRowAttr(row) {
-    return encodeURIComponent(
-        JSON.stringify({
-            article: row.article,
-            type: row.type,
-            group: row.group,
-            material: row.material,
-            address: row.address
-        })
-    );
-}
-function lineMarkForRow(row) {
-    const k = lineRowKey(row);
-    return loadLineMarks()
-        .find(x => lineRowKey(x) === k);
-}
-/* Оновити запис рядка; порожній запис (без галочки і без кількості) видаляється */
-function updateLineMark(row, patch) {
-    const list = loadLineMarks();
-    const k = lineRowKey(row);
-    const idx =
-        list.findIndex(x => lineRowKey(x) === k);
-    const entry =
-        idx >= 0
-            ? list[idx]
-            : {
-                article: String(row.article),
-                group: row.group,
-                type: row.type,
-                material: row.material,
-                address: row.address,
-                checked: false,
-                qty: ""
-            };
-    Object.assign(entry, patch);
-    const keep =
-        entry.checked || Number(entry.qty) > 0;
-    if (idx >= 0) {
-        if (keep) {
-            list[idx] = entry;
-        } else {
-            list.splice(idx, 1);
-        }
-    } else if (keep) {
-        list.push(entry);
-    }
-    saveLineMarks(list);
-}
-function lineEntriesFor(article) {
-    const a = String(article);
-    return loadLineMarks()
-        .filter(x => String(x.article) === a);
-}
-function countLineMarks(article) {
-    return lineEntriesFor(article)
-        .filter(x => x.checked)
-        .length;
-}
-function clearLineMarks(article) {
-    const a = String(article);
-    saveLineMarks(
-        loadLineMarks()
-            .filter(x => String(x.article) !== a)
-    );
-}
-function refreshLineLevel() {
-    articlesPageStack.forEach(st => {
-        delete st.cachedHtml;
-    });
-    renderArticlesPage(true);
-}
-/* Матеріали групи (передмонтаж / станція) з урахуванням фільтра */
-function lineGroupMaterialRows(gRow) {
-    const base =
-        String(gRow.type).replace(/-group$/, "");
-    const wires =
-        base === 'premontage'
-            ? computeWiresForCategory(
-                gRow.article,
-                gRow.group
-            )
-            : computeWiresForStation(
-                gRow.article,
-                gRow.group
-            );
-    const f = loadLineFilter();
-    const seen = new Set();
-    const out = [];
-    wires.forEach(w => {
-        const name =
-            String(w.material || "").trim();
-        const address =
-            String(w.address || "").trim();
-        const dk = name + "|" + address;
-        if (seen.has(dk)) {
-            return;
-        }
-        seen.add(dk);
-        const r = {
-            article: gRow.article,
-            type: base,
-            group: gRow.group,
-            material: name,
-            address
-        };
-        if (lineRowVisible(r, f)) {
-            out.push(r);
-        }
-    });
-    return out;
-}
-/* Галочка на назві групи ставиться / знімається на всіх її матеріалах */
-function setLineGroupChecked(gRow, on) {
-    updateLineMark(gRow, { checked: on });
-    const rows = lineGroupMaterialRows(gRow);
-    rows.forEach(r => {
-        if (on) {
-            updateLineMark(r, { checked: true });
-        } else {
-            const cur = lineMarkForRow(r);
-            if (!(cur && Number(cur.qty) > 0)) {
-                updateLineMark(r, { checked: false });
-            }
-        }
-    });
-    if (String(gRow.type) === 'premontage-group') {
-        syncLineBlock(gRow.article, gRow.group);
-    } else {
-        rows.forEach(r =>
-            syncLineToWaitlist(r.material, r.address)
-        );
-    }
-}
-/* Передмонтаж переноситься в обрані цілим блоком з усіма позначеними проводами */
-function syncLineBlock(article, group) {
-    const key =
-        'line-block::' + article + '::' + group;
-    const marks = lineEntriesFor(article);
-    const gEntry =
-        marks.find(x =>
-            x.type === 'premontage-group' &&
-            x.group === group &&
-            x.checked
-        );
-    const wires =
-        marks
-            .filter(x =>
-                x.type === 'premontage' &&
-                x.group === group &&
-                x.checked &&
-                x.material
-            )
-            .sort((a, b) =>
-                String(a.material).localeCompare(
-                    String(b.material),
-                    'uk',
-                    {
-                        numeric: true,
-                        sensitivity: 'base'
-                    }
-                )
-            )
-            .map(x => ({
-                material: x.material,
-                address: x.address || "",
-                qty:
-                    Number(x.qty) > 0
-                        ? Number(x.qty)
-                        : ""
-            }));
-    const list = loadWaitlist();
-    const idx =
-        list.findIndex(i => i.key === key);
-    if (!gEntry && !wires.length) {
-        if (idx >= 0) {
-            list.splice(idx, 1);
-            saveWaitlist(list);
-        }
-        return;
-    }
-    const item = {
-        key,
-        material: premontageShortName(group),
-        article: String(article),
-        address: "",
-        articles: {},
-        qty:
-            gEntry && Number(gEntry.qty) > 0
-                ? Number(gEntry.qty)
-                : "",
-        comment:
-            idx >= 0
-                ? (list[idx].comment || "")
-                : "",
-        fromLine: true,
-        block: true,
-        wires
-    };
-    if (idx >= 0) {
-        list[idx] = item;
-    } else {
-        list.push(item);
-    }
-    saveWaitlist(list);
-}
-function syncLineRow(row) {
-    const t = String(row.type);
-    if (t === 'premontage' || t === 'premontage-group') {
-        syncLineBlock(row.article, row.group);
-    } else if (t === 'wire') {
-        syncLineToWaitlist(row.material, row.address);
-    }
-}
-function currentLineState() {
-    const cur =
-        articlesPageStack[
-            articlesPageStack.length - 1
-        ];
-    return cur && cur.level === 'line'
-        ? cur
-        : null;
-}
-function commitLineQty() {
-    const cur = currentLineState();
-    if (!cur || !cur.editRow) {
-        return;
-    }
-    const row = cur.editRow;
-    const n = parseInt(cur.editBuf || "", 10);
-    const isGroup =
-        /-group$/.test(String(row.type));
-    /* Позначка (синя смужка) = є кількість; зітрів кількість — позначку знято */
-    if (n > 0) {
-        updateLineMark(
-            row,
-            { qty: n, checked: true }
-        );
-        if (isGroup) {
-            setLineGroupChecked(row, true);
-        } else {
-            syncLineRow(row);
-        }
-    } else {
-        updateLineMark(
-            row,
-            { qty: "", checked: false }
-        );
-        if (isGroup) {
-            setLineGroupChecked(row, false);
-        } else {
-            syncLineRow(row);
-        }
-    }
-    cur.editing = "";
-    cur.editRow = null;
-    cur.editBuf = "";
-    refreshLineLevel();
-}
-function lineEditTitle(row) {
-    if (!row) return "";
-    if (row.material) return row.material;
-    return String(row.type).indexOf('wire') === 0
-        ? 'Станція ' + row.group
-        : premontageShortName(row.group);
-}
-/* Власна цифрова клавіатура додатку для кількості на екрані «По лінії» */
-function updateLineKb(page) {
-    if (!lineKbEl) return;
-    const cur = currentLineState();
-    const on =
-        page === ARTICLES_PAGE_INDEX &&
-        !!cur &&
-        !!cur.editing &&
-        !!cur.editRow;
-    lineKbEl.classList.toggle('hidden', !on);
-    const pe =
-        document.getElementById('page-articles');
-    if (pe) {
-        pe.classList.toggle('line-kb-open', on);
-    }
-    if (on) {
-        lineKbLabel.textContent =
-            lineEditTitle(cur.editRow);
-        lineKbValue.textContent =
-            cur.editBuf || '—';
-    }
-}
-if (lineKbEl) {
-    lineKbEl.addEventListener('click', e => {
-        const b = e.target.closest('[data-lkb]');
-        if (!b) return;
-        const cur = currentLineState();
-        if (!cur || !cur.editing) return;
-        const k = b.dataset.lkb;
-        if (/^\d$/.test(k)) {
-            if ((cur.editBuf || "").length < 6) {
-                cur.editBuf =
-                    (cur.editBuf || "") + k;
-            }
-        } else if (k === 'del') {
-            cur.editBuf =
-                (cur.editBuf || "").slice(0, -1);
-        } else if (k === 'cancel') {
-            cur.editing = "";
-            cur.editRow = null;
-            cur.editBuf = "";
-            refreshLineLevel();
-            return;
-        } else if (k === 'ok') {
-            commitLineQty();
-            return;
-        }
-        updateLineKb(ARTICLES_PAGE_INDEX);
-    });
-}
-const CACHE_KEY_LINE_FILTER = "lineFilter";
-function loadLineFilter() {
-    try {
-        const v =
-            JSON.parse(
-                localStorage.getItem(
-                    CACHE_KEY_LINE_FILTER
-                ) || "{}"
-            );
-        return {
-            wires: !!(v && v.wires),
-            materials: !!(v && v.materials)
-        };
-    } catch (e) {
-        return { wires: false, materials: false };
-    }
-}
-function saveLineFilter(f) {
-    try {
-        localStorage.setItem(
-            CACHE_KEY_LINE_FILTER,
-            JSON.stringify(f)
-        );
-    } catch (e) {}
-}
-/* Фільтр: лише проводи / лише матеріали; обидва або жоден — усе */
-function lineRowVisible(r, f) {
-    if (f.wires === f.materials) {
-        return true;
-    }
-    const wire = isWireMaterial(r.material);
-    return f.wires ? wire : !wire;
-}
-/* Позначене «По лінії» → обрані матеріали (ключ як у пошуку: матеріал|адреса) */
-function syncLineToWaitlist(material, address) {
-    if (!material) {
-        return;
-    }
-    const key = material + "|" + address;
-    const checked =
-        loadLineMarks().filter(x =>
-            x.checked &&
-            x.type === 'wire' &&
-            x.material === material &&
-            x.address === address
-        );
-    const list = loadWaitlist();
-    const idx =
-        list.findIndex(item => item.key === key);
-    if (!checked.length) {
-        if (idx >= 0 && list[idx].fromLine) {
-            list.splice(idx, 1);
-            saveWaitlist(list);
-        }
-        return;
-    }
-    const total =
-        checked.reduce(
-            (n, x) =>
-                n + (Number(x.qty) > 0
-                    ? Number(x.qty)
-                    : 0),
-            0
-        );
-    if (idx >= 0) {
-        if (total > 0) {
-            list[idx].qty = total;
-        }
-    } else {
-        list.push({
-            key,
-            material,
-            address,
-            articles: {},
-            qty: total > 0 ? total : "",
-            comment: "",
-            fromLine: true
-        });
-    }
-    saveWaitlist(list);
-}
-function lineBoxHtml(on) {
-    return '<span class="line-box' +
-        (on ? ' on' : '') +
-        '">✓</span>';
-}
-function buildLineHtml(state) {
-    const article = state.article;
-    let html =
-        '<div class="premontage-title"></div>';
-    const categories =
-        computePremontageCategoriesForArticle(
-            article
-        );
-    const stations =
-        computeWireStationsForArticle(article);
-    if (!categories.length && !stations.length) {
-        return html +
-            '<div style="text-align:center; padding:40px; color:#aaa;">Немає даних для цього артикулу</div>';
-    }
-    const entries = lineEntriesFor(article);
-    const map = new Map(
-        entries.map(e => [lineRowKey(e), e])
-    );
-    const lf = loadLineFilter();
-    html += `
-        <div class="premontage-toolbar">
-            <button
-                class="premontage-nav-btn${lf.wires ? ' active' : ''}"
-                data-anav="line-filter"
-                data-filter="wires">
-                Проводи
-            </button>
-            <button
-                class="premontage-nav-btn${lf.materials ? ' active' : ''}"
-                data-anav="line-filter"
-                data-filter="materials">
-                Матеріали
-            </button>
-            <button
-                class="premontage-nav-btn premontage-close-btn"
-                data-anav="line-clear">
-                Очистити
-            </button>
-        </div>
-    `;
-    const collapsed = state.collapsed || {};
-    const editing = state.editing || "";
-    const noteOf = w =>
-        String(w.colD || "").trim();
-    const shortCount = {};
-    categories.forEach(c => {
-        const k = premontageShortName(c);
-        shortCount[k] =
-            (shortCount[k] || 0) + 1;
-    });
-    const groups = [];
-    categories.forEach(c => {
-        groups.push({
-            type: 'premontage',
-            group: c,
-            label:
-                shortCount[premontageShortName(c)] > 1
-                    ? c
-                    : premontageShortName(c),
-            wires: [
-                ...computeWiresForCategory(
-                    article,
-                    c
-                )
-            ].sort((a, b) => {
-                const an = noteOf(a);
-                const bn = noteOf(b);
-                if (!an !== !bn) {
-                    return an ? -1 : 1;
-                }
-                if (an && bn) {
-                    const byNote =
-                        an.localeCompare(
-                            bn,
-                            'uk',
-                            {
-                                numeric: true,
-                                sensitivity: 'base'
-                            }
-                        );
-                    if (byNote !== 0) {
-                        return byNote;
-                    }
-                }
-                return String(a.material || "")
-                    .localeCompare(
-                        String(b.material || ""),
-                        'uk',
-                        {
-                            numeric: true,
-                            sensitivity: 'base'
-                        }
-                    );
-            })
-        });
-    });
-    stations.forEach(st => {
-        groups.push({
-            type: 'wire',
-            group: st,
-            label: 'Станція ' + st,
-            wires: computeWiresForStation(
-                article,
-                st
-            )
-        });
-    });
-    const prepared = [];
-    groups.forEach(g => {
-        const seen = new Set();
-        let rows = [];
-        g.wires.forEach(w => {
-            const name =
-                String(w.material || "").trim();
-            const address =
-                String(w.address || "").trim();
-            const dk = name + "|" + address;
-            if (seen.has(dk)) {
-                return;
-            }
-            seen.add(dk);
-            rows.push({
-                article,
-                type: g.type,
-                group: g.group,
-                material: name,
-                address,
-                note: noteOf(w)
-            });
-        });
-        rows = rows.filter(r => lineRowVisible(r, lf));
-        if (!rows.length) {
-            return;
-        }
-        prepared.push({ g, rows });
-    });
-    const shown = prepared.length;
-    const sectionTitles = {
-        premontage: 'Передмонтаж',
-        wire: 'Проводи'
-    };
-    const isChecked = r => {
-        const e = map.get(lineRowKey(r));
-        return !!(e && e.checked);
-    };
-    ['premontage', 'wire'].forEach(type => {
-        const items =
-            prepared.filter(x => x.g.type === type);
-        if (!items.length) {
-            return;
-        }
-        /* Згортається лише весь блок: «Передмонтаж» або «Проводи» */
-        const isCollapsed = !!collapsed[type];
-        const total =
-            items.reduce((n, x) => n + x.rows.length, 0);
-        const checkedTotal =
-            items.reduce(
-                (n, x) => n + x.rows.filter(isChecked).length,
-                0
-            );
-        html += `
-            <div class="line-block">
-                <button
-                    type="button"
-                    class="line-group-head"
-                    data-anav="line-group"
-                    data-gtype="${type}">
-                    <span class="line-group-name">${sectionTitles[type]}</span>
-                    <span class="line-group-meta">
-                        ${checkedTotal
-                            ? checkedTotal + '/' + total
-                            : ''}
-                        <span class="line-chev">${isCollapsed ? '▸' : '▾'}</span>
-                    </span>
-                </button>
-        `;
-        if (!isCollapsed) {
-            items.forEach(({ g, rows }) => {
-                const checkedCount =
-                    rows.filter(isChecked).length;
-                /* Галочка на самій назві передмонтажу / станції */
-                const gRow = {
-                    article,
-                    type: g.type + '-group',
-                    group: g.group,
-                    material: '',
-                    address: ''
-                };
-                const gEntry = map.get(lineRowKey(gRow));
-                const gOn = !!(gEntry && gEntry.checked);
-                const gQty =
-                    gEntry && Number(gEntry.qty) > 0
-                        ? Number(gEntry.qty)
-                        : 0;
-                const gEditing =
-                    editing === lineRowKey(gRow);
-                const gAttr = lineRowAttr(gRow);
-                html += `
-                    <div class="line-card${gOn ? ' marked' : ''}">
-                        <div class="line-card-head">
-                            <div
-                                class="line-card-name-wrap${gEditing ? ' editing' : ''}"
-                                data-anav="line-edit"
-                                data-row="${gAttr}">
-                                <span class="line-card-name">${escapeHtml(g.label)}</span>
-                                ${gQty
-                                    ? `<span class="line-qty-badge">× ${gQty}</span>`
-                                    : ''}
-                            </div>
-                            <span class="line-subhead-meta">${checkedCount
-                                ? checkedCount + '/' + rows.length
-                                : ''}</span>
-                        </div>
-                `;
-                rows.forEach(r => {
-                    const rk = lineRowKey(r);
-                    const e = map.get(rk);
-                    const checked = !!(e && e.checked);
-                    const qty =
-                        e && Number(e.qty) > 0
-                            ? Number(e.qty)
-                            : 0;
-                    const attr = lineRowAttr(r);
-                    html += `
-                        <div class="line-item${checked ? ' marked' : ''}${editing === rk ? ' editing' : ''}">
-                            <div
-                                class="line-info"
-                                data-anav="line-edit"
-                                data-row="${attr}">
-                                <span class="wire-name">${escapeHtml(r.material)}</span>
-                                ${qty
-                                    ? `<span class="line-qty-badge">× ${qty}</span>`
-                                    : ''}
-                                <span class="line-note">${escapeHtml(r.note)}</span>
-                                <span class="wire-location">${escapeHtml(r.address)}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-            });
-        }
-        html += '</div>';
-    });
-    if (!shown) {
-        html +=
-            '<div style="text-align:center; padding:40px; color:#aaa;">Нічого не знайдено за фільтром</div>';
     }
     return html;
 }
@@ -4783,7 +3861,225 @@ function renderArticlesPage(
         }
     }
     container.innerHTML = html;
+    if (pmQtyMode) pmApplyTarget(false);
 }
+/* ==================== ПЕРЕДМОНТАЖ: ДОВГЕ НАТИСКАННЯ → КІЛЬКІСТЬ → ОБРАНЕ ==================== */
+const PM_LONG_PRESS_MS = 600;
+let pmPressTimer = null;
+let pmPressBtn = null;
+let pmPressX = 0;
+let pmPressY = 0;
+const pmPanelEl = document.getElementById('pm-qty-panel');
+const pmDisplayEl = document.getElementById('pm-qty-display');
+const pmTitleEl = document.getElementById('pm-qty-title');
+const pmCommentEl = document.getElementById('pm-qty-comment');
+function pmKey(article, category) {
+    return 'pm|' + article + '|' + category;
+}
+function pmArea() {
+    return document.querySelector('#page-articles .scroll-area');
+}
+function pmFindButton() {
+    return [...articlesPageContent.querySelectorAll('[data-anav="category"]')]
+        .find(b => b.dataset.category === pmQtyCategory) || null;
+}
+function pmSyncSpace() {
+    const area = pmArea();
+    if (!area) return;
+    area.style.paddingBottom =
+        pmQtyMode ? (pmPanelEl.offsetHeight + 16) + 'px' : '';
+}
+function pmRefreshPanel() {
+    pmTitleEl.textContent = pmQtyLabel;
+    pmDisplayEl.textContent = pmQtyValue;
+}
+function pmApplyTarget(scroll) {
+    articlesPageContent
+        .querySelectorAll('.qty-target')
+        .forEach(b => b.classList.remove('qty-target'));
+    const btn = pmFindButton();
+    if (!btn) return;
+    btn.classList.add('qty-target');
+    let badge = btn.querySelector('.pm-qty-badge');
+    if (pmQtyValue) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'pm-qty-badge';
+            btn.appendChild(badge);
+        }
+        badge.textContent = pmQtyValue;
+    } else if (badge) {
+        badge.remove();
+    }
+    if (scroll) {
+        const area = pmArea();
+        const r = btn.getBoundingClientRect();
+        const limit = pmPanelEl.getBoundingClientRect().top - 12;
+        if (area && r.bottom > limit) {
+            area.scrollTop += r.bottom - limit;
+        }
+    }
+}
+function enterPmQtyMode(article, category, label) {
+    pmQtyMode = true;
+    pmQtyArticle = article;
+    pmQtyCategory = category;
+    pmQtyLabel = label;
+    pmQtyValue = "";
+    const existing = loadWaitlist()
+        .find(i => i.key === pmKey(article, category));
+    pmCommentEl.value =
+        existing && existing.comment ? existing.comment : "";
+    pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
+    pmPanelEl.classList.remove('hidden');
+    pmRefreshPanel();
+    pmSyncSpace();
+    pmApplyTarget(true);
+}
+function exitPmQtyMode(rerender) {
+    if (!pmQtyMode) return;
+    pmQtyMode = false;
+    pmQtyValue = "";
+    pmCommentEl.blur();
+    pmCommentEl.value = "";
+    pmCommentEl.classList.add('hidden');
+    pmPanelEl.classList.add('hidden');
+    pmSyncSpace();
+    if (rerender) renderArticlesPage(true);
+}
+function confirmPmQty() {
+    if (!pmQtyMode) return;
+    const qty = parseInt(pmQtyValue, 10);
+    if (!/^\d+$/.test(pmQtyValue) || !(qty > 0)) {
+        pmDisplayEl.style.borderColor = '#ef4444';
+        setTimeout(() => {
+            pmDisplayEl.style.borderColor = '';
+        }, 600);
+        return;
+    }
+    addWaitlistWithQty(
+        pmKey(pmQtyArticle, pmQtyCategory),
+        {
+            material: pmQtyLabel,
+            address: String(pmQtyArticle)
+        },
+        qty,
+        pmCommentEl.value.trim()
+    );
+    articlesPageStack.forEach(s => {
+        delete s.cachedHtml;
+    });
+    exitPmQtyMode(true);
+}
+pmPanelEl.addEventListener('click', e => {
+    const digit = e.target.closest('[data-pmv]');
+    if (digit) {
+        const v = digit.dataset.pmv;
+        if (pmQtyValue === "" && v === "0") return;
+        if (pmQtyValue.length < 4) {
+            pmQtyValue += v;
+            pmRefreshPanel();
+            pmApplyTarget(false);
+        }
+        return;
+    }
+    const act = e.target.closest('[data-pm]');
+    if (!act) return;
+    const a = act.dataset.pm;
+    if (a === 'clear') {
+        pmQtyValue = "";
+        pmRefreshPanel();
+        pmApplyTarget(false);
+    } else if (a === 'comment') {
+        pmCommentEl.classList.toggle('hidden');
+        pmSyncSpace();
+        if (!pmCommentEl.classList.contains('hidden')) {
+            pmCommentEl.focus();
+        }
+    } else if (a === 'cancel') {
+        exitPmQtyMode(true);
+    } else if (a === 'ok') {
+        confirmPmQty();
+    }
+});
+/* ---------- Довге натискання ---------- */
+function pmCancelPress() {
+    if (pmPressTimer) {
+        clearTimeout(pmPressTimer);
+        pmPressTimer = null;
+    }
+    pmPressBtn = null;
+}
+function pmStartPress(btn, x, y) {
+    pmCancelPress();
+    pmPressBtn = btn;
+    pmPressX = x;
+    pmPressY = y;
+    pmPressTimer = setTimeout(() => {
+        pmPressTimer = null;
+        const b = pmPressBtn;
+        pmPressBtn = null;
+        if (!b || !b.isConnected) return;
+        const cur =
+            articlesPageStack[articlesPageStack.length - 1];
+        if (!cur || cur.level !== 'premontage-categories') return;
+        /* Гасимо жести свайпу / "потягнути вниз" для цього дотику */
+        pageDragging = false;
+        pageSwipeCandidate = false;
+        pullActive = false;
+        try {
+            if (navigator.vibrate) navigator.vibrate(40);
+        } catch (_) {}
+        enterPmQtyMode(
+            cur.article,
+            b.dataset.category,
+            b.dataset.label || b.textContent.trim()
+        );
+    }, PM_LONG_PRESS_MS);
+}
+articlesPageContent.addEventListener('touchstart', e => {
+    if (!e.touches || e.touches.length !== 1) {
+        pmCancelPress();
+        return;
+    }
+    const btn = e.target.closest('[data-anav="category"]');
+    if (!btn) return;
+    pmStartPress(btn, e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+articlesPageContent.addEventListener('touchmove', e => {
+    if (!pmPressTimer || !e.touches.length) return;
+    const t = e.touches[0];
+    if (
+        Math.abs(t.clientX - pmPressX) > 10 ||
+        Math.abs(t.clientY - pmPressY) > 10
+    ) {
+        pmCancelPress();
+    }
+}, { passive: true });
+articlesPageContent.addEventListener('touchend', pmCancelPress, { passive: true });
+articlesPageContent.addEventListener('touchcancel', pmCancelPress, { passive: true });
+articlesPageContent.addEventListener('contextmenu', e => {
+    if (e.target.closest('[data-anav="category"]')) {
+        e.preventDefault();
+    }
+});
+/* ПК: те саме мишею */
+articlesPageContent.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    const btn = e.target.closest('[data-anav="category"]');
+    if (btn) pmStartPress(btn, e.clientX, e.clientY);
+});
+articlesPageContent.addEventListener('mousemove', e => {
+    if (!pmPressTimer) return;
+    if (
+        Math.abs(e.clientX - pmPressX) > 10 ||
+        Math.abs(e.clientY - pmPressY) > 10
+    ) {
+        pmCancelPress();
+    }
+});
+articlesPageContent.addEventListener('mouseup', pmCancelPress);
+articlesPageContent.addEventListener('mouseleave', pmCancelPress);
 /* ==================== КЛІКИ НА АРТИКУЛАХ ==================== */
 articlesPageContent.addEventListener(
     'click',
@@ -4793,6 +4089,8 @@ articlesPageContent.addEventListener(
                 '[data-anav]'
             );
         if (!btn) return;
+        /* Поки відкрита клавіатура кількості — звичайні тапи ігноруємо */
+        if (pmQtyMode) return;
         const nav =
             btn.dataset.anav;
         const current =
@@ -4816,86 +4114,6 @@ articlesPageContent.addEventListener(
                         !current.sortQty;
                 }
                 renderArticlesPage(true);
-            }
-            return;
-        }
-        /* ---------- ПО ЛІНІЇ ---------- */
-        if (
-            nav === 'line-group' ||
-            nav === 'line-gcheck' ||
-            nav === 'line-check' ||
-            nav === 'line-edit' ||
-            nav === 'line-qty-ok' ||
-            nav === 'line-qty-cancel' ||
-            nav === 'line-filter' ||
-            nav === 'line-clear'
-        ) {
-            if (
-                !current ||
-                current.level !== 'line'
-            ) {
-                return;
-            }
-            let row = null;
-            try {
-                row = JSON.parse(
-                    decodeURIComponent(
-                        btn.dataset.row || ""
-                    )
-                );
-            } catch (_) {}
-            if (nav === 'line-group') {
-                const gk = btn.dataset.gtype;
-                current.collapsed =
-                    current.collapsed || {};
-                current.collapsed[gk] =
-                    !current.collapsed[gk];
-                refreshLineLevel();
-            } else if (nav === 'line-edit') {
-                if (row) {
-                    current.editing =
-                        lineRowKey(row);
-                    current.editRow = row;
-                    current.editBuf = "";
-                    refreshLineLevel();
-                    const ed =
-                        articlesPageContent.querySelector(
-                            '.editing'
-                        );
-                    if (ed && ed.scrollIntoView) {
-                        ed.scrollIntoView({
-                            block: 'center'
-                        });
-                    }
-                }
-            } else if (nav === 'line-filter') {
-                const f = loadLineFilter();
-                const k = btn.dataset.filter;
-                if (k === 'wires' || k === 'materials') {
-                    f[k] = !f[k];
-                    saveLineFilter(f);
-                    refreshLineLevel();
-                }
-            } else if (nav === 'line-clear') {
-                if (!lineEntriesFor(current.article).length) {
-                    return;
-                }
-                if (
-                    confirm(
-                        'Очистити всі позначки та кількості цього артикулу?'
-                    )
-                ) {
-                    const cleared =
-                        lineEntriesFor(current.article);
-                    clearLineMarks(
-                        current.article
-                    );
-                    cleared.forEach(x =>
-                        syncLineRow(x)
-                    );
-                    current.editing = "";
-                    refreshLineLevel();
-                }
             }
             return;
         }
@@ -4953,13 +4171,6 @@ articlesPageContent.addEventListener(
             ) {
                 articlesPageStack.push({
                     level: 'wire-stations',
-                    article: current.article
-                });
-            } else if (
-                action === 'по лінії'
-            ) {
-                articlesPageStack.push({
-                    level: 'line',
                     article: current.article
                 });
             } else {
@@ -5167,6 +4378,7 @@ function formatDate(ts) {
 }
 /* ==================== ПЕРЕХІД МІЖ ГОЛОВНИМИ СТОРІНКАМИ ==================== */
 function goToPage(n) {
+    exitPmQtyMode(false);
     n =
         Math.max(
             0,
@@ -5388,6 +4600,8 @@ function finishPageDrag(dx) {
 document.addEventListener(
     'touchstart',
     e => {
+        /* Поки відкрита клавіатура кількості передмонтажу — свайпи вимкнені */
+        if (pmQtyMode) return;
         if (
             !e.touches ||
             e.touches.length !== 1
@@ -6065,6 +5279,7 @@ document.addEventListener(
     e => {
         pullActive = false;
         pullDy = 0;
+        if (pmQtyMode) return;
         if (
             !e.touches ||
             e.touches.length !== 1
