@@ -130,6 +130,26 @@ input#input {
 #page-articles .premontage-title {
     touch-action: pan-y;
 }
+/* Заборона системного виділення / "Копіювати" на пошуку, обраних і панелях */
+#page0,
+#page0 *,
+#page-waitlist,
+#page-waitlist *,
+#pm-qty-panel,
+#pm-qty-panel * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+/* Поля коментаря лишаються редагованими */
+#page0 textarea,
+#page-waitlist textarea,
+#pm-qty-panel textarea,
+#page-articles textarea {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+}
 /* ==================== RESULT CARDS ==================== */
 .result-card {
     background: #ffffff;
@@ -987,7 +1007,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v86</button>
+                    aria-expanded="false">v87</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1047,7 +1067,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 86;
+const CODE_VERSION = 87;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -4003,6 +4023,19 @@ function renderArticlesPage(
     container.innerHTML = html;
     if (pmQtyMode) pmApplyTarget(false);
 }
+/* Системне контекстне меню (копіювати) вимкнено скрізь, крім текстових полів */
+document.addEventListener('contextmenu', e => {
+    if (e.target.closest && e.target.closest('textarea')) {
+        return;
+    }
+    e.preventDefault();
+});
+document.addEventListener('selectstart', e => {
+    if (e.target && e.target.closest && e.target.closest('textarea')) {
+        return;
+    }
+    e.preventDefault();
+});
 /* ==================== ПЕРЕДМОНТАЖ: ДОВГЕ НАТИСКАННЯ → КІЛЬКІСТЬ → ОБРАНЕ ==================== */
 const PM_LONG_PRESS_MS = 450;
 let pmPressTimer = null;
