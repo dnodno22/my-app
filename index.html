@@ -1007,7 +1007,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v88</button>
+                    aria-expanded="false">v90</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1067,7 +1067,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 88;
+const CODE_VERSION = 90;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1885,18 +1885,16 @@ function highlight(text, v, fromEnd) {
     const lower =
         text.toLowerCase();
     if (fromEnd) {
-        if (!lower.endsWith(v)) {
+        /* Кінець рахуємо без пробілів наприкінці ("SP340 15818931 ") */
+        const endLen = lower.replace(/\s+$/, "").length;
+        if (!lower.slice(0, endLen).endsWith(v)) {
             return safe;
         }
-        const idx =
-            text.length - v.length;
-        return escapeHtml(
-            text.slice(0, idx)
-        )
-        +
-        '<mark class="hl">' +
-        escapeHtml(text.slice(idx)) +
-        '</mark>';
+        return escapeHtml(text.slice(0, endLen - v.length)) +
+            '<mark class="hl">' +
+            escapeHtml(text.slice(endLen - v.length, endLen)) +
+            '</mark>' +
+            escapeHtml(text.slice(endLen));
     } else {
         if (!lower.startsWith(v)) {
             return safe;
@@ -4699,8 +4697,9 @@ function search() {
                 String(x.material || "")
                     .toLowerCase();
             if (isNumOnly) {
+                /* Тільки збіг з кінця; пробіли наприкінці клітинки не рахуються */
                 return (
-                    material.endsWith(v) ||
+                    material.trimEnd().endsWith(v) ||
                     material.replace(/\D/g, "") === v
                 );
             }
