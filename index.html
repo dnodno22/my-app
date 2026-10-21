@@ -1007,7 +1007,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v87</button>
+                    aria-expanded="false">v88</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1067,7 +1067,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 87;
+const CODE_VERSION = 88;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1105,6 +1105,7 @@ let pmQtyValue = "";
 let pmQtySource = "articles";
 let pmQtyKey = "";
 let pmQtyHad = false;
+let pmKbWasHidden = false;
 /* ==================== СТЕК РІВНІВ АРТИКУЛІВ ==================== */
 let articlesPageStack = [
     { level: 'articles' }
@@ -2449,19 +2450,7 @@ resultBox.addEventListener('click', (e) => {
     const pick =
         e.target.closest('.mat-pick');
     if (pick) {
-        const pickKey =
-            searchCardKeys[
-                parseInt(
-                    pick.dataset.idx,
-                    10
-                )
-            ];
-        if (pickKey !== undefined) {
-            enterQtyMode(
-                pickKey,
-                pick
-            );
-        }
+        /* Кількість вводиться довгим натисканням (див. pmStartPress) */
         return;
     }
     const btn =
@@ -2561,7 +2550,7 @@ function addWaitlistWithQty(key, data, qty, comment) {
             key,
             material: data.material,
             address: data.address,
-            articles: {},
+            articles: data.articles || {},
             qty,
             comment
         });
@@ -4062,11 +4051,18 @@ function pmWaitlistArea() {
 function pmSyncSpace() {
     const articlesArea = pmArea();
     const waitArea = pmWaitlistArea();
+    const searchArea =
+        document.querySelector('#page0 .scroll-area');
     if (articlesArea) articlesArea.style.paddingBottom = '';
     if (waitArea) waitArea.style.paddingBottom = '';
+    if (searchArea) searchArea.style.paddingBottom = '';
     if (!pmQtyMode) return;
     const active =
-        pmQtySource === 'waitlist' ? waitArea : articlesArea;
+        pmQtySource === 'waitlist'
+            ? waitArea
+            : pmQtySource === 'search'
+                ? searchArea
+                : articlesArea;
     if (active) {
         active.style.paddingBottom =
             (pmPanelEl.offsetHeight + 16) + 'px';
@@ -4110,9 +4106,103 @@ function pmRefreshPanel() {
     pmTitleEl.textContent = pmQtyLabel;
     pmDisplayEl.textContent = pmQtyValue;
 }
+function pmSearchPick() {
+    const idx = searchCardKeys.indexOf(pmQtyKey);
+    return idx < 0
+        ? null
+        : resultBox.querySelector(
+            `.mat-pick[data-idx="${idx}"]`
+        );
+}
+function pmApplySearchTarget(scroll) {
+    resultBox
+        .querySelectorAll('.qty-target')
+        .forEach(b => b.classList.remove('qty-target'));
+    const pick = pmSearchPick();
+    if (!pick) return;
+    pick.classList.add('qty-target');
+    let badge =
+        pick.parentElement.querySelector('.pm-qty-badge');
+    if (pmQtyValue) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'pm-qty-badge';
+            pick.insertAdjacentElement('afterend', badge);
+        }
+        badge.textContent = pmQtyValue;
+    } else if (badge) {
+        badge.remove();
+    }
+    if (scroll) {
+        const area =
+            document.querySelector('#page0 .scroll-area');
+        const r = pick.getBoundingClientRect();
+        const limit = pmPanelEl.getBoundingClientRect().top - 12;
+        if (area && r.bottom > limit) {
+            area.scrollTop += r.bottom - limit;
+        }
+    }
+}
+/* Після виходу: зірочки і позначка кількості на картці — за реальним станом обраних */
+function pmRefreshSearchCard(key) {
+    const idx = searchCardKeys.indexOf(key);
+    resultBox
+        .querySelectorAll('.qty-target')
+        .forEach(b => b.classList.remove('qty-target'));
+    if (idx < 0) return;
+    const wl = loadWaitlist().find(i => i.key === key);
+    resultBox
+        .querySelectorAll(`.select-btn[data-idx="${idx}"]`)
+        .forEach(b => {
+            b.classList.toggle('selected', !!wl);
+            b.textContent = wl ? '★' : '☆';
+        });
+    const pick = resultBox.querySelector(
+        `.mat-pick[data-idx="${idx}"]`
+    );
+    if (!pick) return;
+    const old =
+        pick.parentElement.querySelector('.pm-qty-badge');
+    if (old) old.remove();
+    if (wl && wl.qty) {
+        const badge = document.createElement('span');
+        badge.className = 'pm-qty-badge';
+        badge.textContent = wl.qty;
+        pick.insertAdjacentElement('afterend', badge);
+    }
+}
+function enterPmSearchMode(key, pickEl) {
+    const data = searchResultLookup[key];
+    if (!data) return;
+    setFilterPanelOpen(false);
+    pmQtyMode = true;
+    pmQtySource = 'search';
+    pmQtyKey = key;
+    pmQtyArticle = "";
+    pmQtyCategory = "";
+    pmQtyLabel = data.material;
+    const existing =
+        loadWaitlist().find(i => i.key === key);
+    pmQtyHad = !!(existing && existing.qty);
+    pmQtyValue =
+        existing && existing.qty ? String(existing.qty) : "";
+    pmCommentEl.value =
+        existing && existing.comment ? existing.comment : "";
+    pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
+    pmKbWasHidden = kbWrapper.classList.contains('hidden');
+    kbWrapper.classList.add('hidden');
+    pmPanelEl.classList.remove('hidden');
+    pmRefreshPanel();
+    pmSyncSpace();
+    pmApplyTarget(true);
+}
 function pmApplyTarget(scroll) {
     if (pmQtySource === 'waitlist') {
         pmApplyWaitlistTarget(scroll);
+        return;
+    }
+    if (pmQtySource === 'search') {
+        pmApplySearchTarget(scroll);
         return;
     }
     articlesPageContent
@@ -4193,6 +4283,7 @@ function enterPmWaitlistEdit(idx) {
 function exitPmQtyMode(rerender) {
     if (!pmQtyMode) return;
     const pmSrc = pmQtySource;
+    const pmSrcKey = pmQtyKey;
     pmQtyMode = false;
     pmQtySource = 'articles';
     pmQtyValue = "";
@@ -4201,6 +4292,13 @@ function exitPmQtyMode(rerender) {
     pmCommentEl.classList.add('hidden');
     pmPanelEl.classList.add('hidden');
     pmSyncSpace();
+    if (pmSrc === 'search') {
+        pmRefreshSearchCard(pmSrcKey);
+        if (!pmKbWasHidden) {
+            kbWrapper.classList.remove('hidden');
+        }
+        return;
+    }
     if (rerender) {
         if (pmSrc === 'waitlist') {
             renderWaitlistPage();
@@ -4220,7 +4318,7 @@ function pmRemoveSavedCurrent() {
 function confirmPmQty() {
     if (!pmQtyMode) return;
     if (
-        pmQtySource === 'articles' &&
+        pmQtySource !== 'waitlist' &&
         pmQtyHad &&
         pmQtyValue === ""
     ) {
@@ -4254,12 +4352,21 @@ function confirmPmQty() {
         }, 600);
         return;
     }
+    let pmData = {
+        material: pmQtyLabel,
+        address: String(pmQtyArticle)
+    };
+    if (pmQtySource === 'search') {
+        const d = searchResultLookup[pmQtyKey];
+        if (!d) {
+            exitPmQtyMode(true);
+            return;
+        }
+        pmData = d;
+    }
     addWaitlistWithQty(
         pmQtyKey,
-        {
-            material: pmQtyLabel,
-            address: String(pmQtyArticle)
-        },
+        pmData,
         qty,
         pmCommentEl.value.trim()
     );
@@ -4302,7 +4409,7 @@ pmPanelEl.addEventListener('click', e => {
         }
     } else if (a === 'cancel') {
         if (
-            pmQtySource === 'articles' &&
+            pmQtySource !== 'waitlist' &&
             pmQtyHad &&
             pmQtyValue === ""
         ) {
@@ -4321,7 +4428,7 @@ function pmCancelPress() {
     }
     pmPressBtn = null;
 }
-function pmStartPress(btn, x, y) {
+function pmStartPress(btn, x, y, kind) {
     pmCancelPress();
     pmPressBtn = btn;
     pmPressX = x;
@@ -4331,9 +4438,27 @@ function pmStartPress(btn, x, y) {
         const b = pmPressBtn;
         pmPressBtn = null;
         if (!b || !b.isConnected) return;
-        const cur =
-            articlesPageStack[articlesPageStack.length - 1];
-        if (!cur || cur.level !== 'premontage-categories') return;
+        let go = null;
+        if (kind === 'search') {
+            if (
+                currentPage !== SEARCH_PAGE_INDEX ||
+                qtyMode ||
+                pmQtyMode
+            ) return;
+            const key =
+                searchCardKeys[parseInt(b.dataset.idx, 10)];
+            if (key === undefined) return;
+            go = () => enterPmSearchMode(key, b);
+        } else {
+            const cur =
+                articlesPageStack[articlesPageStack.length - 1];
+            if (!cur || cur.level !== 'premontage-categories') return;
+            go = () => enterPmQtyMode(
+                cur.article,
+                b.dataset.category,
+                b.dataset.label || b.textContent.trim()
+            );
+        }
         /* Гасимо жести свайпу / "потягнути вниз" для цього дотику */
         pageDragging = false;
         pageSwipeCandidate = false;
@@ -4341,11 +4466,7 @@ function pmStartPress(btn, x, y) {
         try {
             if (navigator.vibrate) navigator.vibrate(40);
         } catch (_) {}
-        enterPmQtyMode(
-            cur.article,
-            b.dataset.category,
-            b.dataset.label || b.textContent.trim()
-        );
+        go();
     }, PM_LONG_PRESS_MS);
 }
 articlesPageContent.addEventListener('touchstart', e => {
@@ -4391,6 +4512,49 @@ articlesPageContent.addEventListener('mousemove', e => {
 });
 articlesPageContent.addEventListener('mouseup', pmCancelPress);
 articlesPageContent.addEventListener('mouseleave', pmCancelPress);
+/* Те саме довге натискання — на знайденому матеріалі на сторінці пошуку */
+resultBox.addEventListener('touchstart', e => {
+    if (!e.touches || e.touches.length !== 1) {
+        pmCancelPress();
+        return;
+    }
+    const pick = e.target.closest('.mat-pick');
+    if (!pick) return;
+    pmStartPress(
+        pick,
+        e.touches[0].clientX,
+        e.touches[0].clientY,
+        'search'
+    );
+}, { passive: true });
+resultBox.addEventListener('touchmove', e => {
+    if (!pmPressTimer || !e.touches.length) return;
+    const t = e.touches[0];
+    if (
+        Math.abs(t.clientX - pmPressX) > 10 ||
+        Math.abs(t.clientY - pmPressY) > 10
+    ) {
+        pmCancelPress();
+    }
+}, { passive: true });
+resultBox.addEventListener('touchend', pmCancelPress, { passive: true });
+resultBox.addEventListener('touchcancel', pmCancelPress, { passive: true });
+resultBox.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    const pick = e.target.closest('.mat-pick');
+    if (pick) pmStartPress(pick, e.clientX, e.clientY, 'search');
+});
+resultBox.addEventListener('mousemove', e => {
+    if (!pmPressTimer) return;
+    if (
+        Math.abs(e.clientX - pmPressX) > 10 ||
+        Math.abs(e.clientY - pmPressY) > 10
+    ) {
+        pmCancelPress();
+    }
+});
+resultBox.addEventListener('mouseup', pmCancelPress);
+resultBox.addEventListener('mouseleave', pmCancelPress);
 /* ==================== КЛІКИ НА АРТИКУЛАХ ==================== */
 articlesPageContent.addEventListener(
     'click',
@@ -4519,6 +4683,7 @@ articlesPageContent.addEventListener(
 /* ==================== ПОШУК (тільки по колонці B — матеріал) ==================== */
 function search() {
     if (qtyMode) return;
+    if (pmQtyMode && pmQtySource === 'search') return;
     const v =
         input.value.toLowerCase();
     if (!v) {
@@ -4620,7 +4785,17 @@ function search() {
                         <button
                             type="button"
                             class="mat-pick"
-                            data-idx="${cardIdx}">${matHtml}</button>
+                            data-idx="${cardIdx}">${matHtml}</button>${
+                        (() => {
+                            const wlQ =
+                                (loadWaitlist().find(
+                                    i => i.key === matKey
+                                ) || {}).qty;
+                            return wlQ
+                                ? `<span class="pm-qty-badge">${escapeHtml(wlQ)}</span>`
+                                : '';
+                        })()
+                    }
                     </span>
                     <div
                         style="display:flex; align-items:center; gap:8px;">
@@ -5162,6 +5337,7 @@ document.addEventListener(
             if (
                 currentPage === SEARCH_PAGE_INDEX &&
                 !qtyMode &&
+                !pmQtyMode &&
                 !kbWrapper.contains(
                     e.target
                 ) &&
