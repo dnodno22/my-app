@@ -745,6 +745,12 @@ input#input.qty-mode {
     gap: 10px;
     flex-shrink: 0;
 }
+.waitlist-qty-right,
+.pm-group-right .waitlist-qty {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+}
 .pm-group-addr {
     font-size: 14px;
     font-weight: 700;
@@ -1033,7 +1039,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v91</button>
+                    aria-expanded="false">v92</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1093,7 +1099,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 91;
+const CODE_VERSION = 92;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2237,14 +2243,11 @@ function renderWaitlistPage() {
                     <span class="result-material-badge">
                         <span class="box-icon ico">📦</span>
                         ${escapeHtml(item.material)}
-                        ${item.qty
-                            ? `<span class="waitlist-qty">${escapeHtml(item.qty)}</span>`
-                            : ''}
                     </span>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <span class="result-address-new">
-                            ${escapeHtml(item.address)}
-                        </span>
+                        ${item.qty
+                            ? `<span class="waitlist-qty waitlist-qty-right">${escapeHtml(item.qty)}</span>`
+                            : `<span class="result-address-new">${escapeHtml(item.address)}</span>`}
                     </div>
                 </div>
         `;
@@ -2361,7 +2364,7 @@ function buildPmGroupHtml(article, items) {
             }</span>`
             : '';
         const addrHtml =
-            !isPm && item.address
+            !isPm && !item.qty && item.address
                 ? `<span class="pm-group-addr">${escapeHtml(item.address)}</span>`
                 : '';
         let stationsHtml = '';
