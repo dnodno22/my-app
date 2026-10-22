@@ -739,6 +739,32 @@ input#input.qty-mode {
     outline: 2px solid #4338ca;
     background: #eef2ff;
 }
+.pm-group-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+.pm-group-addr {
+    font-size: 14px;
+    font-weight: 700;
+    color: #059669;
+    white-space: nowrap;
+}
+.pm-group-kind {
+    margin-left: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6b7280;
+}
+.pm-group-stations {
+    margin-top: 8px;
+    font-size: 15px;
+}
+.wire-row.qty-target {
+    outline: 2px solid #4338ca;
+    background: #eef2ff;
+}
 .pm-group-name {
     font-size: 20px;
     font-weight: 800;
@@ -1007,7 +1033,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v90</button>
+                    aria-expanded="false">v91</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1067,7 +1093,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 90;
+const CODE_VERSION = 91;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1106,6 +1132,7 @@ let pmQtySource = "articles";
 let pmQtyKey = "";
 let pmQtyHad = false;
 let pmKbWasHidden = false;
+let pmSptsData = null;
 /* ==================== СТЕК РІВНІВ АРТИКУЛІВ ==================== */
 let articlesPageStack = [
     { level: 'articles' }
@@ -2291,9 +2318,20 @@ function renderWaitlistPage() {
 /* Ключ передмонтажу: "pm|артикул|назва" → повертає артикул (або null) */
 function pmArticleOfItem(item) {
     const k = String((item && item.key) || "");
-    if (!k.startsWith('pm|')) return null;
-    const art = k.split('|')[1];
-    return art ? art : null;
+    if (k.startsWith('pm|') || k.startsWith('spts|')) {
+        const art = k.split('|')[1];
+        return art ? art : null;
+    }
+    /* Звичайний матеріал: якщо має кількість або коментар і лише один артикул — теж у блок артикулу */
+    if (!item) return null;
+    const has =
+        !!item.qty ||
+        !!(item.comment && String(item.comment).trim());
+    if (!has || !item.articles) return null;
+    const keys = Object.keys(item.articles);
+    if (keys.length !== 1) return null;
+    const arts = expandArticleValue(keys[0]);
+    return arts.length === 1 && arts[0] ? arts[0] : null;
 }
 function buildPmGroupHtml(article, items) {
     let html = `
@@ -2315,18 +2353,46 @@ function buildPmGroupHtml(article, items) {
                 item.comment &&
                 item.comment.trim()
             );
+        const isPm = String(item.key).startsWith('pm|');
+        const isSpts = String(item.key).startsWith('spts|');
+        const kindHtml = item.kind
+            ? `<span class="pm-group-kind">${escapeHtml(item.kind)}${
+                item.station ? ' · ст. ' + escapeHtml(item.station) : ''
+            }</span>`
+            : '';
+        const addrHtml =
+            !isPm && item.address
+                ? `<span class="pm-group-addr">${escapeHtml(item.address)}</span>`
+                : '';
+        let stationsHtml = '';
+        if (!isPm && !isSpts && item.articles) {
+            const stArr = [];
+            Object.keys(item.articles).forEach(a => {
+                (item.articles[a] || []).forEach(st => stArr.push(st));
+            });
+            const uniq = uniqueDisplayStations(stArr)
+                .map(st => escapeHtml(st));
+            if (uniq.length) {
+                stationsHtml =
+                    `<div class="pm-group-stations article-stations">${buildStationsHtml(uniq)}</div>`;
+            }
+        }
         html += `
             <div
                 class="pm-group-item${n ? ' pm-group-sep' : ''}"
                 data-pm-edit="${idx}">
                 <div class="pm-group-line">
                     <span class="pm-group-name">
-                        ${escapeHtml(item.material)}
+                        ${escapeHtml(item.material)}${kindHtml}
                     </span>
-                    ${item.qty
-                        ? `<span class="waitlist-qty">${escapeHtml(item.qty)}</span>`
-                        : ''}
+                    <span class="pm-group-right">
+                        ${addrHtml}
+                        ${item.qty
+                            ? `<span class="waitlist-qty">${escapeHtml(item.qty)}</span>`
+                            : ''}
+                    </span>
                 </div>
+                ${stationsHtml}
                 ${hasComment
                     ? `<div class="waitlist-comment-text">${escapeHtml(item.comment)}</div>`
                     : ''}
@@ -2549,6 +2615,8 @@ function addWaitlistWithQty(key, data, qty, comment) {
             material: data.material,
             address: data.address,
             articles: data.articles || {},
+            kind: data.kind,
+            station: data.station,
             qty,
             comment
         });
@@ -3424,17 +3492,32 @@ function buildArticlesLevelHtml(
                 });
                 html +=
                     '<div class="wire-list">';
+                const wlSpts = loadWaitlist();
                 flat.forEach(item => {
+                    const sptsKey =
+                        'spts|' + state.article + '|' + state.action +
+                        '|' + item.station + '|' + item.shown;
+                    const sptsSaved =
+                        wlSpts.find(i => i.key === sptsKey);
                     html += `
                         <div
                             class="wire-row"
                             ${toSearchAttr(item.search)}
+                            data-spts-key="${escapeHtml(sptsKey)}"
+                            data-spts-kind="${isSp ? 'SP' : 'TS'}"
+                            data-spts-station="${escapeHtml(item.station)}"
+                            data-spts-material="${escapeHtml(item.shown)}"
+                            data-spts-addr="${escapeHtml(item.addr)}"
                             style="cursor:pointer;">
                             <span class="wire-name" style="min-width:34px;">
                                 ${escapeHtml(item.station)}
                             </span>
                             <span class="wire-code" style="font-size:16px; font-weight:800; color:#111; text-align:left;">
-                                ${escapeHtml(item.shown)}
+                                ${escapeHtml(item.shown)}${
+                                    sptsSaved && sptsSaved.qty
+                                        ? `<span class="pm-qty-badge">${escapeHtml(sptsSaved.qty)}</span>`
+                                        : ''
+                                }
                             </span>
                             <span class="wire-location">
                                 ${escapeHtml(item.addr)}
@@ -4085,7 +4168,10 @@ function pmApplyWaitlistTarget(scroll) {
         if (!q) {
             q = document.createElement('span');
             q.className = 'waitlist-qty';
-            row.querySelector('.pm-group-line').appendChild(q);
+            (
+                row.querySelector('.pm-group-right') ||
+                row.querySelector('.pm-group-line')
+            ).appendChild(q);
         }
         q.textContent = shown;
     } else if (q) {
@@ -4194,9 +4280,77 @@ function enterPmSearchMode(key, pickEl) {
     pmSyncSpace();
     pmApplyTarget(true);
 }
+function pmSptsRow() {
+    return [...articlesPageContent.querySelectorAll('[data-spts-key]')]
+        .find(r => r.dataset.sptsKey === pmQtyKey) || null;
+}
+function pmApplySptsTarget(scroll) {
+    articlesPageContent
+        .querySelectorAll('.qty-target')
+        .forEach(b => b.classList.remove('qty-target'));
+    const row = pmSptsRow();
+    if (!row) return;
+    row.classList.add('qty-target');
+    const code = row.querySelector('.wire-code');
+    let badge = code ? code.querySelector('.pm-qty-badge') : null;
+    if (pmQtyValue) {
+        if (code && !badge) {
+            badge = document.createElement('span');
+            badge.className = 'pm-qty-badge';
+            code.appendChild(badge);
+        }
+        if (badge) badge.textContent = pmQtyValue;
+    } else if (badge) {
+        badge.remove();
+    }
+    if (scroll) {
+        const area = pmArea();
+        const r = row.getBoundingClientRect();
+        const limit = pmPanelEl.getBoundingClientRect().top - 12;
+        if (area && r.bottom > limit) {
+            area.scrollTop += r.bottom - limit;
+        }
+    }
+}
+function enterPmSptsMode(article, rowEl) {
+    const kind = rowEl.dataset.sptsKind || '';
+    const station = rowEl.dataset.sptsStation || '';
+    const material = rowEl.dataset.sptsMaterial || '';
+    pmQtyMode = true;
+    pmQtySource = 'spts';
+    pmQtyKey = rowEl.dataset.sptsKey;
+    pmQtyArticle = article;
+    pmQtyCategory = "";
+    pmSptsData = {
+        material,
+        address: rowEl.dataset.sptsAddr || '',
+        kind,
+        station,
+        articles: { [article]: [station] }
+    };
+    pmQtyLabel =
+        kind + ' · ' + material +
+        (station ? ' · ст. ' + station : '');
+    const existing =
+        loadWaitlist().find(i => i.key === pmQtyKey);
+    pmQtyHad = !!(existing && existing.qty);
+    pmQtyValue =
+        existing && existing.qty ? String(existing.qty) : "";
+    pmCommentEl.value =
+        existing && existing.comment ? existing.comment : "";
+    pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
+    pmPanelEl.classList.remove('hidden');
+    pmRefreshPanel();
+    pmSyncSpace();
+    pmApplyTarget(true);
+}
 function pmApplyTarget(scroll) {
     if (pmQtySource === 'waitlist') {
         pmApplyWaitlistTarget(scroll);
+        return;
+    }
+    if (pmQtySource === 'spts') {
+        pmApplySptsTarget(scroll);
         return;
     }
     if (pmQtySource === 'search') {
@@ -4268,7 +4422,9 @@ function enterPmWaitlistEdit(idx) {
     pmQtyArticle = "";
     pmQtyCategory = "";
     pmQtyLabel =
+        (item.kind ? item.kind + ' · ' : '') +
         item.material +
+        (item.station ? ' · ст. ' + item.station : '') +
         (item.qty ? ' · зараз ' + item.qty : '');
     pmQtyValue = "";
     pmCommentEl.value = item.comment ? item.comment : "";
@@ -4361,6 +4517,8 @@ function confirmPmQty() {
             return;
         }
         pmData = d;
+    } else if (pmQtySource === 'spts' && pmSptsData) {
+        pmData = pmSptsData;
     }
     addWaitlistWithQty(
         pmQtyKey,
@@ -4447,6 +4605,16 @@ function pmStartPress(btn, x, y, kind) {
                 searchCardKeys[parseInt(b.dataset.idx, 10)];
             if (key === undefined) return;
             go = () => enterPmSearchMode(key, b);
+        } else if (kind === 'spts') {
+            const cur =
+                articlesPageStack[articlesPageStack.length - 1];
+            if (
+                !cur ||
+                cur.level !== 'results' ||
+                (cur.action !== 'sp' && cur.action !== 'ts') ||
+                pmQtyMode
+            ) return;
+            go = () => enterPmSptsMode(cur.article, b);
         } else {
             const cur =
                 articlesPageStack[articlesPageStack.length - 1];
@@ -4473,8 +4641,19 @@ articlesPageContent.addEventListener('touchstart', e => {
         return;
     }
     const btn = e.target.closest('[data-anav="category"]');
-    if (!btn) return;
-    pmStartPress(btn, e.touches[0].clientX, e.touches[0].clientY);
+    if (btn) {
+        pmStartPress(btn, e.touches[0].clientX, e.touches[0].clientY);
+        return;
+    }
+    const row = e.target.closest('[data-spts-key]');
+    if (row) {
+        pmStartPress(
+            row,
+            e.touches[0].clientX,
+            e.touches[0].clientY,
+            'spts'
+        );
+    }
 }, { passive: true });
 articlesPageContent.addEventListener('touchmove', e => {
     if (!pmPressTimer || !e.touches.length) return;
@@ -4497,7 +4676,12 @@ articlesPageContent.addEventListener('contextmenu', e => {
 articlesPageContent.addEventListener('mousedown', e => {
     if (e.button !== 0) return;
     const btn = e.target.closest('[data-anav="category"]');
-    if (btn) pmStartPress(btn, e.clientX, e.clientY);
+    if (btn) {
+        pmStartPress(btn, e.clientX, e.clientY);
+        return;
+    }
+    const row = e.target.closest('[data-spts-key]');
+    if (row) pmStartPress(row, e.clientX, e.clientY, 'spts');
 });
 articlesPageContent.addEventListener('mousemove', e => {
     if (!pmPressTimer) return;
