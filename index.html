@@ -827,6 +827,14 @@ input#input.qty-mode {
     font-weight: 700;
     color: #6b7280;
 }
+.pm-group-chips {
+    display: inline-flex;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+.pm-group-chips .station-list-readable {
+    justify-content: flex-start;
+}
 .pm-group-stations-small {
     margin-left: 0;
     margin-top: 4px;
@@ -835,6 +843,7 @@ input#input.qty-mode {
     margin-top: 8px;
     font-size: 15px;
 }
+.result-card.qty-target,
 .wire-row.qty-target {
     outline: 2px solid #4338ca;
     background: #eef2ff;
@@ -1108,7 +1117,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v98</button>
+                    aria-expanded="false">v99</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1168,7 +1177,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 98;
+const CODE_VERSION = 99;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1734,8 +1743,9 @@ function sortArticlesWithFavorites(articles) {
         if (aFav !== bFav) {
             return aFav ? -1 : 1;
         }
-        return String(a).localeCompare(
-            String(b),
+        /* Від більшого до меншого */
+        return String(b).localeCompare(
+            String(a),
             "uk",
             {
                 numeric: true,
@@ -2357,6 +2367,37 @@ function toggleWaitlistItem(
     saveWaitlist(list);
     return idx < 0;
 }
+function escAttr(v) {
+    return escapeHtml(v).replace(/"/g, '&quot;');
+}
+function sptsAttrs(key, kind, station, stations, material, addr) {
+    return `data-spts-key="${escAttr(key)}" ` +
+        `data-spts-kind="${escAttr(kind)}" ` +
+        `data-spts-station="${escAttr(station)}" ` +
+        `data-spts-stations="${escAttr((stations || []).join(','))}" ` +
+        `data-spts-material="${escAttr(material)}" ` +
+        `data-spts-addr="${escAttr(addr)}"`;
+}
+function sptsBadge(key) {
+    const it = loadWaitlist().find(i => i.key === key);
+    return it && it.qty
+        ? `<span class="pm-qty-badge">${escapeHtml(it.qty)}</span>`
+        : '';
+}
+function sptsCardKey(state, matName, matAddr) {
+    return ['spts', state.article, state.action, '-', matName, matAddr]
+        .join('|');
+}
+function sptsCardAttrs(state, matName, matAddr, stations) {
+    return sptsAttrs(
+        sptsCardKey(state, matName, matAddr),
+        plainActionName(state.action),
+        '',
+        stations,
+        matName,
+        matAddr
+    );
+}
 function toSearchAttr(material) {
     return `data-anav="to-search" data-material="${encodeURIComponent(material)}"`;
 }
@@ -2441,9 +2482,7 @@ function renderWaitlistPage() {
                             !item.qty
                         )}
                     </span>
-                    ${item.qty
-                        ? `<span class="pm-group-kind pm-group-stations-small">ст. ${uniqueDisplayStations(item.articles[art]).map(st => escapeHtml(st)).join(', ')}</span>`
-                        : `<span class="article-stations">${stationsHtml}</span>`}
+                    <span class="article-stations">${stationsHtml}</span>
                 </div>
             `;
         }
@@ -2566,9 +2605,15 @@ function buildPmGroupHtml(article, items) {
             );
         const isPm = String(item.key).startsWith('pm|');
         const isSpts = String(item.key).startsWith('spts|');
+        const kindStations =
+            item.station
+                ? [item.station]
+                : (item.stations || []);
         const kindHtml = item.kind
             ? `<span class="pm-group-kind">${escapeHtml(item.kind)}${
-                item.station ? ' · ст. ' + escapeHtml(item.station) : ''
+                kindStations.length
+                    ? ' · ст. ' + kindStations.map(st => escapeHtml(st)).join(', ')
+                    : ''
             }</span>`
             : '';
         const addrHtml =
@@ -2576,7 +2621,7 @@ function buildPmGroupHtml(article, items) {
                 ? `<span class="pm-group-addr">${escapeHtml(item.address)}</span>`
                 : '';
         let stationsHtml = '';
-        if (!isPm && !isSpts && item.articles) {
+        if (!isPm && !isSpts && !item.kind && item.articles) {
             const stArr = [];
             Object.keys(item.articles).forEach(a => {
                 (item.articles[a] || []).forEach(st => stArr.push(st));
@@ -2584,7 +2629,7 @@ function buildPmGroupHtml(article, items) {
             const uniq = uniqueDisplayStations(stArr);
             if (uniq.length) {
                 stationsHtml =
-                    `<span class="pm-group-kind">ст. ${uniq.map(st => escapeHtml(st)).join(', ')}</span>`;
+                    `<span class="pm-group-chips">${buildStationsHtml(uniq.map(st => escapeHtml(st)))}</span>`;
             }
         }
         html += `
@@ -2826,6 +2871,7 @@ function addWaitlistWithQty(key, data, qty, comment) {
             articles: data.articles || {},
             kind: data.kind,
             station: data.station,
+            stations: data.stations,
             qty,
             comment
         });
@@ -3019,17 +3065,50 @@ function computePremontageCategoriesForArticle(
             categories.add(name);
         }
     });
-    return [...categories].sort(
-        (a, b) =>
-            a.localeCompare(
-                b,
-                'uk',
-                {
-                    numeric: true,
-                    sensitivity: 'base'
-                }
-            )
-    );
+    /*
+        Постанційно: номер на 158… у назві передмонтажу шукаємо в матеріалах
+        рядків із номером станції цього ж артикулу; сортуємо за найменшою
+        станцією. Без збігу — в кінці, за назвою.
+    */
+    const stationOf158 = {};
+    searchData.forEach(row => {
+        if (isPremontageName(row.station)) return;
+        if (!premontageArticleMatches(row, article)) return;
+        const st = String(row.station || "").trim();
+        if (!st) return;
+        const tokens =
+            String(row.material || "").match(/158\d+/g);
+        if (!tokens) return;
+        tokens.forEach(t => {
+            (stationOf158[t] = stationOf158[t] || []).push(st);
+        });
+    });
+    const cmp = (x, y) =>
+        String(x).localeCompare(
+            String(y),
+            'uk',
+            { numeric: true, sensitivity: 'base' }
+        );
+    const firstStation = c => {
+        const t = String(c).match(/158\d+/);
+        const list = t ? stationOf158[t[0]] : null;
+        return list && list.length
+            ? [...list].sort(cmp)[0]
+            : null;
+    };
+    return [...categories].sort((a, b) => {
+        const sa = firstStation(a);
+        const sb = firstStation(b);
+        if (sa !== null && sb !== null) {
+            const byStation = cmp(sa, sb);
+            if (byStation !== 0) return byStation;
+        } else if (sa !== null) {
+            return -1;
+        } else if (sb !== null) {
+            return 1;
+        }
+        return cmp(a, b);
+    });
 }
 function computeWiresForCategory(
     article,
@@ -3721,7 +3800,7 @@ function buildArticlesLevelHtml(
                             <span class="wire-name" style="min-width:34px;">
                                 ${escapeHtml(item.station)}
                             </span>
-                            <span class="wire-code" style="font-size:16px; font-weight:800; color:#111; text-align:left;">
+                            <span class="wire-code qty-slot" style="font-size:16px; font-weight:800; color:#111; text-align:left;">
                                 ${escapeHtml(item.shown)}${
                                     sptsSaved && sptsSaved.qty
                                         ? `<span class="pm-qty-badge">${escapeHtml(sptsSaved.qty)}</span>`
@@ -3827,11 +3906,12 @@ function buildArticlesLevelHtml(
                     <div
                         class="result-card"
                         ${toSearchAttr(matName)}
+                        ${sptsCardAttrs(state, matName, matAddr, [...grouped[matKey]])}
                         style="cursor:pointer;">
                         <div class="result-top">
-                            <span class="result-material-badge">
+                            <span class="result-material-badge qty-slot">
                                 <span class="box-icon ico">📦</span>
-                                ${escapeHtml(matName)}
+                                ${escapeHtml(matName)}${sptsBadge(sptsCardKey(state, matName, matAddr))}
                             </span>
                             <span class="result-address-new">
                                 ${escapeHtml(matAddr)}
@@ -3882,11 +3962,12 @@ function buildArticlesLevelHtml(
                     <div
                         class="result-card"
                         ${toSearchAttr(matName)}
+                        ${sptsCardAttrs(state, matName, matAddr, [...grouped[matKey]])}
                         style="cursor:pointer;">
                         <div class="result-top">
-                            <span class="result-material-badge">
+                            <span class="result-material-badge qty-slot">
                                 <span class="box-icon ico">📦</span>
-                                ${escapeHtml(matName)}
+                                ${escapeHtml(matName)}${sptsBadge(sptsCardKey(state, matName, matAddr))}
                             </span>
                             <span class="result-address-new">
                                 ${escapeHtml(matAddr)}
@@ -4022,13 +4103,22 @@ function buildArticlesLevelHtml(
                     String(
                         w.colD || ""
                     ).trim();
+                const wireKey = [
+                    'spts',
+                    state.article,
+                    'pm:' + state.category,
+                    '-',
+                    wireName,
+                    address
+                ].join('|');
                 html += `
                     <div
                         class="wire-row"
                         ${toSearchAttr(wireName)}
+                        ${sptsAttrs(wireKey, premontageShortName(state.category), '', [], wireName, address)}
                         style="cursor:pointer; display:grid; grid-template-columns:1fr auto 1fr; align-items:center;${note ? ' background:#eef2ff; border-left:4px solid #4338ca;' : ''}">
-                        <span class="wire-name" style="justify-self:start;">
-                            ${escapeHtml(wireName)}
+                        <span class="wire-name qty-slot" style="justify-self:start;">
+                            ${escapeHtml(wireName)}${sptsBadge(wireKey)}
                         </span>
                         <span class="wire-code level-head-tail" style="margin-left:0; font-size:11px; font-weight:700; color:#6b7280; text-align:center; flex:none;">
                             ${escapeHtml(note)}
@@ -4110,9 +4200,17 @@ function buildArticlesLevelHtml(
                     <div
                         class="wire-row"
                         ${toSearchAttr(matName)}
+                        ${sptsAttrs(
+                            ['spts', state.article, 'wires', state.station, matName, matAddr].join('|'),
+                            'Проводи',
+                            String(state.station || ''),
+                            [String(state.station || '')],
+                            matName,
+                            matAddr
+                        )}
                         style="cursor:pointer;">
-                        <span class="wire-name">
-                            ${escapeHtml(matName)}
+                        <span class="wire-name qty-slot">
+                            ${escapeHtml(matName)}${sptsBadge(['spts', state.article, 'wires', state.station, matName, matAddr].join('|'))}
                         </span>
                         <span class="wire-location">
                             ${escapeHtml(matAddr)}
@@ -4504,7 +4602,9 @@ function pmApplySptsTarget(scroll) {
     const row = pmSptsRow();
     if (!row) return;
     row.classList.add('qty-target');
-    const code = row.querySelector('.wire-code');
+    const code =
+        row.querySelector('.qty-slot') ||
+        row.querySelector('.wire-code');
     let badge = code ? code.querySelector('.pm-qty-badge') : null;
     if (pmQtyValue) {
         if (code && !badge) {
@@ -4534,12 +4634,17 @@ function enterPmSptsMode(article, rowEl) {
     pmQtyKey = rowEl.dataset.sptsKey;
     pmQtyArticle = article;
     pmQtyCategory = "";
+    const stationsRaw = rowEl.dataset.sptsStations || '';
+    const stationsArr = stationsRaw
+        ? stationsRaw.split(',')
+        : (station ? [station] : []);
     pmSptsData = {
         material,
         address: rowEl.dataset.sptsAddr || '',
         kind,
         station,
-        articles: { [article]: [station] }
+        stations: stationsArr,
+        articles: { [article]: stationsArr }
     };
     pmQtyLabel =
         kind + ' · ' + material +
@@ -4818,12 +4923,12 @@ function pmStartPress(btn, x, y, kind) {
         } else if (kind === 'spts') {
             const cur =
                 articlesPageStack[articlesPageStack.length - 1];
-            if (
-                !cur ||
-                cur.level !== 'results' ||
-                (cur.action !== 'sp' && cur.action !== 'ts') ||
-                pmQtyMode
-            ) return;
+            if (!cur || pmQtyMode) return;
+            const okLevel =
+                cur.level === 'premontage-wires' ||
+                cur.level === 'wire-results' ||
+                (cur.level === 'results' && cur.action !== 'розміщення');
+            if (!okLevel) return;
             go = () => enterPmSptsMode(cur.article, b);
         } else {
             const cur =
