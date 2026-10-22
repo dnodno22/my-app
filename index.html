@@ -1117,7 +1117,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v103</button>
+                    aria-expanded="false">v104</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1177,7 +1177,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 103;
+const CODE_VERSION = 104;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2517,6 +2517,62 @@ function fmtLogTime(ts) {
     return p(d.getDate()) + '.' + p(d.getMonth() + 1) +
         ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
 }
+/* ---------- Статистика тривалості дотиків ---------- */
+const TAP_STATS_KEY = 'tapStats';
+function loadTapStats() {
+    try {
+        const a = JSON.parse(localStorage.getItem(TAP_STATS_KEY) || '[]');
+        return Array.isArray(a) ? a : [];
+    } catch (_) { return []; }
+}
+function saveTapStat(ms) {
+    try {
+        const a = loadTapStats();
+        a.push(Math.round(ms));
+        while (a.length > 300) a.shift();
+        localStorage.setItem(TAP_STATS_KEY, JSON.stringify(a));
+    } catch (_) {}
+}
+let tapT0 = 0, tapX = 0, tapY = 0, tapMoved = false;
+document.addEventListener('touchstart', e => {
+    if (!e.touches || e.touches.length !== 1) { tapT0 = 0; return; }
+    tapT0 = performance.now();
+    tapX = e.touches[0].clientX;
+    tapY = e.touches[0].clientY;
+    tapMoved = false;
+}, { capture: true, passive: true });
+document.addEventListener('touchmove', e => {
+    if (!tapT0 || !e.touches.length) return;
+    if (
+        Math.abs(e.touches[0].clientX - tapX) > 10 ||
+        Math.abs(e.touches[0].clientY - tapY) > 10
+    ) tapMoved = true;
+}, { capture: true, passive: true });
+document.addEventListener('touchend', () => {
+    if (tapT0 && !tapMoved) {
+        const d = performance.now() - tapT0;
+        if (d < 3000) saveTapStat(d);
+    }
+    tapT0 = 0;
+}, { capture: true, passive: true });
+function tapStatsRow(label, arr) {
+    if (!arr.length) {
+        return `<div class="wl-history-row"><span class="wl-history-text">${label}: —</span></div>`;
+    }
+    const a = [...arr].sort((x, y) => x - y);
+    const q = f => a[Math.min(a.length - 1, Math.floor(f * a.length))];
+    const avg = Math.round(a.reduce((x, y) => x + y, 0) / a.length);
+    return `<div class="wl-history-row"><span class="wl-history-text">${label} (${a.length}): сер. ${avg} мс · мед. ${q(0.5)} · 90% ${q(0.9)} · макс ${a[a.length - 1]}</span></div>`;
+}
+function renderTapStatsHtml() {
+    const all = loadTapStats();
+    const taps = all.filter(d => d < PM_LONG_PRESS_MS);
+    const holds = all.filter(d => d >= PM_LONG_PRESS_MS);
+    return '<div class="wl-history-title" style="margin-top:10px;">Тривалість дотиків</div>' +
+        tapStatsRow('Тапи', taps) +
+        tapStatsRow('Утримання', holds) +
+        '<div class="wl-history-row"><button type="button" id="tap-stats-reset" style="border:0;background:none;color:#888;font-size:12px;padding:4px 0;">Скинути статистику</button></div>';
+}
 function renderWaitlistLog() {
     const log = loadWaitlistLog();
     wlHistoryEl.innerHTML =
@@ -2527,7 +2583,14 @@ function renderWaitlistLog() {
                     <span class="wl-history-time">${fmtLogTime(r.t)}</span>
                     <span class="wl-history-text">${escapeHtml(r.text)}</span>
                 </div>`).join('')
-            : '<div class="wl-history-empty">Змін ще немає</div>');
+            : '<div class="wl-history-empty">Змін ще немає</div>') +
+        renderTapStatsHtml();
+    const rb = document.getElementById('tap-stats-reset');
+    if (rb) rb.onclick = ev => {
+        ev.stopPropagation();
+        try { localStorage.removeItem(TAP_STATS_KEY); } catch (_) {}
+        renderWaitlistLog();
+    };
 }
 function setWaitlistLogOpen(open) {
     wlHistoryEl.classList.toggle('hidden', !open);
