@@ -329,7 +329,71 @@ body.interface-readable .art-readable {
     margin-left: 1px;
 }
 /* ==================== СПИСОК ОЧІКУВАННЯ ==================== */
+.wl-menu-btn {
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #111;
+    font-size: 20px;
+    line-height: 1;
+    border-radius: 10px;
+    padding: 6px 10px;
+    margin-left: 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.wl-menu-btn.open {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #4338ca;
+}
+.wl-history {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: calc(88px + env(safe-area-inset-top));
+    z-index: 40;
+    max-height: 60%;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+    padding: 6px 0;
+    touch-action: pan-y;
+}
+.wl-history-title {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #6b7280;
+}
+.wl-history-row {
+    display: flex;
+    gap: 10px;
+    padding: 10px 14px;
+    border-top: 1px solid #f0f0f0;
+    font-size: 14px;
+    color: #111;
+}
+.wl-history-time {
+    flex-shrink: 0;
+    min-width: 78px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+}
+.wl-history-text {
+    word-break: break-word;
+}
+.wl-history-empty {
+    padding: 12px 14px;
+    font-size: 14px;
+    color: #9ca3af;
+}
 .waitlist-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 18px;
     font-weight: 700;
     color: #111111;
@@ -1001,8 +1065,9 @@ tr:nth-child(even) td {
     <!-- PAGE (waitlist): свайп управо від пошуку -->
     <div class="page" id="page-waitlist">
         <div class="search-header">
-            <div class="waitlist-title"><span class="ico">⭐ </span>Обрані матеріали</div>
+            <div class="waitlist-title"><span class="ico">⭐ </span>Обрані матеріали<button type="button" id="wl-menu-btn" class="wl-menu-btn" aria-label="Останні зміни" aria-expanded="false">☰</button></div>
         </div>
+        <div id="wl-history" class="wl-history hidden"></div>
         <div class="scroll-area">
             <div id="waitlist-result"></div>
         </div>
@@ -1043,7 +1108,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v97</button>
+                    aria-expanded="false">v98</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1103,7 +1168,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 97;
+const CODE_VERSION = 98;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2159,11 +2224,109 @@ function loadWaitlist() {
         return [];
     }
 }
+const CACHE_KEY_WL_LOG = "waitlistHistory";
+function loadWaitlistLog() {
+    try {
+        const v = JSON.parse(
+            localStorage.getItem(CACHE_KEY_WL_LOG) || "[]"
+        );
+        return Array.isArray(v) ? v : [];
+    } catch (e) {
+        return [];
+    }
+}
+function pushWaitlistLog(texts) {
+    if (!texts.length) return;
+    try {
+        const log = loadWaitlistLog();
+        const t = Date.now();
+        texts.forEach(x => log.unshift({ t, text: x }));
+        localStorage.setItem(
+            CACHE_KEY_WL_LOG,
+            JSON.stringify(log.slice(0, 10))
+        );
+    } catch (e) {
+        /* Історія не має блокувати роботу */
+    }
+}
+function wlLabel(item) {
+    let l =
+        (item.kind ? item.kind + ' ' : '') +
+        String(item.material || '');
+    if (item.kind && item.station) {
+        l += ' ст. ' + item.station;
+    }
+    const k = String(item.key || '');
+    if (k.startsWith('pm|') || k.startsWith('spts|')) {
+        l += ' (арт. ' + k.split('|')[1] + ')';
+    }
+    return l.trim();
+}
+function wlDiffTexts(prev, next) {
+    const prevMap = new Map(prev.map(i => [i.key, i]));
+    const nextMap = new Map(next.map(i => [i.key, i]));
+    const out = [];
+    const added = [];
+    const removed = [];
+    next.forEach(i => {
+        const o = prevMap.get(i.key);
+        if (!o) {
+            added.push(i);
+            return;
+        }
+        const oq = o.qty ? String(o.qty) : '';
+        const nq = i.qty ? String(i.qty) : '';
+        const oc = String(o.comment || '').trim();
+        const nc = String(i.comment || '').trim();
+        if (oq !== nq) {
+            out.push(
+                'Змінено: ' + wlLabel(i) + ' · ' +
+                (oq ? oq + ' → ' : '') +
+                (nq || 'без кількості')
+            );
+        } else if (oc !== nc) {
+            out.push(
+                'Коментар: ' + wlLabel(i) +
+                (nc ? '' : ' (прибрано)')
+            );
+        }
+    });
+    prev.forEach(o => {
+        if (!nextMap.has(o.key)) removed.push(o);
+    });
+    if (added.length > 2) {
+        out.push('Додано: ' + added.length + ' позицій');
+    } else {
+        added.forEach(i =>
+            out.push(
+                'Додано: ' + wlLabel(i) +
+                (i.qty ? ' · ' + i.qty : '')
+            )
+        );
+    }
+    if (removed.length > 2) {
+        out.push('Видалено: ' + removed.length + ' позицій');
+    } else {
+        removed.forEach(o =>
+            out.push(
+                'Видалено: ' + wlLabel(o) +
+                (o.qty ? ' · ' + o.qty : '')
+            )
+        );
+    }
+    return out;
+}
 function saveWaitlist(list) {
+    const prev = loadWaitlist();
     localStorage.setItem(
         CACHE_KEY_WAITLIST,
         JSON.stringify(list)
     );
+    try {
+        pushWaitlistLog(wlDiffTexts(prev, list));
+    } catch (e) {
+        /* Історія не має блокувати збереження */
+    }
 }
 function isInWaitlist(key) {
     return loadWaitlist()
@@ -2243,7 +2406,9 @@ function renderWaitlistPage() {
             );
         html += `
             <div class="result-card">
-                <div class="result-top">
+                <div
+                    class="result-top"
+                    ${item.qty ? `data-pm-edit="${idx}" style="cursor:pointer;"` : ''}>
                     <span class="result-material-badge">
                         <span class="box-icon ico">📦</span>
                         ${escapeHtml(item.material)}
@@ -2323,6 +2488,47 @@ function renderWaitlistPage() {
     });
     waitlistBox.innerHTML = html;
 }
+/* ---------- Меню "Останні зміни" ---------- */
+const wlMenuBtn = document.getElementById('wl-menu-btn');
+const wlHistoryEl = document.getElementById('wl-history');
+function fmtLogTime(ts) {
+    const d = new Date(ts);
+    const p = n => String(n).padStart(2, '0');
+    return p(d.getDate()) + '.' + p(d.getMonth() + 1) +
+        ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function renderWaitlistLog() {
+    const log = loadWaitlistLog();
+    wlHistoryEl.innerHTML =
+        '<div class="wl-history-title">Останні зміни</div>' +
+        (log.length
+            ? log.map(r => `
+                <div class="wl-history-row">
+                    <span class="wl-history-time">${fmtLogTime(r.t)}</span>
+                    <span class="wl-history-text">${escapeHtml(r.text)}</span>
+                </div>`).join('')
+            : '<div class="wl-history-empty">Змін ще немає</div>');
+}
+function setWaitlistLogOpen(open) {
+    wlHistoryEl.classList.toggle('hidden', !open);
+    wlMenuBtn.classList.toggle('open', open);
+    wlMenuBtn.setAttribute('aria-expanded', String(open));
+    if (open) renderWaitlistLog();
+}
+wlMenuBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    setWaitlistLogOpen(wlHistoryEl.classList.contains('hidden'));
+});
+document.addEventListener('click', e => {
+    if (wlHistoryEl.classList.contains('hidden')) return;
+    if (
+        e.target.closest('#wl-history') ||
+        e.target.closest('#wl-menu-btn')
+    ) {
+        return;
+    }
+    setWaitlistLogOpen(false);
+});
 /* Ключ передмонтажу: "pm|артикул|назва" → повертає артикул (або null) */
 function pmArticleOfItem(item) {
     const k = String((item && item.key) || "");
@@ -4166,14 +4372,18 @@ function pmApplyWaitlistTarget(scroll) {
     if (row.dataset.orig === undefined) {
         row.dataset.orig = q ? q.textContent : '';
     }
-    const shown = pmQtyValue !== "" ? pmQtyValue : row.dataset.orig;
+    const shown =
+        pmQtyHad
+            ? pmQtyValue
+            : (pmQtyValue !== "" ? pmQtyValue : row.dataset.orig);
     if (shown !== "") {
         if (!q) {
             q = document.createElement('span');
             q.className = 'waitlist-qty';
             (
                 row.querySelector('.pm-group-right') ||
-                row.querySelector('.pm-group-line')
+                row.querySelector('.pm-group-line') ||
+                row
             ).appendChild(q);
         }
         q.textContent = shown;
@@ -4420,16 +4630,15 @@ function enterPmWaitlistEdit(idx) {
     }
     pmQtyMode = true;
     pmQtySource = 'waitlist';
-    pmQtyHad = false;
+    pmQtyHad = !!item.qty;
     pmQtyKey = key;
     pmQtyArticle = "";
     pmQtyCategory = "";
     pmQtyLabel =
         (item.kind ? item.kind + ' · ' : '') +
         item.material +
-        (item.station ? ' · ст. ' + item.station : '') +
-        (item.qty ? ' · зараз ' + item.qty : '');
-    pmQtyValue = "";
+        (item.station ? ' · ст. ' + item.station : '');
+    pmQtyValue = item.qty ? String(item.qty) : "";
     pmCommentEl.value = item.comment ? item.comment : "";
     pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
     pmPanelEl.classList.remove('hidden');
@@ -4475,7 +4684,6 @@ function pmRemoveSavedCurrent() {
 function confirmPmQty() {
     if (!pmQtyMode) return;
     if (
-        pmQtySource !== 'waitlist' &&
         pmQtyHad &&
         pmQtyValue === ""
     ) {
@@ -4568,7 +4776,6 @@ pmPanelEl.addEventListener('click', e => {
         }
     } else if (a === 'cancel') {
         if (
-            pmQtySource !== 'waitlist' &&
             pmQtyHad &&
             pmQtyValue === ""
         ) {
@@ -5051,6 +5258,7 @@ function formatDate(ts) {
 /* ==================== ПЕРЕХІД МІЖ ГОЛОВНИМИ СТОРІНКАМИ ==================== */
 function goToPage(n) {
     exitPmQtyMode(false);
+    setWaitlistLogOpen(false);
     n =
         Math.max(
             0,
@@ -5274,6 +5482,7 @@ document.addEventListener(
     e => {
         /* Поки відкрита клавіатура кількості передмонтажу — свайпи вимкнені */
         if (pmQtyMode) return;
+        if (e.target.closest && e.target.closest('#wl-history')) return;
         if (
             !e.touches ||
             e.touches.length !== 1
@@ -5953,6 +6162,7 @@ document.addEventListener(
         pullActive = false;
         pullDy = 0;
         if (pmQtyMode) return;
+        if (e.target.closest && e.target.closest('#wl-history')) return;
         if (
             !e.touches ||
             e.touches.length !== 1
