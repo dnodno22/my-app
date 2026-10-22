@@ -1043,7 +1043,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v96</button>
+                    aria-expanded="false">v97</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1103,7 +1103,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 96;
+const CODE_VERSION = 97;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2378,7 +2378,7 @@ function buildPmGroupHtml(article, items) {
             const uniq = uniqueDisplayStations(stArr);
             if (uniq.length) {
                 stationsHtml =
-                    `<div class="pm-group-kind pm-group-stations-small">ст. ${uniq.map(st => escapeHtml(st)).join(', ')}</div>`;
+                    `<span class="pm-group-kind">ст. ${uniq.map(st => escapeHtml(st)).join(', ')}</span>`;
             }
         }
         html += `
@@ -2387,7 +2387,7 @@ function buildPmGroupHtml(article, items) {
                 data-pm-edit="${idx}">
                 <div class="pm-group-line">
                     <span class="pm-group-name">
-                        ${escapeHtml(item.material)}${kindHtml}
+                        ${escapeHtml(item.material)}${kindHtml}${stationsHtml}
                     </span>
                     <span class="pm-group-right">
                         ${addrHtml}
@@ -2396,7 +2396,6 @@ function buildPmGroupHtml(article, items) {
                             : ''}
                     </span>
                 </div>
-                ${stationsHtml}
                 ${hasComment
                     ? `<div class="waitlist-comment-text">${escapeHtml(item.comment)}</div>`
                     : ''}
