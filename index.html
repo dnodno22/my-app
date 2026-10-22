@@ -1039,7 +1039,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v92</button>
+                    aria-expanded="false">v93</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1099,7 +1099,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 92;
+const CODE_VERSION = 93;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2325,12 +2325,9 @@ function pmArticleOfItem(item) {
         const art = k.split('|')[1];
         return art ? art : null;
     }
-    /* Звичайний матеріал: якщо має кількість або коментар і лише один артикул — теж у блок артикулу */
+    /* Звичайний матеріал: у блок артикулу лише якщо введена кількість і артикул один; зірочка без кількості лишається окремою карткою */
     if (!item) return null;
-    const has =
-        !!item.qty ||
-        !!(item.comment && String(item.comment).trim());
-    if (!has || !item.articles) return null;
+    if (!item.qty || !item.articles) return null;
     const keys = Object.keys(item.articles);
     if (keys.length !== 1) return null;
     const arts = expandArticleValue(keys[0]);
