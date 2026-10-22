@@ -1117,7 +1117,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v99</button>
+                    aria-expanded="false">v103</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1177,7 +1177,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 99;
+const CODE_VERSION = 103;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2449,8 +2449,13 @@ function renderWaitlistPage() {
             <div class="result-card">
                 <div
                     class="result-top"
-                    ${item.qty ? `data-pm-edit="${idx}" style="cursor:pointer;"` : ''}>
+                    data-pm-edit="${idx}" style="cursor:pointer;${item.qty ? ' margin-bottom:0;' : ''}">
                     <span class="result-material-badge">
+                        <button
+                            type="button"
+                            class="select-btn selected wl-star-btn"
+                            data-star-idx="${idx}"
+                            aria-label="Прибрати з обраних">★</button>
                         <span class="box-icon ico">📦</span>
                         ${escapeHtml(item.material)}
                     </span>
@@ -2462,6 +2467,8 @@ function renderWaitlistPage() {
                 </div>
         `;
         for (let art in item.articles) {
+            /* Якщо введена кількість — артикули і станції не показуємо */
+            if (item.qty) continue;
             const stationHtmlArr =
                 uniqueDisplayStations(
                     item.articles[art]
@@ -2491,38 +2498,12 @@ function renderWaitlistPage() {
                 <div class="waitlist-divider"></div>
                 <div
                     class="waitlist-comment-text"
-                    data-idx="${idx}">
+                    data-pm-edit="${idx}"
+                    style="cursor:pointer;">
                     ${escapeHtml(item.comment)}
                 </div>
             `;
         }
-        html += `
-            <div class="waitlist-actions-row">
-                <button
-                    class="waitlist-remove-btn"
-                    data-idx="${idx}">
-                    <span class="ico">★ </span>Прибрати зі списку
-                </button>
-                <button
-                    class="comment-toggle-btn"
-                    data-idx="${idx}">
-                    <span class="ico">${hasComment ? '✎ ' : '💬 '}</span>Коментар
-                </button>
-            </div>
-            <div
-                class="comment-edit-area hidden"
-                data-idx="${idx}">
-                <textarea
-                    class="comment-textarea"
-                    data-idx="${idx}"
-                    placeholder="Ваш коментар...">${escapeHtml(item.comment || "")}</textarea>
-                <button
-                    class="comment-save-btn"
-                    data-idx="${idx}">
-                    Зберегти
-                </button>
-            </div>
-        `;
         html += `</div>`;
     });
     waitlistBox.innerHTML = html;
@@ -2621,7 +2602,7 @@ function buildPmGroupHtml(article, items) {
                 ? `<span class="pm-group-addr">${escapeHtml(item.address)}</span>`
                 : '';
         let stationsHtml = '';
-        if (!isPm && !isSpts && !item.kind && item.articles) {
+        if (false && !isPm && !isSpts && !item.kind && item.articles) {
             const stArr = [];
             Object.keys(item.articles).forEach(a => {
                 (item.articles[a] || []).forEach(st => stArr.push(st));
@@ -2657,12 +2638,34 @@ function buildPmGroupHtml(article, items) {
     return html;
 }
 waitlistBox.addEventListener('click', (e) => {
+    const starBtn = e.target.closest('.wl-star-btn');
+    if (starBtn) {
+        if (pmQtyMode) return;
+        const starKey =
+            waitlistCardKeys[parseInt(starBtn.dataset.starIdx, 10)];
+        if (starKey === undefined) return;
+        saveWaitlist(
+            loadWaitlist().filter(i => i.key !== starKey)
+        );
+        renderWaitlistPage();
+        return;
+    }
     const editRow =
         e.target.closest('[data-pm-edit]');
     if (editRow) {
-        enterPmWaitlistEdit(
-            parseInt(editRow.dataset.pmEdit, 10)
+        if (pmSkipWaitClick) {
+            pmSkipWaitClick = false;
+            return;
+        }
+        if (pmQtyMode) return;
+        const it = loadWaitlist().find(
+            i => i.key === waitlistCardKeys[parseInt(editRow.dataset.pmEdit, 10)]
         );
+        if (!it) return;
+        const mat = String(it.material || '');
+        input.value = mat;
+        goToPage(SEARCH_PAGE_INDEX);
+        search();
         return;
     }
     if (pmQtyMode) return;
@@ -4899,6 +4902,7 @@ function pmCancelPress() {
     }
     pmPressBtn = null;
 }
+let pmSkipWaitClick = false;
 function pmStartPress(btn, x, y, kind) {
     pmCancelPress();
     pmPressBtn = btn;
@@ -4910,7 +4914,12 @@ function pmStartPress(btn, x, y, kind) {
         pmPressBtn = null;
         if (!b || !b.isConnected) return;
         let go = null;
-        if (kind === 'search') {
+        if (kind === 'waitlist') {
+            if (pmQtyMode) return;
+            const wi = parseInt(b.dataset.pmEdit, 10);
+            pmSkipWaitClick = true;
+            go = () => enterPmWaitlistEdit(wi);
+        } else if (kind === 'search') {
             if (
                 currentPage !== SEARCH_PAGE_INDEX ||
                 qtyMode ||
@@ -5009,6 +5018,33 @@ articlesPageContent.addEventListener('mousemove', e => {
 });
 articlesPageContent.addEventListener('mouseup', pmCancelPress);
 articlesPageContent.addEventListener('mouseleave', pmCancelPress);
+/* Довге натискання на матеріалі в «Обраних» — правка кількості */
+waitlistBox.addEventListener('touchstart', e => {
+    pmSkipWaitClick = false;
+    if (!e.touches || e.touches.length !== 1) { pmCancelPress(); return; }
+    if (e.target.closest('.wl-star-btn')) return;
+    const row = e.target.closest('[data-pm-edit]');
+    if (row) pmStartPress(row, e.touches[0].clientX, e.touches[0].clientY, 'waitlist');
+}, { passive: true });
+waitlistBox.addEventListener('touchmove', e => {
+    if (!pmPressTimer || !e.touches.length) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - pmPressX) > 10 || Math.abs(t.clientY - pmPressY) > 10) pmCancelPress();
+}, { passive: true });
+waitlistBox.addEventListener('touchend', pmCancelPress, { passive: true });
+waitlistBox.addEventListener('touchcancel', pmCancelPress, { passive: true });
+waitlistBox.addEventListener('contextmenu', e => {
+    if (e.target.closest('[data-pm-edit]')) e.preventDefault();
+});
+waitlistBox.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    pmSkipWaitClick = false;
+    if (e.target.closest('.wl-star-btn')) return;
+    const row = e.target.closest('[data-pm-edit]');
+    if (row) pmStartPress(row, e.clientX, e.clientY, 'waitlist');
+});
+waitlistBox.addEventListener('mouseup', pmCancelPress);
+waitlistBox.addEventListener('mouseleave', pmCancelPress);
 /* Те саме довге натискання — на знайденому матеріалі на сторінці пошуку */
 resultBox.addEventListener('touchstart', e => {
     if (!e.touches || e.touches.length !== 1) {
