@@ -763,6 +763,10 @@ input#input.qty-mode {
     font-weight: 700;
     color: #6b7280;
 }
+.pm-group-stations-small {
+    margin-left: 0;
+    margin-top: 4px;
+}
 .pm-group-stations {
     margin-top: 8px;
     font-size: 15px;
@@ -1039,7 +1043,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v93</button>
+                    aria-expanded="false">v96</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1099,7 +1103,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 93;
+const CODE_VERSION = 96;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2268,12 +2272,13 @@ function renderWaitlistPage() {
                             art,
                             "",
                             false,
-                            true
+                            true,
+                            !item.qty
                         )}
                     </span>
-                    <span class="article-stations">
-                        ${stationsHtml}
-                    </span>
+                    ${item.qty
+                        ? `<span class="pm-group-kind pm-group-stations-small">ст. ${uniqueDisplayStations(item.articles[art]).map(st => escapeHtml(st)).join(', ')}</span>`
+                        : `<span class="article-stations">${stationsHtml}</span>`}
                 </div>
             `;
         }
@@ -2370,11 +2375,10 @@ function buildPmGroupHtml(article, items) {
             Object.keys(item.articles).forEach(a => {
                 (item.articles[a] || []).forEach(st => stArr.push(st));
             });
-            const uniq = uniqueDisplayStations(stArr)
-                .map(st => escapeHtml(st));
+            const uniq = uniqueDisplayStations(stArr);
             if (uniq.length) {
                 stationsHtml =
-                    `<div class="pm-group-stations article-stations">${buildStationsHtml(uniq)}</div>`;
+                    `<div class="pm-group-kind pm-group-stations-small">ст. ${uniq.map(st => escapeHtml(st)).join(', ')}</div>`;
             }
         }
         html += `
