@@ -1117,7 +1117,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v104</button>
+                    aria-expanded="false">v106</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1177,7 +1177,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 104;
+const CODE_VERSION = 106;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2567,10 +2567,8 @@ function tapStatsRow(label, arr) {
 function renderTapStatsHtml() {
     const all = loadTapStats();
     const taps = all.filter(d => d < PM_LONG_PRESS_MS);
-    const holds = all.filter(d => d >= PM_LONG_PRESS_MS);
     return '<div class="wl-history-title" style="margin-top:10px;">Тривалість дотиків</div>' +
         tapStatsRow('Тапи', taps) +
-        tapStatsRow('Утримання', holds) +
         '<div class="wl-history-row"><button type="button" id="tap-stats-reset" style="border:0;background:none;color:#888;font-size:12px;padding:4px 0;">Скинути статистику</button></div>';
 }
 function renderWaitlistLog() {
@@ -4480,7 +4478,7 @@ document.addEventListener('selectstart', e => {
     e.preventDefault();
 });
 /* ==================== ПЕРЕДМОНТАЖ: ДОВГЕ НАТИСКАННЯ → КІЛЬКІСТЬ → ОБРАНЕ ==================== */
-const PM_LONG_PRESS_MS = 450;
+const PM_LONG_PRESS_MS = 300;
 let pmPressTimer = null;
 let pmPressBtn = null;
 let pmPressX = 0;
