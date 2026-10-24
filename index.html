@@ -28,10 +28,13 @@ html, body {
 }
 #pages {
     display: flex;
+    width: 300%; /* Початкове розташування без очікування JavaScript */
     height: 100%;
+    transform: translateX(-33.333333%); /* Одразу показуємо сторінку пошуку */
     transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
 }
 .page {
+    width: 33.333333%; /* Геометрія сторінок доступна ще до запуску JS */
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -1117,7 +1120,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v106</button>
+                    aria-expanded="false">v109</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1179,7 +1182,7 @@ tr:nth-child(even) td {
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 108;
+const CODE_VERSION = 109;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
