@@ -1175,9 +1175,11 @@ tr:nth-child(even) td {
     </div>
 </div>
 <script>
+/* Спочатку примусово даємо браузеру намалювати інтерфейс. Увесь важкий JS запускається після першого кадру. */
+requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 107;
+const CODE_VERSION = 108;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -6535,6 +6537,7 @@ if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
     });
 }
+} , 0));
 </script>
 </body>
 </html>
