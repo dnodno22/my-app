@@ -1164,7 +1164,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v113</button>
+                    aria-expanded="false">v115</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1228,7 +1228,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 113;
+const CODE_VERSION = 115;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3230,12 +3230,35 @@ function computePremontageCategoriesForArticle(
             'uk',
             { numeric: true, sensitivity: 'base' }
         );
+    /*
+        Станція передмонтажу: рядок, де в матеріалі стоїть сама буквено-цифрова
+        назва (напр. "1  KS_28  779803801A" → станція 1). Назва має збігатись
+        цілим словом. Якщо такого рядка нема — як і раніше, за номером на 158…
+    */
+    const stationRows = [];
+    searchData.forEach(row => {
+        if (isPremontageName(row.station)) return;
+        if (!premontageArticleMatches(row, article)) return;
+        const st = String(row.station || "").trim();
+        if (st) stationRows.push({ st, mat: String(row.material || "").toLowerCase() });
+    });
+    const escRe = v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const firstStation = c => {
-        const t = String(c).match(/158\d+/);
-        const list = t ? stationOf158[t[0]] : null;
-        return list && list.length
-            ? [...list].sort(cmp)[0]
-            : null;
+        const name = premontageShortName(c).toLowerCase().trim();
+        const found = [];
+        if (name) {
+            const re = new RegExp(
+                '(^|[^a-zа-яіїєґ0-9_*-])' + escRe(name) + '($|[^a-zа-яіїєґ0-9_*-])'
+            );
+            stationRows.forEach(r => {
+                if (re.test(r.mat)) found.push(r.st);
+            });
+        }
+        if (!found.length) {
+            const t = String(c).match(/158\d+/);
+            if (t && stationOf158[t[0]]) found.push(...stationOf158[t[0]]);
+        }
+        return found.length ? [...found].sort(cmp)[0] : null;
     };
     return [...categories].sort((a, b) => {
         const sa = firstStation(a);
