@@ -1164,7 +1164,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v115</button>
+                    aria-expanded="false">v119</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1228,7 +1228,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 115;
+const CODE_VERSION = 119;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -5435,6 +5435,7 @@ function search() {
             matAddr
         ] =
             matKey.split("|");
+
         const matHtml =
             highlight(
                 matName,
@@ -5508,6 +5509,13 @@ function search() {
         for (
             let art in mergedArticles
         ) {
+            if (
+                !String(art).trim() &&
+                Object.keys(mergedArticles).some(a => String(a).trim())
+            ) {
+                /* Той самий матеріал і адреса вже показані з артикулом */
+                continue;
+            }
             const artHtml =
                 renderArticleNumber(
                     art,
