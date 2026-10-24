@@ -1070,9 +1070,38 @@ td {
 tr:nth-child(even) td {
     background: #f9fafb;
 }
+
+/* Instant launch surface: visible immediately while the full app initializes */
+#instant-start {
+    position: fixed; inset: 0; z-index: 99999;
+    display: flex; flex-direction: column; background: #fff; color: #111;
+    padding: 0 16px calc(10px + env(safe-area-inset-bottom));
+    font-family: -apple-system, Arial, sans-serif;
+}
+#instant-start .instant-head { padding-top: calc(30px + env(safe-area-inset-top)); padding-bottom: 8px; }
+#instant-start .instant-input { height: 60px; border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; display:flex; align-items:center; justify-content:center; font-size:22px; color:#6b7280; }
+#instant-start .instant-spacer { flex: 1; min-height: 12px; }
+#instant-start .instant-kb { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+#instant-start .instant-key { height: clamp(48px, 8.2vh, 68px); border:0; border-radius:14px; background:#f3f4f6; color:#111; font-size:24px; font-weight:500; }
+#instant-start .instant-key.dim { color:#6b7280; font-size:18px; }
+#instant-start .instant-note { text-align:center; font-size:11px; color:#9ca3af; padding-top:8px; }
+@media (prefers-reduced-motion: no-preference) { #instant-start { animation: instantFade 0.12s ease-out; } }
+@keyframes instantFade { from { opacity:.98; } to { opacity:1; } }
+
 </style>
 </head>
 <body>
+<div id="instant-start" aria-label="Пошук">
+    <div class="instant-head"><div class="instant-input">Пошук</div></div>
+    <div class="instant-spacer"></div>
+    <div class="instant-kb" aria-hidden="true">
+        <div class="instant-key">1</div><div class="instant-key">2</div><div class="instant-key">3</div>
+        <div class="instant-key">4</div><div class="instant-key">5</div><div class="instant-key">6</div>
+        <div class="instant-key">7</div><div class="instant-key">8</div><div class="instant-key">9</div>
+        <div class="instant-key dim">⌕</div><div class="instant-key">0</div><div class="instant-key dim">⌫</div>
+    </div>
+    <div class="instant-note"> </div>
+</div>
 <div id="pages">
     <!-- PAGE (waitlist): свайп управо від пошуку -->
     <div class="page" id="page-waitlist">
@@ -1120,7 +1149,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v109</button>
+                    aria-expanded="false">v110</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1178,11 +1207,13 @@ tr:nth-child(even) td {
     </div>
 </div>
 <script>
+/* Запобіжник: якщо основна ініціалізація помилиться, не залишаємо стартовий екран назавжди. */
+setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 /* Спочатку примусово даємо браузеру намалювати інтерфейс. Увесь важкий JS запускається після першого кадру. */
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 109;
+const CODE_VERSION = 110;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -6540,6 +6571,8 @@ if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
     });
 }
+const instantStart = document.getElementById('instant-start');
+if (instantStart) instantStart.remove();
 } , 0));
 </script>
 </body>
