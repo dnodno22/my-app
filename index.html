@@ -1177,7 +1177,7 @@ tr:nth-child(even) td {
 <script>
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 106;
+const CODE_VERSION = 107;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1913,20 +1913,28 @@ function joinCsvParts(parts) {
         .filter(Boolean)
         .join("\n");
 }
-const cachedSearch =
-    SEARCH_GIDS.map(g => ({
-        gid: g,
-        text:
-            localStorage.getItem(gidCacheKey(g)) ||
-            ""
-    })).filter(part => part.text.trim());
-if (cachedSearch.length) {
-    parseSearchCSV(cachedSearch);
-    if (input.value) {
-        search();
+/*
+   ШВИДКИЙ СТАРТ:
+   Спочатку даємо браузеру намалювати інтерфейс. Читання кешу,
+   розбір усіх CSV та побудова груп запускаються після першого кадру,
+   щоб важкі таблиці не блокували появу пошуку.
+*/
+function initializeCachedSearch() {
+    let cachedSearch = [];
+    try {
+        cachedSearch = SEARCH_GIDS.map(g => ({
+            gid: g,
+            text: localStorage.getItem(gidCacheKey(g)) || ""
+        })).filter(part => part.text.trim());
+    } catch (_) {}
+
+    if (cachedSearch.length) {
+        parseSearchCSV(cachedSearch);
+        if (input.value) search();
     }
+    refreshArticleGroups();
 }
-refreshArticleGroups();
+
 /* ==================== СВІЖІ ДАНІ ==================== */
 function fetchSearchData() {
     const stamp = Date.now();
@@ -1983,7 +1991,21 @@ function fetchSearchData() {
         }
     });
 }
-fetchSearchData();
+/* Запуск після того, як браузер показав готовий каркас сторінки. */
+if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            initializeCachedSearch();
+            /* Мережеве оновлення стартує після показу кешованого інтерфейсу. */
+            setTimeout(fetchSearchData, 0);
+        }, 0);
+    });
+} else {
+    setTimeout(() => {
+        initializeCachedSearch();
+        setTimeout(fetchSearchData, 0);
+    }, 0);
+}
 /* ==================== HTML ESCAPE ==================== */
 function escapeHtml(str) {
     return String(str)
