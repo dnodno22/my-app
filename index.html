@@ -224,10 +224,6 @@ body.interface-readable #waitlist-result .result-address-new {
     border-left: 4px solid #003366;
     padding-left: 11px;
 }
-/* Артикул, під яким є позиції в «Обраних»: та сама смужка зліва, що й у пошуку */
-.premontage-item-btn.in-waitlist {
-    border-left: 4px solid #003366;
-}
 .article-number {
     font-size: 15px;
     font-weight: 700;
@@ -801,6 +797,11 @@ input#input.qty-mode {
 .pm-group-clear-btn:active {
     background: #fdeeca;
 }
+/* Гліф: синя смужка зліва на рамці обраного артикулу */
+.pm-group-article-frame.art-r-fav {
+    border-left: 4px solid #003366;
+    padding-left: 11px;
+}
 .pm-group-article-frame {
     display: inline-flex;
     align-items: baseline;
@@ -1163,7 +1164,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v112</button>
+                    aria-expanded="false">v113</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1227,7 +1228,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 112;
+const CODE_VERSION = 113;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2705,7 +2706,7 @@ function buildPmGroupHtml(article, items) {
     let html = `
         <div class="result-card">
             <div class="pm-group-article">
-                <span class="pm-group-article-frame">${articleHeadHtml(article)}</span>
+                <span class="pm-group-article-frame${isArticleFavorite(article) ? ' art-r-fav' : ''}">${articleHeadHtml(article)}</span>
                 <button
                     class="pm-group-clear-btn"
                     data-pm-clear="${escapeHtml(article)}">
@@ -3563,17 +3564,12 @@ function buildArticlesLevelHtml(
         } else {
             html +=
                 '<div class="premontage-btn-grid">';
-            const wlArticles = new Set();
-            loadWaitlist().forEach(it => {
-                const art = pmArticleOfItem(it);
-                if (art) wlArticles.add(String(art));
-            });
             articles.forEach(a => {
                 const favorite =
                     isArticleFavorite(a);
                 html += `
                     <button
-                        class="premontage-item-btn${favorite ? ' favorite' : ''}${wlArticles.has(String(a)) ? ' in-waitlist' : ''}"
+                        class="premontage-item-btn${favorite ? ' favorite' : ''}"
                         data-anav="article"
                         data-article="${escapeHtml(a)}">
                         ${renderArticleNumber(
