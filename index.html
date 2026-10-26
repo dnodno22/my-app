@@ -1228,7 +1228,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 120;
+const CODE_VERSION = 123;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2798,14 +2798,8 @@ waitlistBox.addEventListener('click', (e) => {
             return;
         }
         if (pmQtyMode) return;
-        const it = loadWaitlist().find(
-            i => i.key === waitlistCardKeys[parseInt(editRow.dataset.pmEdit, 10)]
-        );
-        if (!it) return;
-        const mat = String(it.material || '');
-        input.value = mat;
-        goToPage(SEARCH_PAGE_INDEX);
-        search();
+        /* Тап по матеріалу = правка кількості */
+        enterPmWaitlistEdit(parseInt(editRow.dataset.pmEdit, 10));
         return;
     }
     if (pmQtyMode) return;
@@ -2911,7 +2905,17 @@ resultBox.addEventListener('click', (e) => {
     const pick =
         e.target.closest('.mat-pick');
     if (pick) {
-        /* Кількість вводиться довгим натисканням (див. pmStartPress) */
+        /* Тап по матеріалу = ввід кількості */
+        if (
+            pmSkipWaitClick ||
+            currentPage !== SEARCH_PAGE_INDEX ||
+            qtyMode ||
+            pmQtyMode
+        ) return;
+        const pickKey =
+            searchCardKeys[parseInt(pick.dataset.idx, 10)];
+        if (pickKey === undefined) return;
+        enterPmSearchMode(pickKey, pick);
         return;
     }
     const btn =
@@ -4128,13 +4132,17 @@ function buildArticlesLevelHtml(
                         </div>
                 `;
                 list.forEach((item, i) => {
+                    const stKey =
+                        'spts|' + state.article + '|' + state.action +
+                        '|' + st + '|' + item.shown;
                     html += `
                         <div
                             class="article-row"
                             ${toSearchAttr(item.search)}
+                            ${sptsAttrs(stKey, isSp ? 'SP' : 'TS', String(st), [String(st)], item.shown, item.addr)}
                             style="cursor:pointer;${i === 0 ? ' border-top:none; padding-top:0;' : ''}">
-                            <span class="article-number" style="font-size:20px; font-weight:800;">
-                                ${escapeHtml(item.shown)}
+                            <span class="article-number qty-slot" style="font-size:20px; font-weight:800;">
+                                ${escapeHtml(item.shown)}${sptsBadge(stKey)}
                             </span>
                             <span class="result-address-new">
                                 ${escapeHtml(item.addr)}
@@ -5241,6 +5249,12 @@ function pmCancelPress() {
     pmPressBtn = null;
 }
 let pmSkipWaitClick = false;
+document.addEventListener('touchstart', () => {
+    pmSkipWaitClick = false;
+}, { capture: true, passive: true });
+document.addEventListener('mousedown', () => {
+    pmSkipWaitClick = false;
+}, true);
 function pmStartPress(btn, x, y, kind) {
     pmCancelPress();
     pmPressBtn = btn;
@@ -5255,18 +5269,19 @@ function pmStartPress(btn, x, y, kind) {
         if (kind === 'waitlist') {
             if (pmQtyMode) return;
             const wi = parseInt(b.dataset.pmEdit, 10);
+            const itW = loadWaitlist().find(
+                i => i.key === waitlistCardKeys[wi]
+            );
+            if (!itW) return;
             pmSkipWaitClick = true;
-            go = () => enterPmWaitlistEdit(wi);
+            go = () => {
+                input.value = String(itW.material || '');
+                goToPage(SEARCH_PAGE_INDEX);
+                search();
+            };
         } else if (kind === 'search') {
-            if (
-                currentPage !== SEARCH_PAGE_INDEX ||
-                qtyMode ||
-                pmQtyMode
-            ) return;
-            const key =
-                searchCardKeys[parseInt(b.dataset.idx, 10)];
-            if (key === undefined) return;
-            go = () => enterPmSearchMode(key, b);
+            /* Довге натискання на матеріалі в пошуку нічого не робить */
+            return;
         } else if (kind === 'spts') {
             const cur =
                 articlesPageStack[articlesPageStack.length - 1];
@@ -5277,16 +5292,27 @@ function pmStartPress(btn, x, y, kind) {
                 cur.level === 'wire-results' ||
                 (cur.level === 'results' && cur.action !== 'розміщення');
             if (!okLevel) return;
-            go = () => enterPmSptsMode(cur.article, b);
+            const matS = decodeURIComponent(b.dataset.material || "");
+            pmSkipWaitClick = true;
+            go = () => {
+                input.value = matS;
+                goToPage(SEARCH_PAGE_INDEX);
+                search();
+            };
         } else {
             const cur =
                 articlesPageStack[articlesPageStack.length - 1];
             if (!cur || cur.level !== 'premontage-categories') return;
-            go = () => enterPmQtyMode(
-                cur.article,
-                b.dataset.category,
-                b.dataset.label || b.textContent.trim()
-            );
+            const catOpen = b.dataset.category;
+            pmSkipWaitClick = true;
+            go = () => {
+                articlesPageStack.push({
+                    level: 'premontage-wires',
+                    article: cur.article,
+                    category: catOpen
+                });
+                renderArticlesPage();
+            };
         }
         /* Гасимо жести свайпу / "потягнути вниз" для цього дотику */
         pageDragging = false;
@@ -5465,6 +5491,19 @@ articlesPageContent.addEventListener(
             return;
         }
         /* ---------- ДО ПОШУКУ ---------- */
+        if (nav === 'to-search' && btn.dataset.sptsKey !== undefined) {
+            if (pmSkipWaitClick) return;
+            const curS =
+                articlesPageStack[articlesPageStack.length - 1];
+            if (!curS) return;
+            const okLevelS =
+                curS.level === 'list' ||
+                curS.level === 'premontage-wires' ||
+                curS.level === 'wire-results' ||
+                (curS.level === 'results' && curS.action !== 'розміщення');
+            if (okLevelS) enterPmSptsMode(curS.article, btn);
+            return;
+        }
         if (nav === 'to-search') {
             const material =
                 decodeURIComponent(
@@ -5539,6 +5578,18 @@ articlesPageContent.addEventListener(
         }
         /* ---------- КАТЕГОРІЯ ---------- */
         if (nav === 'category') {
+            /* Тап по назві передмонтажу = кількість; утримання = відкрити */
+            if (pmSkipWaitClick) return;
+            if (current.level === 'premontage-categories') {
+                enterPmQtyMode(
+                    current.article,
+                    btn.dataset.category,
+                    btn.dataset.label || btn.textContent.trim()
+                );
+            }
+            return;
+        }
+        if (nav === 'category-open') {
             articlesPageStack.push({
                 level: 'premontage-wires',
                 article: current.article,
