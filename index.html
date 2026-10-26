@@ -738,20 +738,38 @@ input#input.qty-mode {
     transform: scale(.97);
 }
 .qty-btn.qty-comment {
-    background: #eef2ff;
-    border-color: #c7d2fe;
-    color: #4338ca;
+    background: #fff;
+    border-color: #222;
+    color: #222;
 }
 .qty-btn.qty-cancel {
     flex: 0 0 52px;
-    background: #fff7e0;
-    border-color: #f3d37a;
-    color: #b45309;
+    background: #f1f5f9;
+    border-color: #222;
+    color: #222;
 }
 .qty-btn.qty-ok {
-    background: #4338ca;
-    border-color: #4338ca;
-    color: #fff;
+    background: #f1f5f9;
+    border-color: #222;
+    color: #222;
+}
+#pm-qty-title {
+    display: none;
+}
+.pm-presets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.pm-preset {
+    font-size: 13px;
+    padding: 12px 2px;
+    white-space: nowrap;
+}
+.pm-preset.active {
+    background: #e5e7eb;
+    border-color: #222;
 }
 .waitlist-qty {
     font-weight: 800;
@@ -1199,6 +1217,14 @@ tr:nth-child(even) td {
 <!-- КЛАВІАТУРА КІЛЬКОСТІ ДЛЯ ПЕРЕДМОНТАЖУ (довге натискання) -->
 <div id="pm-qty-panel" class="pm-qty-panel hidden">
     <div class="qty-title" id="pm-qty-title"></div>
+    <div class="pm-presets" id="pm-presets">
+        <button type="button" class="btn pm-preset" data-pmp="Мало">Мало</button>
+        <button type="button" class="btn pm-preset" data-pmp="Відсутній">Відсутній</button>
+        <button type="button" class="btn pm-preset" data-pmp="Замовлено">Замовлено</button>
+        <button type="button" class="btn pm-preset" data-pmp="9999">9999</button>
+        <button type="button" class="btn pm-preset" data-pmp="Доставляється">Доставляється</button>
+        <button type="button" class="btn pm-preset" data-pmp="Склад">Склад</button>
+    </div>
     <div class="pm-qty-display" id="pm-qty-display"></div>
     <textarea id="pm-qty-comment" class="comment-textarea hidden" placeholder="Коментар..."></textarea>
     <div class="qty-actions">
@@ -1228,7 +1254,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 125;
+const CODE_VERSION = 129;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3564,6 +3590,24 @@ function loadListPmOpen() {
         return true;
     }
 }
+function loadListPmClosed() {
+    try {
+        const v = JSON.parse(
+            localStorage.getItem('listPmClosed') || '[]'
+        );
+        return Array.isArray(v) ? v : [];
+    } catch (e) {
+        return [];
+    }
+}
+function toggleListPmClosed(key) {
+    const list = loadListPmClosed();
+    const i = list.indexOf(key);
+    if (i >= 0) list.splice(i, 1); else list.push(key);
+    try {
+        localStorage.setItem('listPmClosed', JSON.stringify(list));
+    } catch (e) {}
+}
 function saveListPmOpen(v) {
     try {
         localStorage.setItem('listPmOpen', v ? '1' : '0');
@@ -4535,122 +4579,139 @@ function buildArticlesLevelHtml(
     ) {
         const fullList =
             computeArticleList(state.article);
-        const list = fullList.filter(it => it.order !== 3);
-        const pmList = fullList.filter(it => it.order === 3);
         html +=
             '<div class="premontage-title"></div>';
         if (!fullList.length) {
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Немає матеріалів</div>';
         } else {
-            html +=
-                '<div class="wire-list">';
-            let prevSt = null;
-            list.forEach(it => {
-                if (
-                    prevSt !== null &&
-                    prevSt !== it.station
-                ) {
-                    html +=
-                        '<div style="margin-top:6px; border-top:2px solid #e5e7eb;"></div>';
-                }
-                prevSt = it.station;
-                const hasSt =
-                    it.station && it.station !== '—';
-                html += `
-                    <div
-                        class="wire-row"
-                        ${toSearchAttr(it.material)}
-                        ${sptsAttrs(
-                            it.key,
-                            it.kind,
-                            hasSt ? it.station : '',
-                            hasSt ? [it.station] : [],
-                            it.material,
-                            it.address
-                        )}
-                        style="cursor:pointer; display:grid; grid-template-columns:34px 1fr auto; align-items:center;">
-                        <span class="wire-name">
-                            ${escapeHtml(it.station || '—')}
-                        </span>
-                        <span class="qty-slot" style="font-size:16px; font-weight:800; color:#111;">
-                            ${escapeHtml(it.material)}<span class="level-head-tail"> ${escapeHtml(it.kind)}</span>${sptsBadge(it.key)}
-                        </span>
-                        <span class="wire-location">
-                            ${escapeHtml(it.address)}
-                        </span>
-                    </div>
-                `;
-            });
-            html +=
-                '</div>';
-        }
-        if (fullList.length && pmList.length) {
-            const pmOpen = loadListPmOpen();
-            html += `
+            const hasStn = v => !!v && v !== '—';
+            const cmpU = (x, y) =>
+                String(x).localeCompare(
+                    String(y),
+                    'uk',
+                    { numeric: true, sensitivity: 'base' }
+                );
+            const rowHtml = it => `
                 <div
                     class="wire-row"
-                    data-anav="list-pm-toggle"
-                    style="cursor:pointer; margin-top:12px; background:#eef2ff; border-color:#c7d2fe;">
-                    <span class="wire-name" style="color:#4338ca;">
-                        <span class="ico">🧵 </span>Передмонтаж · ${pmList.length}
+                    ${toSearchAttr(it.material)}
+                    ${sptsAttrs(
+                        it.key,
+                        it.kind,
+                        hasStn(it.station) ? it.station : '',
+                        hasStn(it.station) ? [it.station] : [],
+                        it.material,
+                        it.address
+                    )}
+                    style="cursor:pointer; display:grid; grid-template-columns:34px 1fr auto; align-items:center;">
+                    <span class="wire-name">
+                        ${escapeHtml(it.station || '—')}
                     </span>
-                    <span style="font-size:16px; font-weight:800; color:#4338ca;">${pmOpen ? '▲' : '▼'}</span>
+                    <span class="qty-slot" style="font-size:16px; font-weight:800; color:#111;">
+                        ${escapeHtml(it.material)}<span class="level-head-tail"> ${escapeHtml(it.kind)}</span>${sptsBadge(it.key)}
+                    </span>
+                    <span class="wire-location">
+                        ${escapeHtml(it.address)}
+                    </span>
                 </div>
             `;
-            if (pmOpen) {
-                html += '<div class="wire-list" style="margin-top:8px;">';
-                const cmpU = (x, y) =>
-                    String(x).localeCompare(
-                        String(y),
-                        'uk',
-                        { numeric: true, sensitivity: 'base' }
-                    );
-                const noStP = v => (!v || v === '—') ? 1 : 0;
-                /* Матеріали одного передмонтажу — разом */
-                const pmSorted = [...pmList].sort((a, b) =>
-                    (noStP(a.station) - noStP(b.station)) ||
-                    cmpU(a.station, b.station) ||
-                    cmpU(a.group, b.group) ||
-                    cmpU(a.material, b.material)
-                );
-                let prevPmGroup = null;
-                pmSorted.forEach(it => {
-                    if (prevPmGroup !== it.group) {
-                        html += `
-                            <div style="margin-top:${prevPmGroup === null ? 0 : 8}px; padding:4px 4px 0; font-size:14px; font-weight:800; color:#4338ca; border-top:${prevPmGroup === null ? 'none' : '2px solid #e5e7eb'};">
-                                ${escapeHtml(premontageShortName(it.group))}
-                            </div>
-                        `;
-                        prevPmGroup = it.group;
-                    }
-                    const hasSt =
-                        it.station && it.station !== '—';
+            const closedPm = loadListPmClosed();
+            const groupsOf = arr => {
+                const map = new Map();
+                arr.forEach(it => {
+                    if (!map.has(it.group)) map.set(it.group, []);
+                    map.get(it.group).push(it);
+                });
+                return [...map.entries()]
+                    .sort((x, y) => cmpU(x[0], y[0]))
+                    .map(([group, items]) => ({
+                        group,
+                        items: items.sort((x, y) =>
+                            cmpU(x.material, y.material)
+                        )
+                    }));
+            };
+            const groupHtml = g => {
+                const gKey = state.article + '|' + g.group;
+                const closed = closedPm.includes(gKey);
+                let h = `
+                    <div
+                        data-anav="list-pm-group"
+                        data-key="${escapeHtml(gKey)}"
+                        style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:4px 4px 0;">
+                        <span style="font-size:14px; font-weight:800; color:#4338ca; white-space:nowrap;">
+                            ${escapeHtml(premontageShortName(g.group))}
+                        </span>
+                        <span style="flex:1; height:1px; background:#c7d2fe;"></span>
+                        <span style="font-size:13px; font-weight:800; color:#4338ca;">${closed ? '▼' : '▲'}</span>
+                    </div>
+                `;
+                if (!closed) {
+                    g.items.forEach(it => {
+                        h += rowHtml(it);
+                    });
+                }
+                return h;
+            };
+            const regular =
+                fullList.filter(it => it.order !== 3);
+            const pm =
+                fullList.filter(it => it.order === 3);
+            const stSet = new Set();
+            fullList.forEach(it => {
+                if (hasStn(it.station)) stSet.add(it.station);
+            });
+            const stations = [...stSet].sort(cmpU);
+            const divider =
+                '<div style="margin-top:6px; border-top:2px solid #e5e7eb;"></div>';
+            let first = true;
+            stations.forEach(st => {
+                if (!first) html += divider;
+                first = false;
+                html += '<div class="wire-list">';
+                regular
+                    .filter(it => it.station === st)
+                    .forEach(it => {
+                        html += rowHtml(it);
+                    });
+                /* Передмонтажі цієї станції — в кінці її списку */
+                groupsOf(
+                    pm.filter(it => it.station === st)
+                ).forEach(g => {
+                    html += groupHtml(g);
+                });
+                html += '</div>';
+            });
+            const regNo =
+                regular.filter(it => !hasStn(it.station));
+            const pmNo =
+                pm.filter(it => !hasStn(it.station));
+            if (regNo.length || pmNo.length) {
+                if (!first) html += divider;
+                html += '<div class="wire-list">';
+                regNo.forEach(it => {
+                    html += rowHtml(it);
+                });
+                if (pmNo.length) {
+                    const pmOpen = loadListPmOpen();
                     html += `
                         <div
-                            class="wire-row"
-                            ${toSearchAttr(it.material)}
-                            ${sptsAttrs(
-                                it.key,
-                                it.kind,
-                                hasSt ? it.station : '',
-                                hasSt ? [it.station] : [],
-                                it.material,
-                                it.address
-                            )}
-                            style="cursor:pointer; display:grid; grid-template-columns:34px 1fr auto; align-items:center;">
-                            <span class="wire-name">
-                                ${escapeHtml(it.station || '—')}
+                            data-anav="list-pm-toggle"
+                            style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:8px 4px 0;">
+                            <span style="font-size:15px; font-weight:800; color:#4338ca; white-space:nowrap;">
+                                <span class="ico">🧵 </span>Передмонтаж
                             </span>
-                            <span class="qty-slot" style="font-size:16px; font-weight:800; color:#111;">
-                                ${escapeHtml(it.material)}<span class="level-head-tail"> ${escapeHtml(it.kind)}</span>${sptsBadge(it.key)}
-                            </span>
-                            <span class="wire-location">
-                                ${escapeHtml(it.address)}
-                            </span>
+                            <span style="flex:1; height:1px; background:#c7d2fe;"></span>
+                            <span style="font-size:13px; font-weight:800; color:#4338ca;">${pmOpen ? '▲' : '▼'}</span>
                         </div>
                     `;
-                });
+                    if (pmOpen) {
+                        groupsOf(pmNo).forEach(g => {
+                            html += groupHtml(g);
+                        });
+                    }
+                }
                 html += '</div>';
             }
         }
@@ -4934,9 +4995,32 @@ function pmApplyWaitlistTarget(scroll) {
         }
     }
 }
+function pmSplitQty(v) {
+    const m = String(v || "").match(/^(\d*)\s*(.*)$/);
+    return { num: m[1] || "", word: (m[2] || "").trim() };
+}
+function pmJoinQty(num, word) {
+    return num + (num && word ? ' ' : '') + word;
+}
+function pmFinalQty() {
+    const pt = pmSplitQty(pmQtyValue);
+    if (!pt.word) return pt.num ? parseInt(pt.num, 10) : null;
+    return pt.num
+        ? parseInt(pt.num, 10) + ' ' + pt.word
+        : pt.word;
+}
 function pmRefreshPanel() {
     pmTitleEl.textContent = pmQtyLabel;
     pmDisplayEl.textContent = pmQtyValue;
+    pmPanelEl.querySelectorAll('[data-pmp]').forEach(b => {
+        const pt = pmSplitQty(pmQtyValue);
+        b.classList.toggle(
+            'active',
+            b.dataset.pmp === '9999'
+                ? pt.num === '9999'
+                : b.dataset.pmp === pt.word
+        );
+    });
 }
 function pmSearchPick() {
     const idx = searchCardKeys.indexOf(pmQtyKey);
@@ -5238,11 +5322,12 @@ function confirmPmQty() {
         const list = loadWaitlist();
         const wi = list.findIndex(i => i.key === pmQtyKey);
         if (wi >= 0) {
-            if (pmQtyValue !== "" && parseInt(pmQtyValue, 10) === 0) {
+            if (pmQtyValue !== "" && /^\d+$/.test(pmQtyValue) && parseInt(pmQtyValue, 10) === 0) {
                 list.splice(wi, 1);
             } else {
                 if (pmQtyValue !== "") {
-                    list[wi].qty = parseInt(pmQtyValue, 10);
+                    const fq = pmFinalQty();
+                    if (fq !== null) list[wi].qty = fq;
                 }
                 list[wi].comment = pmCommentEl.value.trim();
             }
@@ -5251,8 +5336,8 @@ function confirmPmQty() {
         exitPmQtyMode(true);
         return;
     }
-    const qty = parseInt(pmQtyValue, 10);
-    if (!/^\d+$/.test(pmQtyValue) || !(qty > 0)) {
+    const qty = pmFinalQty();
+    if (qty === null || qty === 0) {
         pmDisplayEl.style.borderColor = '#ef4444';
         setTimeout(() => {
             pmDisplayEl.style.borderColor = '';
@@ -5285,19 +5370,34 @@ function confirmPmQty() {
     exitPmQtyMode(true);
 }
 pmPanelEl.addEventListener('click', e => {
+    const preset = e.target.closest('[data-pmp]');
+    if (preset) {
+        const w = preset.dataset.pmp;
+        const pt = pmSplitQty(pmQtyValue);
+        if (w === '9999') {
+            pmQtyValue = pmJoinQty('9999', pt.word);
+        } else {
+            pmQtyValue = pmJoinQty(pt.num, w);
+        }
+        pmRefreshPanel();
+        pmApplyTarget(false);
+        return;
+    }
     const digit = e.target.closest('[data-pmv]');
     if (digit) {
         const v = digit.dataset.pmv;
-        if (pmQtyValue === "0") pmQtyValue = "";
+        const pt = pmSplitQty(pmQtyValue);
+        let num = pt.num;
+        if (num === "0") num = "";
         if (
-            pmQtyValue === "" &&
+            num === "" &&
             v === "0" &&
             pmQtySource !== 'waitlist'
         ) {
             return;
         }
-        if (pmQtyValue.length < 4) {
-            pmQtyValue += v;
+        if (num.length < 4) {
+            pmQtyValue = pmJoinQty(num + v, pt.word);
             pmRefreshPanel();
             pmApplyTarget(false);
         }
@@ -5307,7 +5407,8 @@ pmPanelEl.addEventListener('click', e => {
     if (!act) return;
     const a = act.dataset.pm;
     if (a === 'clear') {
-        pmQtyValue = "";
+        const ptc = pmSplitQty(pmQtyValue);
+        pmQtyValue = ptc.word ? ptc.num : "";
         pmRefreshPanel();
         pmApplyTarget(false);
     } else if (a === 'comment') {
@@ -5579,6 +5680,14 @@ articlesPageContent.addEventListener(
             return;
         }
         /* ---------- ДО ПОШУКУ ---------- */
+        if (nav === 'list-pm-group') {
+            toggleListPmClosed(btn.dataset.key || '');
+            articlesPageStack.forEach(st => {
+                delete st.cachedHtml;
+            });
+            renderArticlesPage(true);
+            return;
+        }
         if (nav === 'list-pm-toggle') {
             saveListPmOpen(!loadListPmOpen());
             articlesPageStack.forEach(st => {
