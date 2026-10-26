@@ -644,6 +644,22 @@ body.interface-readable .art-readable {
     flex: 1;
     text-align: center;
 }
+.wr-slot {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+.wr-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.wr-slot .pm-qty-badge {
+    flex: none;
+}
 .list-station-box {
     border: 1px solid #e5e7eb;
     border-radius: 14px;
@@ -1299,7 +1315,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 140;
+const CODE_VERSION = 141;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2563,7 +2579,30 @@ function setWaitlistComment(key, text) {
     }
 }
 let waitlistCardKeys = [];
+function fitRowQty(root) {
+    const shortMap = {
+        'Відсутній': 'Відсут.',
+        'Замовлено': 'Замовл.',
+        'Доставляється': 'Доставл.'
+    };
+    root.querySelectorAll('.wr-slot .pm-qty-badge').forEach(b => {
+        if (b.dataset.full === undefined) {
+            b.dataset.full = b.textContent;
+        }
+        b.textContent = b.dataset.full;
+        const name = b.parentElement.querySelector('.wr-name');
+        if (!name || !name.clientWidth) return;
+        if (name.scrollWidth > name.clientWidth + 1) {
+            let t = b.dataset.full;
+            Object.keys(shortMap).forEach(w => {
+                t = t.replace(w, shortMap[w]);
+            });
+            b.textContent = t;
+        }
+    });
+}
 function fitWaitlistQty() {
+    fitRowQty(waitlistBox);
     const shortMap = {
         'Відсутній': 'Відсут.',
         'Замовлено': 'Замовл.',
@@ -2592,6 +2631,7 @@ function fitWaitlistQty() {
         }
     });
     waitlistBox.querySelectorAll('.waitlist-qty, .pm-qty-badge').forEach(q => {
+        if (q.closest('.wr-slot')) return;
         const full = q.textContent;
         let short = full;
         Object.keys(shortMap).forEach(w => {
@@ -2941,12 +2981,12 @@ function buildPmGroupHtml(article, items) {
             <div
                 class="wire-row"
                 data-pm-edit="${idx}"
-                style="cursor:pointer; display:grid; grid-template-columns:34px 1fr auto; align-items:center;">
+                style="cursor:pointer; display:grid; grid-template-columns:34px minmax(0,1fr) auto; align-items:center;">
                 <span class="wire-name">
                     ${hasStn(li.station) ? escapeHtml(li.station) : ''}
                 </span>
-                <span class="qty-slot" style="font-size:16px; font-weight:800; color:#111; white-space:nowrap;">
-                    ${escapeHtml(li.material)}${li.kind === 'Проводи' ? '' : `<span class="level-head-tail"> ${escapeHtml(li.kind)}</span>`}${x.it.qty ? `<span class="pm-qty-badge">${escapeHtml(x.it.qty)}</span>` : ''}
+                <span class="qty-slot wr-slot" style="font-size:16px; font-weight:800; color:#111;">
+                    <span class="wr-name">${escapeHtml(li.material)}${li.kind === 'Проводи' ? '' : `<span class="level-head-tail"> ${escapeHtml(li.kind)}</span>`}</span>${x.it.qty ? `<span class="pm-qty-badge">${escapeHtml(x.it.qty)}</span>` : ''}
                 </span>
                 <span class="wire-location">
                     ${escapeHtml(li.address)}
@@ -4819,12 +4859,12 @@ function buildArticlesLevelHtml(
                         it.material,
                         it.address
                     )}
-                    style="cursor:pointer; display:grid; grid-template-columns:34px 1fr auto; align-items:center;">
+                    style="cursor:pointer; display:grid; grid-template-columns:34px minmax(0,1fr) auto; align-items:center;">
                     <span class="wire-name">
                         ${hasStn(it.station) ? escapeHtml(it.station) : ''}
                     </span>
-                    <span class="qty-slot" style="font-size:16px; font-weight:800; color:#111;">
-                        ${escapeHtml(it.material)}${it.kind === 'Проводи' ? '' : `<span class="level-head-tail"> ${escapeHtml(it.kind)}</span>`}${sptsBadge(it.key)}
+                    <span class="qty-slot wr-slot" style="font-size:16px; font-weight:800; color:#111;">
+                        <span class="wr-name">${escapeHtml(it.material)}${it.kind === 'Проводи' ? '' : `<span class="level-head-tail"> ${escapeHtml(it.kind)}</span>`}</span>${sptsBadge(it.key)}
                     </span>
                     <span class="wire-location">
                         ${escapeHtml(it.address)}
@@ -5112,6 +5152,7 @@ function renderArticlesPage(
         }
     }
     container.innerHTML = html;
+    fitRowQty(container);
     if (pmQtyMode) pmApplyTarget(false);
 }
 /* Системне контекстне меню (копіювати) вимкнено скрізь, крім текстових полів */
