@@ -1103,6 +1103,17 @@ tr:nth-child(even) td {
 @media (prefers-reduced-motion: no-preference) { #instant-start { animation: instantFade 0.12s ease-out; } }
 @keyframes instantFade { from { opacity:.98; } to { opacity:1; } }
 
+
+/* Постанційний список проводів */
+.station-list-group{border:1px solid #e5e7eb;border-radius:14px;margin:0 0 12px;padding:12px;background:#fff}
+.station-list-heading{font-size:18px;font-weight:800;margin-bottom:8px;color:#111}
+.station-list-row{padding:7px 0;border-top:1px solid #f1f5f9;font-size:15px;color:#222;overflow-wrap:anywhere}
+.station-list-row:first-of-type{border-top:0}
+.station-list-details{margin-top:8px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
+.station-list-details summary{padding:10px 12px;background:#f8fafc;font-weight:700;cursor:pointer;touch-action:manipulation}
+.station-list-details .station-list-row{padding:9px 12px}
+.station-list-empty{color:#9ca3af;font-size:14px;padding:6px 0}
+
 </style>
 </head>
 <body>
@@ -1228,7 +1239,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 119;
+const CODE_VERSION = 120;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1279,7 +1290,8 @@ const ARTICLE_ACTION_KEYS = [
     "ізострічка",
     "мм",
     "передмонтаж",
-    "проводи"
+    "проводи",
+    "список"
 ];
 const ACTION_LABELS = {
     "розміщення": '<span class="ico">📍 </span>Розміщення',
@@ -3516,6 +3528,7 @@ function articleHasAction(
     article,
     action
 ) {
+    if (action === 'список') return true;
     if (action === 'розміщення') {
         return getAllMaterialsForArticle(
             article
@@ -3635,6 +3648,66 @@ function buildArticlesLevelHtml(
             });
             html +=
                 '</div>';
+        }
+    /* ---------- ПОСТАНЦІЙНИЙ СПИСОК ---------- */
+    } else if (state.level === 'station-list') {
+        const article = state.article;
+        const allRows = getAllMaterialsForArticle(article);
+        const stations = new Map();
+        const stationKey = st => String(st || '').trim() || '__NO_STATION__';
+        const add = (st, kind, label) => {
+            const key = stationKey(st);
+            if (!stations.has(key)) stations.set(key, { wires: [], extras: [], pm: [] });
+            const target = stations.get(key);
+            const item = String(label || '').trim();
+            if (!item) return;
+            const arr = kind === 'wire' ? target.wires : kind === 'pm' ? target.pm : target.extras;
+            if (!arr.includes(item)) arr.push(item);
+        };
+        getWireRowsForArticle(article).forEach(r => add(r.station, 'wire', r.material));
+        ['sp', 'ts'].forEach(action => {
+            computeArticleActionResults(article, action).forEach(r => {
+                const st = String(r.station || '').trim();
+                const label = `${action.toUpperCase()} · ${String(r.material || '').trim()}${r.colD ? ' · ' + String(r.colD).trim() : ''}`;
+                add(st, 'extra', label);
+            });
+        });
+        const pmCategories = computePremontageCategoriesForArticle(article);
+        pmCategories.forEach(category => {
+            const shortName = premontageShortName(category).toLowerCase();
+            const code158 = premontage158(category);
+            let matchedStations = [];
+            allRows.forEach(r => {
+                if (isPremontageName(r.station)) return;
+                const mat = String(r.material || '').toLowerCase();
+                if ((shortName && mat.includes(shortName)) || (code158 && mat.includes(code158))) {
+                    const st = String(r.station || '').trim();
+                    if (st) matchedStations.push(st);
+                }
+            });
+            const st = matchedStations.sort((a,b)=>a.localeCompare(b,'uk',{numeric:true,sensitivity:'base'}))[0] || '';
+            add(st, 'pm', category);
+        });
+        const cmpStation = (a,b) => String(a).localeCompare(String(b),'uk',{numeric:true,sensitivity:'base'});
+        const keys = [...stations.keys()].filter(k=>k!=='__NO_STATION__').sort(cmpStation);
+        if (stations.has('__NO_STATION__')) keys.push('__NO_STATION__');
+        html += buildLevelHeadHtml(article, 'Список');
+        if (!keys.length) {
+            html += '<div class="station-list-empty">Немає проводів для цього артикулу</div>';
+        } else {
+            keys.forEach(key => {
+                const group = stations.get(key);
+                const title = key === '__NO_STATION__' ? 'Без станції' : `Станція ${key}`;
+                const rows = [...new Set(group.wires)].sort(cmpStation);
+                const extras = [...new Set(group.extras)].sort(cmpStation);
+                const pms = [...new Set(group.pm)].sort(cmpStation);
+                html += `<section class="station-list-group"><div class="station-list-heading">${escapeHtml(title)}</div>`;
+                if (rows.length) rows.forEach(w => html += `<div class="station-list-row">⚡ ${escapeHtml(w)}</div>`);
+                if (extras.length) html += `<details class="station-list-details"><summary>SP / TS (${extras.length})</summary>${extras.map(x=>`<div class="station-list-row">${escapeHtml(x)}</div>`).join('')}</details>`;
+                if (pms.length) html += `<details class="station-list-details"><summary>Передмонтаж (${pms.length})</summary>${pms.map(x=>`<div class="station-list-row">🧵 ${escapeHtml(x)}</div>`).join('')}</details>`;
+                if (!rows.length && !extras.length && !pms.length) html += '<div class="station-list-empty">Немає записів</div>';
+                html += '</section>';
+            });
         }
     /* ---------- РЕЗУЛЬТАТИ ---------- */
     } else if (state.level === 'results') {
@@ -5328,7 +5401,12 @@ articlesPageContent.addEventListener(
         if (nav === 'action') {
             const action =
                 btn.dataset.action;
-            if (
+            if (action === 'список') {
+                articlesPageStack.push({
+                    level: 'station-list',
+                    article: current.article
+                });
+            } else if (
                 action === 'передмонтаж'
             ) {
                 articlesPageStack.push({
