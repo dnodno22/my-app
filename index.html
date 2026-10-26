@@ -744,9 +744,9 @@ input#input.qty-mode {
 }
 .qty-btn.qty-cancel {
     flex: 0 0 52px;
-    background: #f1f5f9;
-    border-color: #222;
-    color: #222;
+    background: #fff;
+    border-color: #dc2626;
+    color: #dc2626;
 }
 .qty-btn.qty-ok {
     background: #f1f5f9;
@@ -766,10 +766,12 @@ input#input.qty-mode {
     flex: 1 1 0;
     min-width: 0;
     font-size: 12px;
-    padding: 12px 0;
-    white-space: nowrap;
+    line-height: 1.15;
+    padding: 8px 1px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     overflow: hidden;
-    text-overflow: clip;
 }
 .pm-qty-display {
     white-space: nowrap;
@@ -1262,7 +1264,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 131;
+const CODE_VERSION = 133;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2526,6 +2528,28 @@ function setWaitlistComment(key, text) {
     }
 }
 let waitlistCardKeys = [];
+function fitWaitlistQty() {
+    const shortMap = {
+        'Відсутній': 'Відсут.',
+        'Замовлено': 'Замовл.',
+        'Доставляється': 'Доставл.'
+    };
+    waitlistBox.querySelectorAll('.waitlist-qty').forEach(q => {
+        const full = q.textContent;
+        let short = full;
+        Object.keys(shortMap).forEach(w => {
+            short = short.replace(w, shortMap[w]);
+        });
+        if (short === full) return;
+        const host =
+            q.closest('.article-row, .pm-group-line, .result-top, .pm-group-item') ||
+            q.parentElement;
+        const tooWide =
+            (host && host.scrollWidth > host.clientWidth + 1) ||
+            q.getBoundingClientRect().height > 34;
+        if (tooWide) q.textContent = short;
+    });
+}
 function renderWaitlistPage() {
     const list = loadWaitlist();
     if (!list.length) {
@@ -2620,6 +2644,7 @@ function renderWaitlistPage() {
         html += `</div>`;
     });
     waitlistBox.innerHTML = html;
+    fitWaitlistQty();
 }
 /* ---------- Меню "Останні зміни" ---------- */
 const wlMenuBtn = document.getElementById('wl-menu-btn');
@@ -5011,19 +5036,23 @@ function pmSplitQty(v) {
     }
     return { num: m[1] || "", word: (m[2] || "").trim() };
 }
-function pmFitPresets() {
-    pmPanelEl.querySelectorAll('.pm-preset').forEach(b => {
-        b.textContent = b.dataset.pmp;
-    });
-    pmPanelEl.querySelectorAll('.pm-preset').forEach(b => {
-        if (
-            b.clientWidth > 0 &&
-            b.dataset.short &&
-            b.scrollWidth > b.clientWidth
-        ) {
-            b.textContent = b.dataset.short;
+const PM_SHORT = {
+    'Відсутній': 'Відсут.',
+    'Замовлено': 'Замовл.',
+    'Доставляється': 'Доставл.'
+};
+function pmFitDisplay() {
+    pmDisplayEl.textContent = pmQtyValue;
+    if (
+        pmDisplayEl.clientWidth > 0 &&
+        pmDisplayEl.scrollWidth > pmDisplayEl.clientWidth
+    ) {
+        const pt = pmSplitQty(pmQtyValue);
+        if (pt.word && PM_SHORT[pt.word]) {
+            pmDisplayEl.textContent =
+                pmJoinQty(pt.num, PM_SHORT[pt.word]);
         }
-    });
+    }
 }
 function pmJoinQty(num, word) {
     return num + (num && word ? ' ' : '') + word;
@@ -5045,7 +5074,7 @@ function pmRefreshPanel() {
             b.dataset.pmp === pt.word
         );
     });
-    pmFitPresets();
+    pmFitDisplay();
 }
 function pmSearchPick() {
     const idx = searchCardKeys.indexOf(pmQtyKey);
