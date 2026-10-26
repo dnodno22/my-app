@@ -757,15 +757,23 @@ input#input.qty-mode {
     display: none;
 }
 .pm-presets {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
     margin-bottom: 10px;
 }
 .pm-preset {
-    font-size: 13px;
-    padding: 12px 2px;
+    flex: 1 1 0;
+    min-width: 0;
+    font-size: 12px;
+    padding: 12px 0;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+}
+.pm-qty-display {
+    white-space: nowrap;
+    overflow: hidden;
 }
 .pm-preset.active {
     background: #e5e7eb;
@@ -1220,10 +1228,10 @@ tr:nth-child(even) td {
     <div class="pm-qty-display" id="pm-qty-display"></div>
     <div class="pm-presets" id="pm-presets">
         <button type="button" class="btn pm-preset" data-pmp="Мало">Мало</button>
-        <button type="button" class="btn pm-preset" data-pmp="Відсутній">Відсутній</button>
-        <button type="button" class="btn pm-preset" data-pmp="Замовлено">Замовлено</button>
+        <button type="button" class="btn pm-preset" data-pmp="Відсутній" data-short="Відсут.">Відсутній</button>
+        <button type="button" class="btn pm-preset" data-pmp="Замовлено" data-short="Замовл.">Замовлено</button>
         <button type="button" class="btn pm-preset" data-pmp="9999">9999</button>
-        <button type="button" class="btn pm-preset" data-pmp="Доставляється">Доставляється</button>
+        <button type="button" class="btn pm-preset" data-pmp="Доставляється" data-short="Доставл.">Доставляється</button>
         <button type="button" class="btn pm-preset" data-pmp="Склад">Склад</button>
     </div>
     <textarea id="pm-qty-comment" class="comment-textarea hidden" placeholder="Коментар..."></textarea>
@@ -1254,7 +1262,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 130;
+const CODE_VERSION = 131;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -4997,7 +5005,25 @@ function pmApplyWaitlistTarget(scroll) {
 }
 function pmSplitQty(v) {
     const m = String(v || "").match(/^(\d*)\s*(.*)$/);
+    /* 9999 прирівняно до слова */
+    if (m[1] === '9999' && !(m[2] || "").trim()) {
+        return { num: "", word: '9999' };
+    }
     return { num: m[1] || "", word: (m[2] || "").trim() };
+}
+function pmFitPresets() {
+    pmPanelEl.querySelectorAll('.pm-preset').forEach(b => {
+        b.textContent = b.dataset.pmp;
+    });
+    pmPanelEl.querySelectorAll('.pm-preset').forEach(b => {
+        if (
+            b.clientWidth > 0 &&
+            b.dataset.short &&
+            b.scrollWidth > b.clientWidth
+        ) {
+            b.textContent = b.dataset.short;
+        }
+    });
 }
 function pmJoinQty(num, word) {
     return num + (num && word ? ' ' : '') + word;
@@ -5016,11 +5042,10 @@ function pmRefreshPanel() {
         const pt = pmSplitQty(pmQtyValue);
         b.classList.toggle(
             'active',
-            b.dataset.pmp === '9999'
-                ? pt.num === '9999'
-                : b.dataset.pmp === pt.word
+            b.dataset.pmp === pt.word
         );
     });
+    pmFitPresets();
 }
 function pmSearchPick() {
     const idx = searchCardKeys.indexOf(pmQtyKey);
@@ -5374,11 +5399,7 @@ pmPanelEl.addEventListener('click', e => {
     if (preset) {
         const w = preset.dataset.pmp;
         const pt = pmSplitQty(pmQtyValue);
-        if (w === '9999') {
-            pmQtyValue = pmJoinQty('9999', pt.word);
-        } else {
-            pmQtyValue = pmJoinQty(pt.num, w);
-        }
+        pmQtyValue = pmJoinQty(pt.num, w);
         pmRefreshPanel();
         pmApplyTarget(false);
         return;
