@@ -1103,37 +1103,6 @@ tr:nth-child(even) td {
 @media (prefers-reduced-motion: no-preference) { #instant-start { animation: instantFade 0.12s ease-out; } }
 @keyframes instantFade { from { opacity:.98; } to { opacity:1; } }
 
-
-/* Постанційний список проводів */
-.station-list-group{border:1px solid #e5e7eb;border-radius:14px;margin:0 0 12px;padding:12px;background:#fff}
-.station-list-heading{font-size:18px;font-weight:800;margin-bottom:8px;color:#111}
-.station-list-row{padding:7px 0;border-top:1px solid #f1f5f9;font-size:15px;color:#222;overflow-wrap:anywhere}
-.station-list-row:first-of-type{border-top:1px solid #e5e7eb}
-.station-list-details{margin-top:8px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
-.station-list-details summary{padding:10px 12px;background:#f8fafc;font-weight:700;cursor:pointer;touch-action:manipulation}
-.station-list-details .station-list-row{padding:9px 12px}
-.station-list-empty{color:#9ca3af;font-size:14px;padding:6px 0}
-
-
-/* Список матеріалів у меню артикула */
-.station-list-group{border:1px solid #e5e7eb;border-radius:14px;margin:0 0 12px;padding:12px;background:#fff}
-.station-list-heading{font-size:18px;font-weight:800;margin-bottom:8px;color:#111}
-.station-list-row{display:grid;grid-template-columns:minmax(0,1fr) 76px 92px;align-items:center;gap:8px;padding:9px 8px;margin:7px 0;border:1px solid #e5e7eb;border-radius:12px;background:#fff;font-size:14px;color:#222;box-sizing:border-box}
-.station-list-row:first-of-type{border-top:1px solid #e5e7eb}
-.station-list-material{font-size:21px;font-weight:800;color:#111827;overflow-wrap:anywhere;min-width:0}
-.station-list-where{font-size:11px;font-weight:400;color:#9ca3af;overflow-wrap:anywhere}
-.station-list-qty{width:100%;min-width:0;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:8px;padding:8px 5px;font:inherit;text-align:center;background:#fff;color:#111;cursor:pointer}
-.station-list-tag{position:relative;min-width:0}
-.station-list-tag summary{list-style:none;border:1px solid #cbd5e1;border-radius:8px;padding:8px 5px;text-align:center;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;background:#f8fafc}
-.station-list-tag summary::-webkit-details-marker{display:none}
-.station-list-tag-menu{position:absolute;right:0;top:100%;z-index:20;min-width:120px;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 5px 18px #0002;padding:4px;max-height:220px;overflow:auto}
-.station-list-tag-menu button{display:block;width:100%;text-align:left;border:0;background:#fff;border-radius:6px;padding:9px 8px;font:inherit;cursor:pointer}
-.station-list-tag-menu button:active{background:#e2e8f0}
-.station-list-details{margin-top:8px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
-.station-list-details summary{padding:10px 12px;background:#f8fafc;font-weight:700;cursor:pointer;touch-action:manipulation}
-.station-list-details .station-list-row{padding:9px 8px}
-.station-list-empty{color:#9ca3af;font-size:14px;padding:6px 0}
-@media(max-width:420px){.station-list-row{grid-template-columns:minmax(0,1fr) 64px 82px;gap:5px;padding:8px 6px}.station-list-where{font-size:11px}.station-list-qty{padding:8px 2px}.station-list-tag summary{font-size:11px;padding:8px 2px}}
 </style>
 </head>
 <body>
@@ -1152,7 +1121,7 @@ tr:nth-child(even) td {
     <!-- PAGE (waitlist): свайп управо від пошуку -->
     <div class="page" id="page-waitlist">
         <div class="search-header">
-            <div class="waitlist-title"><span class="ico">⭐ </span><button type="button" id="wl-menu-btn" class="wl-menu-btn" aria-label="Останні зміни" aria-expanded="false">☰</button></div>
+            <div class="waitlist-title"><span class="ico">⭐ </span>Обрані матеріали<button type="button" id="wl-menu-btn" class="wl-menu-btn" aria-label="Останні зміни" aria-expanded="false">☰</button></div>
         </div>
         <div id="wl-history" class="wl-history hidden"></div>
         <div class="scroll-area">
@@ -1195,7 +1164,7 @@ tr:nth-child(even) td {
                     id="kb-version"
                     aria-label="Фільтр пошуку"
                     aria-haspopup="true"
-                    aria-expanded="false">v122</button>
+                    aria-expanded="false">v120</button>
                 <button class="btn" data-v="0">0</button>
                 <button class="btn btn-special" data-del="all">⌫</button>
             </div>
@@ -1259,7 +1228,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 123;
+const CODE_VERSION = 120;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1320,7 +1289,8 @@ const ACTION_LABELS = {
     "ізострічка": '<span class="ico">📏 </span>Ізострічка',
     "мм": '<span class="ico">📐 </span>ММ',
     "передмонтаж": '<span class="ico">🧵 </span>Передмонтаж',
-    "проводи": '<span class="ico">⚡ </span>Проводи'
+    "проводи": '<span class="ico">⚡ </span>Проводи',
+    "список": '<span class="ico">📋 </span>Список'
 };
 function actionLabel(key) {
     return ACTION_LABELS[key] || escapeHtml(key);
@@ -2739,7 +2709,11 @@ function buildPmGroupHtml(article, items) {
         <div class="result-card">
             <div class="pm-group-article">
                 <span class="pm-group-article-frame${isArticleFavorite(article) ? ' art-r-fav' : ''}">${articleHeadHtml(article)}</span>
-
+                <button
+                    class="pm-group-clear-btn"
+                    data-pm-clear="${escapeHtml(article)}">
+                    Очистити
+                </button>
             </div>
     `;
     items.forEach((item, n) => {
@@ -3539,12 +3513,123 @@ function getOtherArticles(
             )
         );
 }
+/* ==================== СПИСОК АРТИКУЛУ (проводи + SP + TS + передмонтажі, постанційно) ==================== */
+function buildPmStationResolver(article) {
+    const cmp = (x, y) =>
+        String(x).localeCompare(
+            String(y),
+            'uk',
+            { numeric: true, sensitivity: 'base' }
+        );
+    const stationOf158 = {};
+    const stationRows = [];
+    searchData.forEach(row => {
+        if (isPremontageName(row.station)) return;
+        if (!premontageArticleMatches(row, article)) return;
+        const st = String(row.station || "").trim();
+        if (!st) return;
+        const mat = String(row.material || "");
+        stationRows.push({ st, mat: mat.toLowerCase() });
+        (mat.match(/158\d+/g) || []).forEach(t => {
+            (stationOf158[t] = stationOf158[t] || []).push(st);
+        });
+    });
+    const escRe = v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return c => {
+        const name = premontageShortName(c).toLowerCase().trim();
+        const found = [];
+        if (name) {
+            const re = new RegExp(
+                '(^|[^a-zа-яіїєґ0-9_*-])' + escRe(name) + '($|[^a-zа-яіїєґ0-9_*-])'
+            );
+            stationRows.forEach(r => {
+                if (re.test(r.mat)) found.push(r.st);
+            });
+        }
+        if (!found.length) {
+            const t = String(c).match(/158\d+/);
+            if (t && stationOf158[t[0]]) found.push(...stationOf158[t[0]]);
+        }
+        return found.length ? [...found].sort(cmp)[0] : '';
+    };
+}
+function computeArticleList(article) {
+    const items = [];
+    const seen = new Set();
+    const add = o => {
+        const k = [o.kind, o.station, o.material, o.address, o.key].join('|');
+        if (seen.has(k)) return;
+        seen.add(k);
+        items.push(o);
+    };
+    /* Проводи */
+    getWireRowsForArticle(article).forEach(r => {
+        const st = String(r.station || "").trim();
+        const m = String(r.material || "").trim();
+        const a = String(r.address || "").trim();
+        add({
+            order: 0,
+            kind: 'Проводи',
+            station: st,
+            material: m,
+            address: a,
+            key: ['spts', article, 'wires', st, m, a].join('|')
+        });
+    });
+    /* SP і TS (номери 158…) */
+    [['sp', 'SP', 1], ['ts', 'TS', 2]].forEach(([action, kind, order]) => {
+        computeArticleActionResults(article, action).forEach(r => {
+            const mm = String(r.material || "").match(/158\d+/);
+            if (!mm) return;
+            const st = String(r.station || "").trim() || '—';
+            const a = String(r.address || "").trim();
+            add({
+                order,
+                kind,
+                station: st,
+                material: mm[0],
+                address: a,
+                key: ['spts', article, action, st, mm[0]].join('|')
+            });
+        });
+    });
+    /* Передмонтажі: кожен провід окремо */
+    const resolve = buildPmStationResolver(article);
+    computePremontageCategoriesForArticle(article).forEach(c => {
+        const st = resolve(c);
+        computeWiresForCategory(article, c).forEach(w => {
+            const m = String(w.material || "").trim();
+            const a = String(w.address || "").trim();
+            add({
+                order: 3,
+                kind: premontageShortName(c),
+                station: st,
+                material: m,
+                address: a,
+                key: ['spts', article, 'pm:' + c, '-', m, a].join('|')
+            });
+        });
+    });
+    const cmp = (x, y) =>
+        String(x).localeCompare(
+            String(y),
+            'uk',
+            { numeric: true, sensitivity: 'base' }
+        );
+    const noSt = s => (!s || s === '—') ? 1 : 0;
+    items.sort((a, b) =>
+        (noSt(a.station) - noSt(b.station)) ||
+        cmp(a.station, b.station) ||
+        (a.order - b.order) ||
+        cmp(a.material, b.material)
+    );
+    return items;
+}
 /* ==================== ДІЇ ==================== */
 function articleHasAction(
     article,
     action
 ) {
-    if (action === 'список') return true;
     if (action === 'розміщення') {
         return getAllMaterialsForArticle(
             article
@@ -3557,6 +3642,11 @@ function articleHasAction(
     }
     if (action === 'проводи') {
         return computeWireStationsForArticle(
+            article
+        ).length > 0;
+    }
+    if (action === 'список') {
+        return computeArticleList(
             article
         ).length > 0;
     }
@@ -3664,73 +3754,6 @@ function buildArticlesLevelHtml(
             });
             html +=
                 '</div>';
-        }
-    /* ---------- ПОСТАНЦІЙНИЙ СПИСОК ---------- */
-    } else if (state.level === 'station-list') {
-        const article = state.article;
-        const stations = new Map();
-        const stationKey = st => String(st || '').trim() || '__NO_STATION__';
-        const add = (st, kind, material, where) => {
-            const key = stationKey(st);
-            if (!stations.has(key)) stations.set(key, { wires: [], pm: [] });
-            const target = stations.get(key);
-            const item = { material: String(material || '').trim(), where: String(where || '').trim() };
-            if (!item.material) return;
-            const arr = kind === 'pm' ? target.pm : target.wires;
-            if (!arr.some(x => x.material === item.material && x.where === item.where)) arr.push(item);
-        };
-        ['sp', 'ts'].forEach(action => {
-            computeArticleActionResults(article, action).forEach(r => {
-                const st = String(r.station || '').trim();
-                const label = action.toUpperCase();
-                add(st, 'wire', label, st ? `Станція ${st}` : 'Без станції');
-            });
-        });
-        const allRows = getAllMaterialsForArticle(article);
-        computePremontageCategoriesForArticle(article).forEach(category => {
-            const shortName = premontageShortName(category).toLowerCase();
-            const code158 = premontage158(category);
-            let matchedStations = [];
-            allRows.forEach(r => {
-                if (isPremontageName(r.station)) return;
-                const mat = String(r.material || '').toLowerCase();
-                if ((shortName && mat.includes(shortName)) || (code158 && mat.includes(code158))) {
-                    const st = String(r.station || '').trim();
-                    if (st) matchedStations.push(st);
-                }
-            });
-            const st = matchedStations.sort((a,b)=>a.localeCompare(b,'uk',{numeric:true,sensitivity:'base'}))[0] || '';
-            add(st, 'pm', category, st ? `Станція ${st}` : 'Без станції');
-        });
-        const cmpStation = (a,b) => String(a).localeCompare(String(b),'uk',{numeric:true,sensitivity:'base'});
-        const keys = [...stations.keys()].filter(k=>k!=='__NO_STATION__').sort(cmpStation);
-        if (stations.has('__NO_STATION__')) keys.push('__NO_STATION__');
-        const renderRow = (item, kind) => {
-            const key = `${article}|${kind}|${item.material}|${item.where}`;
-            const escapedKey = escapeHtml(key);
-            const safeMaterial = escapeHtml(item.material);
-            return `<div class="station-list-row" data-list-key="${escapedKey}">
-                <div class="station-list-material">${safeMaterial}</div>
-                <button type="button" class="station-list-qty" data-list-open="${escapedKey}" aria-label="Ввести кількість для ${safeMaterial}">${escapeHtml((stationListValues[key] && stationListValues[key].qty) || 'К-сть')}</button>
-                <button type="button" class="station-list-tag" data-list-open="${escapedKey}" data-list-label="${escapedKey}">${escapeHtml((stationListValues[key] && stationListValues[key].label) || 'Позначка')}</button>
-            </div>`;
-        };
-        
-        if (!keys.length) {
-            html += '<div class="station-list-empty">Немає матеріалів для цього артикулу</div>';
-        } else {
-            keys.forEach(key => {
-                const group = stations.get(key);
-                const title = key === '__NO_STATION__' ? 'Без станції' : `Станція ${key}`;
-                html += `<section class="station-list-group"><div class="station-list-heading">${escapeHtml(title)}</div>`;
-                group.wires.forEach(item => html += renderRow(item, 'wire'));
-                if (group.pm.length) {
-                    html += `<details class="station-list-details"><summary>Передмонтаж — ${group.pm.length} матеріалів</summary><div style="padding:0 10px">`;
-                    group.pm.forEach(item => html += renderRow(item, 'pm'));
-                    html += '</div></details>';
-                }
-                html += '</section>';
-            });
         }
     /* ---------- РЕЗУЛЬТАТИ ---------- */
     } else if (state.level === 'results') {
@@ -4481,6 +4504,60 @@ function buildArticlesLevelHtml(
             html +=
                 '</div>';
         }
+    /* ---------- СПИСОК (проводи + SP + TS + передмонтажі, постанційно) ---------- */
+    } else if (
+        state.level === 'list'
+    ) {
+        const list =
+            computeArticleList(state.article);
+        html +=
+            '<div class="premontage-title"></div>';
+        if (!list.length) {
+            html +=
+                '<div style="text-align:center; padding:40px; color:#aaa;">Немає матеріалів</div>';
+        } else {
+            html +=
+                '<div class="wire-list">';
+            let prevSt = null;
+            list.forEach(it => {
+                if (
+                    prevSt !== null &&
+                    prevSt !== it.station
+                ) {
+                    html +=
+                        '<div style="margin-top:6px; border-top:2px solid #e5e7eb;"></div>';
+                }
+                prevSt = it.station;
+                const hasSt =
+                    it.station && it.station !== '—';
+                html += `
+                    <div
+                        class="wire-row"
+                        ${toSearchAttr(it.material)}
+                        ${sptsAttrs(
+                            it.key,
+                            it.kind,
+                            hasSt ? it.station : '',
+                            hasSt ? [it.station] : [],
+                            it.material,
+                            it.address
+                        )}
+                        style="cursor:pointer; display:grid; grid-template-columns:34px 1fr auto; align-items:center;">
+                        <span class="wire-name">
+                            ${escapeHtml(it.station || '—')}
+                        </span>
+                        <span class="qty-slot" style="font-size:16px; font-weight:800; color:#111;">
+                            ${escapeHtml(it.material)}<span class="level-head-tail"> ${escapeHtml(it.kind)}</span>${sptsBadge(it.key)}
+                        </span>
+                        <span class="wire-location">
+                            ${escapeHtml(it.address)}
+                        </span>
+                    </div>
+                `;
+            });
+            html +=
+                '</div>';
+        }
     }
     /* ---------- ШАПКА: ліворуч артикул, праворуч назва кнопки ---------- */
     if (
@@ -4506,6 +4583,10 @@ function buildArticlesLevelHtml(
             state.level === 'wire-results'
         ) {
             right = state.station ? 'Станція ' + state.station : '';
+        } else if (
+            state.level === 'list'
+        ) {
+            right = plainActionName('список');
         }
         html =
             html.replace(
@@ -4609,85 +4690,6 @@ function plainActionName(key) {
     return k.charAt(0).toUpperCase() + k.slice(1);
 }
 /* ==================== РЕНДЕР АРТИКУЛІВ ==================== */
-/* Введення кількості у списку: власна клавіатура та швидкі позначки */
-let activeStationListKey = '';
-let stationListValues = {};
-try { stationListValues = JSON.parse(localStorage.getItem('stationListValues') || '{}') || {}; } catch (_) { stationListValues = {}; }
-function saveStationListFavorite(key) {
-    const value = stationListValues[key] || {};
-    if (!(String(value.qty || '').trim() || String(value.label || '').trim())) return;
-    const row = [...document.querySelectorAll('[data-list-key]')].find(el => el.dataset.listKey === key);
-    if (!row) return;
-    const material = row.querySelector('.station-list-material')?.textContent?.trim() || 'Матеріал';
-    const section = row.closest('.station-list-group');
-    const stationTitle = section?.querySelector('.station-list-heading')?.textContent?.trim() || 'Без станції';
-    const station = stationTitle === 'Без станції' ? '' : stationTitle.replace(/^Станція\s*/i, '');
-    const display = station ? `${material} · ${stationTitle}` : `${material} · Без станції`;
-    const list = loadWaitlist();
-    const favKey = 'station-list|' + key;
-    const item = {key:favKey, material:display, address:'', qty:String(value.qty || value.label || '').trim(), station, kind:'', articles:{}, comment:''};
-    const idx = list.findIndex(x => x.key === favKey);
-    if (idx >= 0) list[idx] = {...list[idx], ...item}; else list.push(item);
-    saveWaitlist(list);
-    if (typeof renderWaitlistPage === 'function') renderWaitlistPage();
-}
-const stationListQuickLabels = ['9999', 'Склад', 'Якраз', 'Відсутній', 'Замовлено'];
-function stationListOpen(key) {
-    activeStationListKey = key;
-    const row = [...document.querySelectorAll('[data-list-key]')].find(el => el.dataset.listKey === key);
-    if (!row) return;
-    const qtyBtn = row.querySelector('[data-list-open]');
-    const value = stationListValues[key] || {qty:'', label:''};
-    const input = document.getElementById('station-list-modal-input');
-    input.value = value.qty || '';
-    document.getElementById('station-list-modal-current').textContent = value.label || 'Оберіть позначку або введіть кількість';
-    document.getElementById('station-list-modal').classList.add('open');
-}
-function stationListClose(save) {
-    const modal = document.getElementById('station-list-modal');
-    if (save && activeStationListKey) {
-        const input = document.getElementById('station-list-modal-input');
-        const old = stationListValues[activeStationListKey] || {qty:'',label:''};
-        stationListValues[activeStationListKey] = {...old, qty: input.value};
-        try { localStorage.setItem('stationListValues', JSON.stringify(stationListValues)); } catch (_) {}
-        const row = [...document.querySelectorAll('[data-list-key]')].find(el => el.dataset.listKey === activeStationListKey);
-        if (row) {
-            const qty = row.querySelector('.station-list-qty');
-            const label = row.querySelector('.station-list-tag');
-            qty.textContent = input.value || 'К-сть';
-            label.textContent = (stationListValues[activeStationListKey].label || 'Позначка');
-        }
-        saveStationListFavorite(activeStationListKey);
-    }
-    modal.classList.remove('open');
-}
-document.addEventListener('click', function(event) {
-    const open = event.target.closest('[data-list-open]');
-    if (open) { event.preventDefault(); stationListOpen(open.dataset.listOpen); return; }
-    const quick = event.target.closest('[data-list-quick]');
-    if (quick) {
-        if (!activeStationListKey) return;
-        const label = quick.dataset.listQuick;
-        const old = stationListValues[activeStationListKey] || {qty:'',label:''};
-        stationListValues[activeStationListKey] = {...old,label};
-        try { localStorage.setItem('stationListValues', JSON.stringify(stationListValues)); } catch (_) {}
-        document.getElementById('station-list-modal-current').textContent = label;
-        document.querySelectorAll('[data-list-quick]').forEach(b=>b.classList.toggle('selected', b===quick));
-        saveStationListFavorite(activeStationListKey);
-        return;
-    }
-    const digit = event.target.closest('[data-list-digit]');
-    if (digit) {
-        const input = document.getElementById('station-list-modal-input');
-        if (digit.dataset.listDigit === 'clear') input.value = '';
-        else if (digit.dataset.listDigit === 'back') input.value = input.value.slice(0,-1);
-        else input.value += digit.dataset.listDigit;
-        return;
-    }
-    if (event.target.closest('[data-list-modal-cancel]')) { stationListClose(false); return; }
-    if (event.target.closest('[data-list-modal-ok]')) { stationListClose(true); return; }
-});
-
 function renderArticlesPage(
     forceRebuild
 ) {
@@ -5270,6 +5272,7 @@ function pmStartPress(btn, x, y, kind) {
                 articlesPageStack[articlesPageStack.length - 1];
             if (!cur || pmQtyMode) return;
             const okLevel =
+                cur.level === 'list' ||
                 cur.level === 'premontage-wires' ||
                 cur.level === 'wire-results' ||
                 (cur.level === 'results' && cur.action !== 'розміщення');
@@ -5503,12 +5506,7 @@ articlesPageContent.addEventListener(
         if (nav === 'action') {
             const action =
                 btn.dataset.action;
-            if (action === 'список') {
-                articlesPageStack.push({
-                    level: 'station-list',
-                    article: current.article
-                });
-            } else if (
+            if (
                 action === 'передмонтаж'
             ) {
                 articlesPageStack.push({
@@ -5520,6 +5518,13 @@ articlesPageContent.addEventListener(
             ) {
                 articlesPageStack.push({
                     level: 'wire-stations',
+                    article: current.article
+                });
+            } else if (
+                action === 'список'
+            ) {
+                articlesPageStack.push({
+                    level: 'list',
                     article: current.article
                 });
             } else {
@@ -6805,21 +6810,5 @@ const instantStart = document.getElementById('instant-start');
 if (instantStart) instantStart.remove();
 } , 0));
 </script>
-
-<div id="station-list-modal" aria-label="Введення кількості">
-  <div class="station-list-modal-panel">
-    <div class="station-list-modal-head"><strong>Кількість</strong><button type="button" data-list-modal-cancel aria-label="Закрити">✕</button></div>
-    <div id="station-list-modal-current" class="station-list-modal-current">Оберіть позначку або введіть кількість</div>
-    <div class="station-list-quick-labels"><button type="button" data-list-quick="9999">9999</button><button type="button" data-list-quick="Склад">Склад</button><button type="button" data-list-quick="Якраз">Якраз</button><button type="button" data-list-quick="Відсутній">Відсутній</button><button type="button" data-list-quick="Замовлено">Замовлено</button></div>
-    <input id="station-list-modal-input" type="text" inputmode="none" readonly placeholder="Кількість">
-    <div class="station-list-modal-kb kb-grid"><button type="button" class="btn" data-list-digit="1">1</button><button type="button" class="btn" data-list-digit="2">2</button><button type="button" class="btn" data-list-digit="3">3</button><button type="button" class="btn" data-list-digit="4">4</button><button type="button" class="btn" data-list-digit="5">5</button><button type="button" class="btn" data-list-digit="6">6</button><button type="button" class="btn" data-list-digit="7">7</button><button type="button" class="btn" data-list-digit="8">8</button><button type="button" class="btn" data-list-digit="9">9</button><button type="button" class="btn btn-special" data-list-digit="clear">AC</button><button type="button" class="btn" data-list-digit="0">0</button><button type="button" class="btn btn-special" data-list-digit="back">⌫</button></div>
-    <button type="button" class="station-list-modal-save" data-list-modal-ok>Готово</button>
-  </div>
-</div>
-<style>
-#station-list-modal{display:none;position:fixed;inset:0;z-index:100000;background:#0006;align-items:flex-end;justify-content:center}#station-list-modal.open{display:flex}.station-list-modal-panel{width:100%;max-width:560px;background:#f8fafc;border-radius:18px 18px 0 0;padding:12px 14px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -6px 28px #0002}.station-list-modal-head{display:flex;justify-content:space-between;align-items:center;font-size:16px;margin-bottom:8px}.station-list-modal-head button{border:0;background:#e2e8f0;border-radius:8px;padding:7px 11px;font-size:18px}.station-list-modal-current{text-align:center;font-weight:700;padding:6px 0 10px;min-height:34px}.station-list-quick-labels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:9px}.station-list-quick-labels button{border:1px solid #cbd5e1;border-radius:9px;background:#fff;padding:10px 3px;font-size:13px;font-weight:700}.station-list-quick-labels button.selected{background:#dbeafe;border-color:#2563eb}.station-list-modal-panel input{display:block;width:100%;height:44px;text-align:center;font-size:22px;font-weight:700;border:1px solid #cbd5e1;border-radius:9px;background:#fff;margin-bottom:9px}.station-list-modal-kb{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.station-list-modal-kb .btn{min-height:0;padding:15px 0;font-size:18px;border:1px solid #222;border-radius:8px;background:#fff;box-shadow:none}.station-list-modal-kb .btn-special{background:#f1f5f9}.station-list-modal-kb .btn:active{background:#F7F7F7;transform:scale(.96)}.station-list-modal-save{width:100%;margin-top:9px;border:0;border-radius:10px;background:#2563eb;color:white;padding:12px;font-size:16px;font-weight:700}
-</style>
-
 </body>
 </html>
-<style>.station-list-where{display:none!important}.station-list-quick-labels button{font-size:14px!important;padding:12px 3px!important}</style>
