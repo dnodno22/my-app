@@ -94,6 +94,23 @@ input#input {
 }
 .articles-dots .dot.past { background: #9ca3af; }
 .articles-dots .dot.active { width: 9px; height: 9px; background: #111827; }
+.articles-drag-wrapper {
+    display: flex;
+    align-items: flex-start;
+    width: 200%;
+    will-change: transform;
+}
+.articles-drag-pane {
+    width: 50%;
+    flex: 0 0 50%;
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 0;
+}
+#page-articles.articles-swiping .scroll-area {
+    overflow-y: hidden;
+    touch-action: none;
+}
 #page-articles, #page-articles * {
     -webkit-user-select: none;
     user-select: none;
@@ -156,6 +173,60 @@ body.interface-readable #waitlist-result .result-address-new {
     border-radius: 14px;
     padding: 8px 14px;
 }
+.article-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 0;
+    border-top: 1px solid #ECECEC;
+}
+.article-row:first-child { border-top: none; padding-top: 0; }
+.art-r.art-r-fav { border-left: 4px solid #003366; padding-left: 11px; }
+.article-number { font-size: 15px; font-weight: 700; color: #111111; white-space: nowrap; }
+.article-number .art-g1 { margin-right: 3px; }
+.article-number .art-g2 { font-size: 1.2em; margin-right: 3px; }
+.article-stations {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111111;
+    text-align: right;
+    line-height: 1.3;
+}
+.article-row .article-stations { flex: 1; min-width: 0; }
+.station-list-classic { display: none; }
+.station-list-readable {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+}
+.station-chip {
+    display: inline-flex;
+    min-width: 34px;
+    min-height: 30px;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: #111;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+body.interface-classic .station-list-classic { display: block; }
+body.interface-classic .station-list-readable { display: none; }
+body.interface-readable .station-list-classic { display: none; }
+body.interface-readable .station-list-readable { display: flex; }
+.art-classic { display: inline; }
+.art-readable { display: none; }
+body.interface-classic .art-classic { display: inline; }
+body.interface-classic .art-readable { display: none; }
+body.interface-readable .art-classic { display: none; }
+body.interface-readable .art-readable { display: inline-flex; }
 .art-r {
     align-items: baseline;
     gap: 2px;
@@ -188,6 +259,11 @@ body.interface-readable #waitlist-result .result-address-new {
     z-index: 40; max-height: 60%; overflow-y: auto; background: #fff;
     border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 8px 28px rgba(0,0,0,0.14); padding: 6px 0; touch-action: pan-y;
 }
+.wl-history-title { padding: 8px 14px; font-size: 13px; font-weight: 800; color: #6b7280; }
+.wl-history-row { display: flex; gap: 10px; padding: 10px 14px; border-top: 1px solid #f0f0f0; font-size: 14px; color: #111; }
+.wl-history-time { flex-shrink: 0; min-width: 78px; font-size: 12px; font-weight: 700; color: #6b7280; }
+.wl-history-text { word-break: break-word; }
+.wl-history-empty { padding: 12px 14px; font-size: 14px; color: #9ca3af; }
 .waitlist-title {
     display: flex; align-items: center; justify-content: center;
     font-size: 18px; font-weight: 700; color: #111111; text-align: center; padding: 8px 0;
@@ -197,7 +273,48 @@ body.interface-readable #waitlist-result .result-address-new {
 }
 .select-btn.selected { color: #FFC400; }
 .select-btn:active { transform: scale(.9); }
+.article-choice-row { display: flex; align-items: stretch; gap: 8px; }
+.article-choice-main { flex: 1; min-width: 0; }
+.article-favorite-btn {
+    width: 54px; min-width: 54px; border: 1px solid #e5e7eb; background: #f9fafb; color: #9ca3af;
+    border-radius: 14px; font-size: 22px; font-weight: 700; cursor: pointer;
+}
+.article-favorite-btn.selected { color: #FFC400; background: #fffaf0; border-color: #f3d37a; }
+.article-favorite-btn:active { transform: scale(.96); }
+.waitlist-actions-row { display: flex; gap: 8px; margin-top: 16px; }
+.waitlist-remove-btn {
+    border: none; background: #fff7e0; color: #b45309; font-weight: 700; font-size: 14px;
+    border-radius: 10px; padding: 10px 0; flex: 1; text-align: center; cursor: pointer;
+}
+.waitlist-remove-btn:active { background: #fdeeca; }
+.comment-toggle-btn {
+    border: none; background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 14px;
+    border-radius: 10px; padding: 10px 0; flex: 1; text-align: center; cursor: pointer;
+}
+.comment-toggle-btn:active { background: #e0e7ff; }
+.comment-edit-area { margin-top: 12px; }
+.comment-textarea {
+    width: 100%; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px;
+    font-size: 14px; font-family: inherit; resize: vertical; min-height: 64px; outline: none; color: #111; background: #f9fafb;
+}
+.comment-save-btn {
+    display: block; margin-top: 8px; border: none; background: #4338ca; color: #fff;
+    font-weight: 700; font-size: 14px; border-radius: 10px; padding: 10px 0; width: 100%; text-align: center; cursor: pointer;
+}
+.comment-save-btn:active { background: #372ea8; }
+.waitlist-comment-text {
+    margin-top: 12px; padding: 10px 12px; background: #f3f4f6; border-radius: 10px;
+    font-size: 14px; color: #374151; white-space: pre-wrap; word-break: break-word;
+}
 .premontage-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.premontage-nav-btn {
+    border: none; background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 14px;
+    border-radius: 10px; padding: 10px 14px; cursor: pointer;
+}
+.premontage-nav-btn:active { background: #e0e7ff; }
+.premontage-nav-btn.active { background: #4338ca; color: #fff; }
+.premontage-close-btn { background: #fff7e0; color: #b45309; margin-left: auto; }
+.premontage-close-btn:active { background: #fdeeca; }
 .premontage-title { font-size: 16px; font-weight: 700; color: #111; margin-bottom: 14px; }
 .level-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .level-head-left { font-size: 20px; font-weight: 800; color: #111; }
@@ -219,6 +336,14 @@ body.interface-readable #waitlist-result .result-address-new {
 .wire-name { font-weight: 800; font-size: 16px; color: #111; flex-shrink: 0; }
 .wire-code { font-size: 13px; color: #6b7280; flex: 1; text-align: center; }
 .wire-location { font-weight: 600; font-size: 14px; color: #059669; text-align: right; white-space: nowrap; }
+#pull-indicator {
+    position: fixed; top: calc(14px + env(safe-area-inset-top)); left: 50%; width: 38px; height: 38px;
+    margin-left: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800;
+    color: #4338ca; opacity: 0; transform: translate(-50%, -30px) scale(0.6); pointer-events: none; z-index: 50;
+}
+#pull-indicator.ready { background: #eef2ff; }
+#pull-indicator .pull-arrow { display: inline-block; line-height: 1; }
 .mat-pick {
     border: none; background: transparent; font: inherit; color: inherit; padding: 4px 6px;
     margin: -4px -6px; border-radius: 8px; cursor: pointer; text-align: left; white-space: nowrap; touch-action: manipulation;
@@ -242,11 +367,44 @@ input#input.qty-mode { background: #eef2ff; border-color: #4338ca; }
     font-weight: 800; font-size: 20px; color: #111; margin-left: 12px; padding-left: 12px;
     border-left: 2px solid #d1d5db; white-space: nowrap;
 }
+.waitlist-divider { height: 1px; background: #e5e7eb; margin-top: 14px; }
+.pm-group-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pm-group-article { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 22px; font-weight: 800; color: #111; margin-bottom: 10px; }
+.pm-group-clear-btn {
+    border: none; background: #fff7e0; color: #b45309; font-weight: 700; font-size: 14px;
+    border-radius: 10px; padding: 9px 14px; cursor: pointer;
+}
+.pm-group-clear-btn:active { background: #fdeeca; }
 .pm-group-article-frame.art-r-fav { border-left: 4px solid #003366; padding-left: 11px; }
 .pm-group-article-frame {
     display: inline-flex; align-items: baseline; gap: 2px; white-space: nowrap;
     border: 1px solid #e5e7eb; background: #f9fafb; border-radius: 14px; padding: 8px 14px;
 }
+.pm-group-item { padding: 10px 12px; border-radius: 12px; cursor: pointer; }
+.pm-group-item.qty-target { outline: 2px solid #4338ca; background: #eef2ff; }
+.pm-group-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.waitlist-qty-right, .pm-group-right .waitlist-qty { margin-left: 0; padding-left: 0; border-left: none; }
+.pm-group-addr { font-size: 14px; font-weight: 700; color: #059669; white-space: nowrap; }
+.pm-group-kind { margin-left: 8px; font-size: 13px; font-weight: 700; color: #6b7280; }
+.pm-group-chips { display: inline-flex; margin-left: 8px; vertical-align: middle; }
+.pm-group-chips .station-list-readable { justify-content: flex-start; }
+.pm-group-stations-small { margin-left: 0; margin-top: 4px; }
+.pm-group-stations { margin-top: 8px; font-size: 15px; }
+.result-card.qty-target, .wire-row.qty-target { outline: 2px solid #4338ca; background: #eef2ff; }
+.pm-group-name { font-size: 20px; font-weight: 800; color: #111; word-break: break-word; }
+.pm-group-sep { margin-top: 6px; border-top: 1px solid #ECECEC; border-top-left-radius: 0; border-top-right-radius: 0; }
+.premontage-item-btn.qty-target { outline: 2px solid #4338ca; background: #eef2ff; }
+.pm-qty-badge { margin-left: 8px; padding-left: 8px; border-left: 2px solid #d1d5db; font-weight: 800; color: #4338ca; white-space: nowrap; }
+.pm-qty-panel {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; background: #fff;
+    border-top: 1px solid #e5e7eb; padding: 12px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 18px rgba(0,0,0,0.10);
+}
+.pm-qty-display {
+    height: 52px; line-height: 50px; margin-bottom: 10px; border: 1px solid #4338ca;
+    border-radius: 14px; background: #eef2ff; text-align: center; font-size: 22px; font-weight: 800; color: #111;
+}
+.pm-qty-display:empty::before { content: 'Кількість'; color: #9ca3af; font-weight: 500; }
+.pm-qty-panel .qty-actions { margin-bottom: 10px; }
 mark.hl { background: #fde047; color: #111; border-radius: 3px; padding: 0 2px; font-weight: inherit; }
 .kb-container { position: relative; flex-shrink: 0; background: #fff; border-top: 1px solid #e5e7eb; padding: 12px; padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
 .kb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -280,6 +438,16 @@ mark.hl { background: #fde047; color: #111; border-radius: 3px; padding: 0 2px; 
     background: #f1f5f9; color: #000; font-size: 13px; font-weight: 600;
     display: flex; align-items: center; justify-content: center; user-select: none; cursor: pointer;
 }
+.table-page { background: #fff; }
+.table-header { padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); border-bottom: 1px solid #e5e7eb; flex-shrink: 0; display: flex; justify-content: space-between; align-items: baseline; }
+.table-title { font-weight: 700; font-size: 16px; color: #111; }
+.table-updated { font-size: 11px; color: #9ca3af; }
+.table-scroll { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+th { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 12px 8px; text-align: left; font-weight: 700; color: #333; }
+td { border: 1px solid #e2e8f0; padding: 8px; white-space: nowrap; color: #444; }
+tr:nth-child(even) td { background: #f9fafb; }
+
 #instant-start {
     position: fixed; inset: 0; z-index: 99999;
     display: flex; flex-direction: column; background: #fff; color: #111;
@@ -292,8 +460,10 @@ mark.hl { background: #fde047; color: #111; border-radius: 3px; padding: 0 2px; 
 #instant-start .instant-key { height: clamp(48px, 8.2vh, 68px); border:0; border-radius:14px; background:#f3f4f6; color:#111; font-size:24px; font-weight:500; }
 #instant-start .instant-key.dim { color:#6b7280; font-size:18px; }
 #instant-start .instant-note { text-align:center; font-size:11px; color:#9ca3af; padding-top:8px; }
+@media (prefers-reduced-motion: no-preference) { #instant-start { animation: instantFade 0.12s ease-out; } }
+@keyframes instantFade { from { opacity:.98; } to { opacity:1; } }
 
-/* Стилі для блочного списку станцій */
+/* Нові стилі для блочного списку станцій */
 .sl-station-card {
     background: #ffffff;
     border-radius: 18px;
@@ -332,7 +502,7 @@ mark.hl { background: #fde047; color: #111; border-radius: 3px; padding: 0 2px; 
     gap: 12px;
 }
 
-/* Модальне вікно введення кількості у списку із панеллю швидких кнопок */
+/* Модальне вікно введення кількості у списку (аналогічне до довгого натискання матеріалу) */
 #station-list-modal {
     display: none;
     position: fixed;
@@ -373,11 +543,6 @@ mark.hl { background: #fde047; color: #111; border-radius: 3px; padding: 0 2px; 
     border-color: #2563eb;
     color: #1d4ed8;
 }
-.pm-qty-display {
-    height: 52px; line-height: 50px; margin-bottom: 10px; border: 1px solid #4338ca;
-    border-radius: 14px; background: #eef2ff; text-align: center; font-size: 22px; font-weight: 800; color: #111;
-}
-.pm-qty-display:empty::before { content: 'Кількість'; color: #9ca3af; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -459,7 +624,33 @@ mark.hl { background: #fde047; color: #111; border-radius: 3px; padding: 0 2px; 
 </div>
 <div class="articles-dots" id="articles-dots"></div>
 
-<!-- Модальне вікно для введення кількості у списку -->
+<!-- Панель кількості для передмонтажів та звичайних карток -->
+<div id="pm-qty-panel" class="pm-qty-panel hidden">
+    <div class="qty-title" id="pm-qty-title"></div>
+    <div class="pm-qty-display" id="pm-qty-display"></div>
+    <textarea id="pm-qty-comment" class="comment-textarea hidden" placeholder="Коментар..."></textarea>
+    <div class="qty-actions">
+        <button type="button" class="qty-btn qty-comment" data-pm="comment">💬 Коментар</button>
+        <button type="button" class="qty-btn qty-cancel" data-pm="cancel">✕</button>
+        <button type="button" class="qty-btn qty-ok" data-pm="ok">✓ Додати</button>
+    </div>
+    <div class="kb-grid">
+        <button class="btn" data-pmv="1">1</button>
+        <button class="btn" data-pmv="2">2</button>
+        <button class="btn" data-pmv="3">3</button>
+        <button class="btn" data-pmv="4">4</button>
+        <button class="btn" data-pmv="5">5</button>
+        <button class="btn" data-pmv="6">6</button>
+        <button class="btn" data-pmv="7">7</button>
+        <button class="btn" data-pmv="8">8</button>
+        <button class="btn" data-pmv="9">9</button>
+        <div></div>
+        <button class="btn" data-pmv="0">0</button>
+        <button class="btn btn-special" data-pm="clear">⌫</button>
+    </div>
+</div>
+
+<!-- Модальне вікно для введення кількості у списку (із швидкими кнопками зверху) -->
 <div id="station-list-modal" aria-label="Введення кількості">
   <div class="station-list-modal-panel">
     <div class="qty-title" id="station-list-modal-current">Кількість</div>
@@ -522,6 +713,17 @@ let qtyKey = null;
 let qtySavedInput = "";
 let qtyCardEl = null;
 
+let pmQtyMode = false;
+let pmQtyArticle = "";
+let pmQtyCategory = "";
+let pmQtyLabel = "";
+let pmQtyValue = "";
+let pmQtySource = "articles";
+let pmQtyKey = "";
+let pmQtyHad = false;
+let pmKbWasHidden = false;
+let pmSptsData = null;
+
 let articlesPageStack = [
     { level: 'articles' }
 ];
@@ -556,6 +758,7 @@ const pagesEl = document.getElementById('pages');
 const articlesPageContent = document.getElementById('articles-page-content');
 const articlesDots = document.getElementById('articles-dots');
 const CACHE_KEY_SEARCH = "searchDataCSV";
+const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 const CACHE_KEY_SEARCH_FILTERS = "searchActiveFilters";
 const SEARCH_FILTER_KEYS = ['wires', 'materials', 'premontage', 'audi', 'bmw'];
 const SEARCH_SOURCE_FILTERS = ['audi', 'bmw', 'premontage'];
@@ -576,8 +779,14 @@ function loadSearchFilters() {
         if (saved && saved.version === 3 && Array.isArray(saved.filters)) {
             return [...new Set(saved.filters.map(String).filter(filter => SEARCH_FILTER_KEYS.includes(filter)))];
         }
-        return [];
+        const previousFilters = saved && Array.isArray(saved.filters) ? saved.filters : Array.isArray(saved) ? saved : [];
+        return [...new Set(previousFilters.map(String).filter(filter => ['wires', 'materials', 'premontage'].includes(filter)))];
     } catch (e) { return []; }
+}
+function saveSearchFilters() {
+    try {
+        localStorage.setItem(CACHE_KEY_SEARCH_FILTERS, JSON.stringify({ version: 3, filters: selectedSearchFilters }));
+    } catch (e) {}
 }
 selectedSearchFilters = loadSearchFilters();
 
@@ -630,8 +839,18 @@ function setFilterPanelOpen(open) {
     filterMenu.classList.toggle('hidden', !open);
     kbWrapper.classList.toggle('filter-panel-open', open);
 }
-function setFilterOptionsOpen(open) { filterOptionsOpen = open; filterMenu.classList.toggle('filter-options-open', open); }
-function setInterfaceOptionsOpen(open) { interfaceOptionsOpen = open; filterMenu.classList.toggle('interface-options-open', open); }
+
+function setFilterOptionsOpen(open) {
+    if (!filterMenu) return;
+    filterOptionsOpen = open;
+    filterMenu.classList.toggle('filter-options-open', open);
+}
+
+function setInterfaceOptionsOpen(open) {
+    if (!filterMenu) return;
+    interfaceOptionsOpen = open;
+    filterMenu.classList.toggle('interface-options-open', open);
+}
 
 function setInterfaceMode(mode) {
     if (!INTERFACE_MODE_KEYS.includes(mode)) return;
@@ -658,6 +877,7 @@ function expandArticleValue(raw) {
     }
     return r;
 }
+
 function expandArticleValueRaw(raw) {
     raw = String(raw || "").trim();
     if (!raw) return [];
@@ -817,6 +1037,16 @@ function highlight(text, v, fromEnd) {
     }
 }
 
+const STATIONS_PER_LINE = 5;
+function buildStationsHtml(stationHtmlArr) {
+    const lines = [];
+    for (let i = 0; i < stationHtmlArr.length; i += STATIONS_PER_LINE) {
+        lines.push(stationHtmlArr.slice(i, i + STATIONS_PER_LINE).join(" | "));
+    }
+    const readableStations = stationHtmlArr.map(station => `<span class="station-chip">${station}</span>`).join("");
+    return `<span class="station-list-classic">${lines.join("<br>")}</span><span class="station-list-readable">${readableStations}</span>`;
+}
+
 function readableMultiArticleHtml(art, v, isNumOnly, isSpecialSearch) {
     const parts = String(art).split("/").map(p => normalizeArticlePart(p)).filter(Boolean);
     const first = parts[0] || "";
@@ -884,6 +1114,7 @@ function toggleWaitlistItem(key, material, address, articlesPlain) {
     saveWaitlist(list);
     return idx < 0;
 }
+function escAttr(v) { return escapeHtml(v).replace(/"/g, '&quot;'); }
 
 let waitlistCardKeys = [];
 function renderWaitlistPage() {
@@ -891,7 +1122,15 @@ function renderWaitlistPage() {
     if (!list.length) { waitlistBox.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">Список порожній</div>'; waitlistCardKeys = []; return; }
     waitlistCardKeys = [];
     let html = "";
+    const pmDone = new Set();
     list.forEach(item => {
+        const pmArt = pmArticleOfItem(item);
+        if (pmArt !== null) {
+            if (pmDone.has(pmArt)) return;
+            pmDone.add(pmArt);
+            html += buildPmGroupHtml(pmArt, list.filter(i => pmArticleOfItem(i) === pmArt));
+            return;
+        }
         const idx = waitlistCardKeys.push(item.key) - 1;
         html += `<div class="result-card"><div class="result-top" data-pm-edit="${idx}" style="cursor:pointer;${item.qty ? ' margin-bottom:0;' : ''}"><span class="result-material-badge"><button type="button" class="select-btn selected wl-star-btn" data-star-idx="${idx}">★</button><span class="box-icon ico">📦</span>${escapeHtml(item.material)}</span><div>${item.qty ? `<span class="waitlist-qty">${escapeHtml(item.qty)}</span>` : `<span class="result-address-new">${escapeHtml(item.address)}</span>`}</div></div></div>`;
     });
@@ -902,9 +1141,30 @@ const wlMenuBtn = document.getElementById('wl-menu-btn');
 const wlHistoryEl = document.getElementById('wl-history');
 wlMenuBtn.addEventListener('click', e => { e.stopPropagation(); wlHistoryEl.classList.toggle('hidden'); });
 
+function pmArticleOfItem(item) {
+    const k = String((item && item.key) || "");
+    if (k.startsWith('pm|') || k.startsWith('spts|')) { const art = k.split('|')[1]; return art ? art : null; }
+    if (!item || !item.qty || !item.articles) return null;
+    const keys = Object.keys(item.articles);
+    if (keys.length !== 1) return null;
+    const arts = expandArticleValue(keys[0]);
+    return arts.length === 1 && arts[0] ? arts[0] : null;
+}
+
+function buildPmGroupHtml(article, items) {
+    let html = `<div class="result-card"><div class="pm-group-article"><span class="pm-group-article-frame${isArticleFavorite(article) ? ' art-r-fav' : ''}">${articleHeadHtml(article)}</span></div>`;
+    items.forEach((item, n) => {
+        const idx = waitlistCardKeys.push(item.key) - 1;
+        html += `<div class="pm-group-item${n ? ' pm-group-sep' : ''}" data-pm-edit="${idx}"><div class="pm-group-line"><span class="pm-group-name">${escapeHtml(item.material)}</span><span class="pm-group-right">${item.qty ? `<span class="waitlist-qty">${escapeHtml(item.qty)}</span>` : ''}</span></div></div>`;
+    });
+    html += `</div>`;
+    return html;
+}
+
 waitlistBox.addEventListener('click', (e) => {
     const starBtn = e.target.closest('.wl-star-btn');
     if (starBtn) {
+        if (pmQtyMode) return;
         const starKey = waitlistCardKeys[parseInt(starBtn.dataset.starIdx, 10)];
         if (starKey === undefined) return;
         saveWaitlist(loadWaitlist().filter(i => i.key !== starKey));
@@ -961,6 +1221,14 @@ function exitQtyMode() {
     if (qtyCardEl) { qtyCardEl.classList.remove('qty-target'); qtyCardEl = null; }
 }
 
+function addWaitlistWithQty(key, data, qty, comment) {
+    const list = loadWaitlist();
+    const idx = list.findIndex(item => item.key === key);
+    if (idx >= 0) { list[idx].qty = qty; list[idx].comment = comment; }
+    else { list.push({ key, material: data.material, address: data.address, articles: data.articles || {}, qty, comment }); }
+    saveWaitlist(list);
+}
+
 function confirmQty() {
     if (!qtyMode) return;
     const raw = input.value.trim();
@@ -972,11 +1240,7 @@ function confirmQty() {
     }
     const data = searchResultLookup[qtyKey];
     if (!data) { exitQtyMode(); return; }
-    const list = loadWaitlist();
-    const idx = list.findIndex(item => item.key === qtyKey);
-    if (idx >= 0) { list[idx].qty = qty; list[idx].comment = qtyComment.value.trim(); }
-    else { list.push({ key: qtyKey, material: data.material, address: data.address, articles: data.articles || {}, qty, comment: qtyComment.value.trim() }); }
-    saveWaitlist(list);
+    addWaitlistWithQty(qtyKey, data, qty, qtyComment.value.trim());
     const cardIdx = searchCardKeys.indexOf(qtyKey);
     resultBox.querySelectorAll(`.select-btn[data-idx="${cardIdx}"]`).forEach(b => { b.classList.add('selected'); b.textContent = '★'; });
     exitQtyMode();
@@ -1092,9 +1356,19 @@ function getAvailableActionsForArticle(article) {
     return result;
 }
 
-/* ==================== ЛОГІКА ДЛЯ РІВНЯ "СПИСОК" (ЗГІДНО З ВИМОГАМИ) ==================== */
+function popArticlesPageLevel() {
+    exitPmQtyMode(false);
+    if (articlesPageStack.length > 1) { articlesPageStack.pop(); renderArticlesPage(); }
+}
+
+/* ==================== ЛОГІКА ДЛЯ РІВНЯ "СПИСОК" ==================== */
 let activeStationListKey = '';
 let stationListValues = {};
+
+function slQtyHtml(qty) {
+    if (qty) return `<span class="waitlist-qty">${escapeHtml(qty)}</span>`;
+    return '';
+}
 
 function stationListOpen(key) {
     activeStationListKey = key;
@@ -1352,6 +1626,7 @@ function premontageShortName(full) {
     const f = String(full || "").trim();
     return f.replace(/\s*158\d+/g, "").trim() || f;
 }
+function uniqueDisplayStations(list) { return [...new Set([...list].map(st => isPremontageName(String(st)) ? premontageShortName(String(st)) : String(st)))] }
 function plainActionName(key) {
     const k = String(key || "");
     if (k === 'sp' || k === 'ts' || k === 'стр' || k === 'мм') return k.toUpperCase();
@@ -1371,10 +1646,14 @@ function renderArticlesPage(forceRebuild) {
 
 articlesPageContent.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-anav]');
-    if (!btn) return;
+    if (!btn || pmQtyMode) return;
     const nav = btn.dataset.anav;
     const current = articlesPageStack[articlesPageStack.length - 1];
     
+    if (nav === 'to-search') {
+        const material = decodeURIComponent(btn.dataset.material || "");
+        input.value = material; goToPage(SEARCH_PAGE_INDEX); search(); return;
+    }
     if (nav === 'article-favorite') {
         toggleArticleFavorite(btn.dataset.article);
         articlesPageStack.forEach(st => { delete st.cachedHtml; });
@@ -1451,7 +1730,7 @@ function goToPage(n) {
 
 let pageDragStartX = 0, pageDragStartY = 0, pageDragBasePage = 0, pageDragging = false, pageMoved = false, pageDragPxWidth = 0, pageSwipeCandidate = false;
 document.addEventListener('touchstart', e => {
-    if (!e.touches || e.touches.length !== 1) return;
+    if (pmQtyMode || !e.touches || e.touches.length !== 1) return;
     const touch = e.touches[0];
     pageDragStartX = touch.clientX; pageDragStartY = touch.clientY; pageDragBasePage = currentPage;
     pageDragPxWidth = (pagesEl.parentElement ? pagesEl.parentElement.clientWidth : window.innerWidth) || window.innerWidth;
