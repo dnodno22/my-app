@@ -693,6 +693,58 @@ body.interface-readable .art-readable {
     padding: 10px 0 2px;
     border-top: 1px solid #ECECEC;
 }
+/* Клікабельні заголовки груп передмонтажу: велика зона натискання */
+.list-group-head[data-anav] {
+    min-height: 48px;
+    padding: 12px 0;
+    margin: 2px 0;
+    cursor: pointer;
+}
+.list-group-head[data-anav] > span:last-child {
+    font-size: 20px !important;
+    min-width: 44px;
+    text-align: center;
+    padding: 8px 0;
+}
+.list-group-head[data-anav]:active {
+    background: #eef2ff;
+    border-radius: 10px;
+}
+/* Заголовок групи передмонтажу: назва (клавіатура кількості) + стрілка (згорнути) */
+.list-group-head.lg-group {
+    min-height: 48px;
+    padding: 0;
+    margin: 2px 0;
+}
+.lg-name {
+    font-size: 14px;
+    font-weight: 800;
+    color: #4338ca;
+    white-space: nowrap;
+    padding: 14px 10px 14px 0;
+    cursor: pointer;
+    border-radius: 10px;
+}
+.lg-name:active {
+    background: #eef2ff;
+}
+.lg-name.qty-target {
+    outline: 2px solid #4338ca;
+    background: #eef2ff;
+}
+.lg-arrow {
+    font-size: 20px;
+    font-weight: 800;
+    color: #4338ca;
+    min-width: 56px;
+    text-align: center;
+    padding: 14px 0;
+    cursor: pointer;
+    border-radius: 10px;
+}
+.lg-arrow:active {
+    background: #eef2ff;
+}
 .list-station-box > .list-group-head:first-child {
     border-top: none;
 }
@@ -1322,7 +1374,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 144;
+const CODE_VERSION = 146;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2953,18 +3005,48 @@ function buildPmGroupHtml(article, items) {
     const hasStn = v => !!v && v !== '—';
     const inList = [];
     const other = [];
+    let resolveSt = null;
     items.forEach(it => {
         const li = listMap.get(it.key);
-        if (li) inList.push({ it, li });
-        else other.push(it);
+        if (li) {
+            inList.push({ it, li });
+        } else if (String(it.key).startsWith('pm|')) {
+            /* Передмонтаж цілком: рядок у списку з назвою передмонтажу замість матеріалу */
+            if (!resolveSt) {
+                try {
+                    resolveSt = buildPmStationResolver(article);
+                } catch (e) {
+                    resolveSt = () => '';
+                }
+            }
+            const cat = String(it.key).split('|').slice(2).join('|');
+            inList.push({
+                it,
+                isGroup: true,
+                li: {
+                    order: 4,
+                    group: cat,
+                    kind: '',
+                    station: resolveSt(cat) || '',
+                    material: premontageShortName(cat),
+                    address: '',
+                    key: it.key
+                }
+            });
+        } else {
+            other.push(it);
+        }
     });
+    const grp = inList
+        .filter(x => x.isGroup)
+        .sort((x, y) => cmpU(x.li.material, y.li.material));
     const regular = inList
-        .filter(x => x.li.order !== 3)
+        .filter(x => x.li.order !== 3 && !x.isGroup)
         .sort((x, y) =>
             (x.li.order - y.li.order) ||
             cmpU(x.li.material, y.li.material)
         );
-    const pm = inList.filter(x => x.li.order === 3);
+    const pm = inList.filter(x => x.li.order === 3 && !x.isGroup);
     const groupsOf = arr => {
         const map = new Map();
         arr.forEach(x => {
@@ -2995,7 +3077,7 @@ function buildPmGroupHtml(article, items) {
                     ${hasStn(li.station) ? escapeHtml(li.station) : ''}
                 </span>
                 <span class="qty-slot wr-slot" style="font-size:16px; font-weight:800; color:#111;">
-                    <span class="wr-name">${escapeHtml(li.material)}${li.kind === 'Проводи' ? '' : `<span class="level-head-tail"> ${escapeHtml(li.kind)}</span>`}</span>${x.it.qty ? `<span class="pm-qty-badge">${escapeHtml(x.it.qty)}</span>` : ''}
+                    <span class="wr-name">${escapeHtml(li.material)}${(!li.kind || li.kind === 'Проводи') ? '' : `<span class="level-head-tail"> ${escapeHtml(li.kind)}</span>`}</span>${x.it.qty ? `<span class="pm-qty-badge">${escapeHtml(x.it.qty)}</span>` : ''}
                 </span>
                 <span class="wire-location">
                     ${escapeHtml(li.address)}
@@ -3030,6 +3112,11 @@ function buildPmGroupHtml(article, items) {
             .forEach(x => {
                 html += renderListRow(x);
             });
+        grp
+            .filter(x => x.li.station === st)
+            .forEach(x => {
+                html += renderListRow(x);
+            });
         groupsOf(
             pm.filter(x => x.li.station === st)
         ).forEach(g => {
@@ -3043,10 +3130,15 @@ function buildPmGroupHtml(article, items) {
         regular.filter(x => !hasStn(x.li.station));
     const pmNo =
         pm.filter(x => !hasStn(x.li.station));
-    if (regNo.length || pmNo.length) {
+    const grpNo =
+        grp.filter(x => !hasStn(x.li.station));
+    if (regNo.length || pmNo.length || grpNo.length) {
         sectionStart();
         html += '<div class="list-station-box">';
         regNo.forEach(x => {
+            html += renderListRow(x);
+        });
+        grpNo.forEach(x => {
             html += renderListRow(x);
         });
         if (pmNo.length) {
@@ -4900,17 +4992,25 @@ function buildArticlesLevelHtml(
             const groupHtml = g => {
                 const gKey = state.article + '|' + g.group;
                 const closed = closedPm.includes(gKey);
+                const gWl = loadWaitlist().find(
+                    i => i.key === pmKey(state.article, g.group)
+                );
+                const gBadge =
+                    gWl && gWl.qty
+                        ? `<span class="pm-qty-badge">${escapeHtml(gWl.qty)}</span>`
+                        : '';
                 let h = `
-                    <div
-                        class="list-group-head"
-                        data-anav="list-pm-group"
-                        data-key="${escapeHtml(gKey)}"
-                        style="cursor:pointer;">
-                        <span style="font-size:14px; font-weight:800; color:#4338ca; white-space:nowrap;">
-                            ${escapeHtml(premontageShortName(g.group))}
-                        </span>
+                    <div class="list-group-head lg-group">
+                        <span
+                            class="lg-name"
+                            data-anav="list-pm-name"
+                            data-category="${escapeHtml(g.group)}"
+                            data-station="${escapeHtml(g.items[0] ? g.items[0].station : '')}">${escapeHtml(premontageShortName(g.group))}</span>${gBadge}
                         <span style="flex:1; height:1px; background:#c7d2fe;"></span>
-                        <span style="font-size:13px; font-weight:800; color:#4338ca;">${closed ? '▼' : '▲'}</span>
+                        <span
+                            class="lg-arrow"
+                            data-anav="list-pm-group"
+                            data-key="${escapeHtml(gKey)}">${closed ? '▼' : '▲'}</span>
                     </div>
                 `;
                 if (!closed) {
@@ -5188,6 +5288,18 @@ const pmPanelEl = document.getElementById('pm-qty-panel');
 const pmDisplayEl = document.getElementById('pm-qty-display');
 const pmTitleEl = document.getElementById('pm-qty-title');
 const pmCommentEl = document.getElementById('pm-qty-comment');
+const pmPresetsEl = document.getElementById('pm-presets');
+const PM_PRESETS_DEFAULT = pmPresetsEl.innerHTML;
+const PM_PRESETS_GROUP =
+    '<button type="button" class="btn pm-preset" data-pmn="100">100</button>' +
+    '<button type="button" class="btn pm-preset" data-pmn="200">200</button>' +
+    '<button type="button" class="btn pm-preset" data-pmp="Передмонтаж">Передмонтаж</button>' +
+    '<button type="button" class="btn pm-preset" data-pmp="Мало">Мало</button>' +
+    '<button type="button" class="btn pm-preset" data-pmp="Відсутній">Відсутній</button>';
+function pmSetPresets(group) {
+    pmPresetsEl.innerHTML =
+        group ? PM_PRESETS_GROUP : PM_PRESETS_DEFAULT;
+}
 function pmKey(article, category) {
     return 'pm|' + article + '|' + category;
 }
@@ -5323,6 +5435,12 @@ function pmRefreshPanel() {
             b.dataset.pmp === pt.word
         );
     });
+    pmPanelEl.querySelectorAll('[data-pmn]').forEach(b => {
+        b.classList.toggle(
+            'active',
+            b.dataset.pmn === pmQtyValue
+        );
+    });
     pmFitDisplay();
     pmFitPresets();
 }
@@ -5411,6 +5529,10 @@ function enterPmSearchMode(key, pickEl) {
     pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
     pmKbWasHidden = kbWrapper.classList.contains('hidden');
     kbWrapper.classList.add('hidden');
+    pmSetPresets(
+        pmQtySource === 'group' ||
+        (pmQtySource === 'waitlist' && String(pmQtyKey).startsWith('pm|'))
+    );
     pmPanelEl.classList.remove('hidden');
     pmRefreshPanel();
     pmSyncSpace();
@@ -5482,12 +5604,83 @@ function enterPmSptsMode(article, rowEl) {
     pmCommentEl.value =
         existing && existing.comment ? existing.comment : "";
     pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
+    pmSetPresets(
+        pmQtySource === 'group' ||
+        (pmQtySource === 'waitlist' && String(pmQtyKey).startsWith('pm|'))
+    );
+    pmPanelEl.classList.remove('hidden');
+    pmRefreshPanel();
+    pmSyncSpace();
+    pmApplyTarget(true);
+}
+function pmApplyGroupTarget(scroll) {
+    articlesPageContent
+        .querySelectorAll('.qty-target')
+        .forEach(b => b.classList.remove('qty-target'));
+    const el = [...articlesPageContent.querySelectorAll('[data-anav="list-pm-name"]')]
+        .find(b => pmKey(pmQtyArticle, b.dataset.category) === pmQtyKey);
+    if (!el) return;
+    el.classList.add('qty-target');
+    let badge =
+        el.nextElementSibling &&
+        el.nextElementSibling.classList.contains('pm-qty-badge')
+            ? el.nextElementSibling
+            : null;
+    if (pmQtyValue) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'pm-qty-badge';
+            el.insertAdjacentElement('afterend', badge);
+        }
+        badge.textContent = pmQtyValue;
+    } else if (badge) {
+        badge.remove();
+    }
+    if (scroll) {
+        const area = pmArea();
+        const r = el.getBoundingClientRect();
+        const limit = pmPanelEl.getBoundingClientRect().top - 12;
+        if (area && r.bottom > limit) {
+            area.scrollTop += r.bottom - limit;
+        }
+    }
+}
+function enterPmGroupMode(article, category, station) {
+    const short = premontageShortName(category);
+    pmQtyMode = true;
+    pmQtySource = 'group';
+    pmQtyKey = pmKey(article, category);
+    pmQtyArticle = article;
+    pmQtyCategory = category;
+    pmQtyLabel = short;
+    const st = station && station !== '—' ? station : '';
+    pmSptsData = {
+        material: short,
+        address: '',
+        kind: 'Передмонтаж',
+        station: st,
+        stations: st ? [st] : [],
+        articles: { [article]: st ? [st] : [] }
+    };
+    const existing =
+        loadWaitlist().find(i => i.key === pmQtyKey);
+    pmQtyHad = !!(existing && existing.qty);
+    pmQtyValue =
+        existing && existing.qty ? String(existing.qty) : "";
+    pmCommentEl.value =
+        existing && existing.comment ? existing.comment : "";
+    pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
+    pmSetPresets(true);
     pmPanelEl.classList.remove('hidden');
     pmRefreshPanel();
     pmSyncSpace();
     pmApplyTarget(true);
 }
 function pmApplyTarget(scroll) {
+    if (pmQtySource === 'group') {
+        pmApplyGroupTarget(scroll);
+        return;
+    }
     if (pmQtySource === 'waitlist') {
         pmApplyWaitlistTarget(scroll);
         return;
@@ -5542,6 +5735,10 @@ function enterPmQtyMode(article, category, label) {
     pmCommentEl.value =
         existing && existing.comment ? existing.comment : "";
     pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
+    pmSetPresets(
+        pmQtySource === 'group' ||
+        (pmQtySource === 'waitlist' && String(pmQtyKey).startsWith('pm|'))
+    );
     pmPanelEl.classList.remove('hidden');
     pmRefreshPanel();
     pmSyncSpace();
@@ -5571,6 +5768,10 @@ function enterPmWaitlistEdit(idx) {
     pmQtyValue = item.qty ? String(item.qty) : "";
     pmCommentEl.value = item.comment ? item.comment : "";
     pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
+    pmSetPresets(
+        pmQtySource === 'group' ||
+        (pmQtySource === 'waitlist' && String(pmQtyKey).startsWith('pm|'))
+    );
     pmPanelEl.classList.remove('hidden');
     pmRefreshPanel();
     pmSyncSpace();
@@ -5659,7 +5860,10 @@ function confirmPmQty() {
             return;
         }
         pmData = d;
-    } else if (pmQtySource === 'spts' && pmSptsData) {
+    } else if (
+        (pmQtySource === 'spts' || pmQtySource === 'group') &&
+        pmSptsData
+    ) {
         pmData = pmSptsData;
     }
     addWaitlistWithQty(
@@ -5674,6 +5878,13 @@ function confirmPmQty() {
     exitPmQtyMode(true);
 }
 pmPanelEl.addEventListener('click', e => {
+    const numPreset = e.target.closest('[data-pmn]');
+    if (numPreset) {
+        pmQtyValue = numPreset.dataset.pmn;
+        pmRefreshPanel();
+        pmApplyTarget(false);
+        return;
+    }
     const preset = e.target.closest('[data-pmp]');
     if (preset) {
         const w = preset.dataset.pmp;
@@ -5980,6 +6191,16 @@ articlesPageContent.addEventListener(
             return;
         }
         /* ---------- ДО ПОШУКУ ---------- */
+        if (nav === 'list-pm-name') {
+            if (current && current.level === 'list') {
+                enterPmGroupMode(
+                    current.article,
+                    btn.dataset.category,
+                    btn.dataset.station || ''
+                );
+            }
+            return;
+        }
         if (nav === 'list-pm-group') {
             toggleListPmClosed(btn.dataset.key || '');
             articlesPageStack.forEach(st => {
