@@ -660,6 +660,15 @@ body.interface-readable .art-readable {
 .wr-slot .pm-qty-badge {
     flex: none;
 }
+.result-card.pm-flat {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+}
+.result-card.pm-flat .pm-group-article {
+    padding: 0 2px;
+}
 .list-station-box {
     border: 1px solid #e5e7eb;
     border-radius: 14px;
@@ -1315,7 +1324,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 141;
+const CODE_VERSION = 142;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2870,7 +2879,7 @@ function pmArticleOfItem(item) {
 }
 function buildPmGroupHtml(article, items) {
     let html = `
-        <div class="result-card">
+        <div class="result-card pm-flat">
             <div class="pm-group-article">
                 <span class="pm-group-article-frame${isArticleFavorite(article) ? ' art-r-fav' : ''}">${articleHeadHtml(article)}</span>
                 <button
@@ -3050,10 +3059,11 @@ function buildPmGroupHtml(article, items) {
         html += '</div>';
     }
     if (other.length) {
-        if (!firstSection) html += divider;
+        html += '<div class="list-station-box">';
         other.forEach((it, i) => {
             html += renderItem(it, i === 0);
         });
+        html += '</div>';
     }
     html += `</div>`;
     return html;
