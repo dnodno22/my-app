@@ -1264,7 +1264,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 133;
+const CODE_VERSION = 135;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2534,7 +2534,7 @@ function fitWaitlistQty() {
         'Замовлено': 'Замовл.',
         'Доставляється': 'Доставл.'
     };
-    waitlistBox.querySelectorAll('.waitlist-qty').forEach(q => {
+    waitlistBox.querySelectorAll('.waitlist-qty, .pm-qty-badge').forEach(q => {
         const full = q.textContent;
         let short = full;
         Object.keys(shortMap).forEach(w => {
@@ -2775,7 +2775,7 @@ function buildPmGroupHtml(article, items) {
                 </button>
             </div>
     `;
-    items.forEach((item, n) => {
+    const renderItem = (item, first) => {
         const idx =
             waitlistCardKeys.push(item.key) - 1;
         const hasComment =
@@ -2784,41 +2784,31 @@ function buildPmGroupHtml(article, items) {
                 item.comment.trim()
             );
         const isPm = String(item.key).startsWith('pm|');
-        const isSpts = String(item.key).startsWith('spts|');
         const kindStations =
             item.station
                 ? [item.station]
                 : (item.stations || []);
+        const stTxt = kindStations.length
+            ? 'ст. ' + kindStations.map(st => escapeHtml(st)).join(', ')
+            : '';
         const kindHtml = item.kind
-            ? `<span class="pm-group-kind">${escapeHtml(item.kind)}${
-                kindStations.length
-                    ? ' · ст. ' + kindStations.map(st => escapeHtml(st)).join(', ')
-                    : ''
+            ? `<span class="pm-group-kind">${
+                item.kind === 'Проводи'
+                    ? stTxt
+                    : escapeHtml(item.kind) + (stTxt ? ' · ' + stTxt : '')
             }</span>`
             : '';
         const addrHtml =
             !isPm && !item.qty && item.address
                 ? `<span class="pm-group-addr">${escapeHtml(item.address)}</span>`
                 : '';
-        let stationsHtml = '';
-        if (false && !isPm && !isSpts && !item.kind && item.articles) {
-            const stArr = [];
-            Object.keys(item.articles).forEach(a => {
-                (item.articles[a] || []).forEach(st => stArr.push(st));
-            });
-            const uniq = uniqueDisplayStations(stArr);
-            if (uniq.length) {
-                stationsHtml =
-                    `<span class="pm-group-chips">${buildStationsHtml(uniq.map(st => escapeHtml(st)))}</span>`;
-            }
-        }
-        html += `
+        return `
             <div
-                class="pm-group-item${n ? ' pm-group-sep' : ''}"
+                class="pm-group-item${first ? '' : ' pm-group-sep'}"
                 data-pm-edit="${idx}">
                 <div class="pm-group-line">
                     <span class="pm-group-name">
-                        ${escapeHtml(item.material)}${kindHtml}${stationsHtml}
+                        ${escapeHtml(item.material)}${kindHtml}
                     </span>
                     <span class="pm-group-right">
                         ${addrHtml}
@@ -2832,7 +2822,143 @@ function buildPmGroupHtml(article, items) {
                     : ''}
             </div>
         `;
+    };
+    /* Структура як у «Списку»: станції, передмонтажі під своєю станцією, без станції — внизу */
+    const listMap = new Map();
+    try {
+        computeArticleList(article).forEach(li => {
+            listMap.set(li.key, li);
+        });
+    } catch (e) {}
+    const cmpU = (x, y) =>
+        String(x).localeCompare(
+            String(y),
+            'uk',
+            { numeric: true, sensitivity: 'base' }
+        );
+    const hasStn = v => !!v && v !== '—';
+    const inList = [];
+    const other = [];
+    items.forEach(it => {
+        const li = listMap.get(it.key);
+        if (li) inList.push({ it, li });
+        else other.push(it);
     });
+    const regular = inList
+        .filter(x => x.li.order !== 3)
+        .sort((x, y) =>
+            (x.li.order - y.li.order) ||
+            cmpU(x.li.material, y.li.material)
+        );
+    const pm = inList.filter(x => x.li.order === 3);
+    const groupsOf = arr => {
+        const map = new Map();
+        arr.forEach(x => {
+            if (!map.has(x.li.group)) map.set(x.li.group, []);
+            map.get(x.li.group).push(x);
+        });
+        return [...map.entries()]
+            .sort((x, y) => cmpU(x[0], y[0]))
+            .map(([group, list]) => ({
+                group,
+                list: list.sort((x, y) =>
+                    cmpU(x.li.material, y.li.material)
+                )
+            }));
+    };
+    const renderListRow = x => {
+        const idx =
+            waitlistCardKeys.push(x.it.key) - 1;
+        const li = x.li;
+        const hasComment =
+            !!(x.it.comment && x.it.comment.trim());
+        return `
+            <div
+                class="wire-row"
+                data-pm-edit="${idx}"
+                style="cursor:pointer; display:grid; grid-template-columns:34px 1fr auto; align-items:center;">
+                <span class="wire-name">
+                    ${hasStn(li.station) ? escapeHtml(li.station) : ''}
+                </span>
+                <span class="qty-slot" style="font-size:16px; font-weight:800; color:#111;">
+                    ${escapeHtml(li.material)}${li.kind === 'Проводи' ? '' : `<span class="level-head-tail"> ${escapeHtml(li.kind)}</span>`}${x.it.qty ? `<span class="pm-qty-badge">${escapeHtml(x.it.qty)}</span>` : ''}
+                </span>
+                <span class="wire-location">
+                    ${escapeHtml(li.address)}
+                </span>
+            </div>
+            ${hasComment
+                ? `<div class="waitlist-comment-text" style="margin-top:0;">${escapeHtml(x.it.comment)}</div>`
+                : ''}
+        `;
+    };
+    const groupHeader = g => `
+        <div style="display:flex; align-items:center; gap:8px; padding:4px 4px 0;">
+            <span style="font-size:14px; font-weight:800; color:#4338ca; white-space:nowrap;">${escapeHtml(premontageShortName(g.group))}</span>
+            <span style="flex:1; height:1px; background:#c7d2fe;"></span>
+        </div>
+    `;
+    const divider =
+        '<div style="margin-top:6px; border-top:2px solid #e5e7eb;"></div>';
+    let firstSection = true;
+    const sectionStart = () => {
+        if (!firstSection) html += divider;
+        firstSection = false;
+    };
+    const stSet = new Set();
+    inList.forEach(x => {
+        if (hasStn(x.li.station)) stSet.add(x.li.station);
+    });
+    [...stSet].sort(cmpU).forEach(st => {
+        sectionStart();
+        html += '<div class="wire-list">';
+        regular
+            .filter(x => x.li.station === st)
+            .forEach(x => {
+                html += renderListRow(x);
+            });
+        groupsOf(
+            pm.filter(x => x.li.station === st)
+        ).forEach(g => {
+            html += groupHeader(g);
+            g.list.forEach(x => {
+                html += renderListRow(x);
+            });
+        });
+        html += '</div>';
+    });
+    const regNo =
+        regular.filter(x => !hasStn(x.li.station));
+    const pmNo =
+        pm.filter(x => !hasStn(x.li.station));
+    if (regNo.length || pmNo.length) {
+        sectionStart();
+        html += '<div class="wire-list">';
+        regNo.forEach(x => {
+            html += renderListRow(x);
+        });
+        if (pmNo.length) {
+            html += `
+                <div style="display:flex; align-items:center; gap:8px; padding:8px 4px 0;">
+                    <span style="font-size:15px; font-weight:800; color:#4338ca; white-space:nowrap;"><span class="ico">🧵 </span>Передмонтаж</span>
+                    <span style="flex:1; height:1px; background:#c7d2fe;"></span>
+                </div>
+            `;
+            groupsOf(pmNo).forEach(g => {
+                html += groupHeader(g);
+                g.list.forEach(x => {
+                    html += renderListRow(x);
+                });
+            });
+        }
+        html += '</div>';
+    }
+    if (other.length) {
+        if (!firstSection) html += divider;
+        other.forEach((it, i) => {
+            html += renderItem(it, i === 0);
+        });
+    }
     html += `</div>`;
     return html;
 }
@@ -4997,7 +5123,7 @@ function pmApplyWaitlistTarget(scroll) {
         );
     if (!row) return;
     row.classList.add('qty-target');
-    let q = row.querySelector('.waitlist-qty');
+    let q = row.querySelector('.waitlist-qty, .pm-qty-badge');
     if (row.dataset.orig === undefined) {
         row.dataset.orig = q ? q.textContent : '';
     }
@@ -5008,8 +5134,12 @@ function pmApplyWaitlistTarget(scroll) {
     if (shown !== "") {
         if (!q) {
             q = document.createElement('span');
-            q.className = 'waitlist-qty';
+            q.className =
+                row.classList.contains('wire-row')
+                    ? 'pm-qty-badge'
+                    : 'waitlist-qty';
             (
+                row.querySelector('.qty-slot') ||
                 row.querySelector('.pm-group-right') ||
                 row.querySelector('.pm-group-line') ||
                 row
