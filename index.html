@@ -652,10 +652,8 @@ body.interface-readable .art-readable {
     white-space: nowrap;
 }
 .wr-name {
-    flex: 0 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: none;
+    white-space: nowrap;
 }
 .wr-slot .pm-qty-badge {
     flex: none;
@@ -1324,7 +1322,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 142;
+const CODE_VERSION = 144;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2588,26 +2586,31 @@ function setWaitlistComment(key, text) {
     }
 }
 let waitlistCardKeys = [];
+/* Слово скорочується рівно настільки, наскільки не влізає (число лишається) */
+function fitQtyText(el, full, overflowFn) {
+    el.textContent = full;
+    if (!overflowFn()) return;
+    const pt = pmSplitQty(full);
+    if (!pt.word || !/\D/.test(pt.word)) return;
+    for (let n = pt.word.length - 1; n >= 1; n--) {
+        el.textContent =
+            pmJoinQty(pt.num, pt.word.slice(0, n) + '.');
+        if (!overflowFn()) return;
+    }
+}
 function fitRowQty(root) {
-    const shortMap = {
-        'Відсутній': 'Відсут.',
-        'Замовлено': 'Замовл.',
-        'Доставляється': 'Доставл.'
-    };
     root.querySelectorAll('.wr-slot .pm-qty-badge').forEach(b => {
         if (b.dataset.full === undefined) {
             b.dataset.full = b.textContent;
         }
+        const slot = b.parentElement;
         b.textContent = b.dataset.full;
-        const name = b.parentElement.querySelector('.wr-name');
-        if (!name || !name.clientWidth) return;
-        if (name.scrollWidth > name.clientWidth + 1) {
-            let t = b.dataset.full;
-            Object.keys(shortMap).forEach(w => {
-                t = t.replace(w, shortMap[w]);
-            });
-            b.textContent = t;
-        }
+        if (!slot.clientWidth) return;
+        fitQtyText(
+            b,
+            b.dataset.full,
+            () => slot.scrollWidth > slot.clientWidth + 1
+        );
     });
 }
 function fitWaitlistQty() {
@@ -2641,27 +2644,24 @@ function fitWaitlistQty() {
     });
     waitlistBox.querySelectorAll('.waitlist-qty, .pm-qty-badge').forEach(q => {
         if (q.closest('.wr-slot')) return;
-        const full = q.textContent;
-        let short = full;
-        Object.keys(shortMap).forEach(w => {
-            short = short.replace(w, shortMap[w]);
-        });
-        if (short === full) return;
+        if (q.dataset.full === undefined) {
+            q.dataset.full = q.textContent;
+        }
         const host =
             q.closest('.wire-row, .article-row, .pm-group-line, .result-top, .pm-group-item') ||
             q.parentElement;
         const hr = host.getBoundingClientRect();
-        let over = host.scrollWidth > host.clientWidth + 1;
-        host.querySelectorAll('*').forEach(el => {
-            if (el.getBoundingClientRect().right > hr.right + 1) {
-                over = true;
-            }
-        });
-        const tooWide =
-            over ||
-            host.getBoundingClientRect().height > 56 ||
-            q.getBoundingClientRect().height > 34;
-        if (tooWide) q.textContent = short;
+        const over = () => {
+            if (host.scrollWidth > host.clientWidth + 1) return true;
+            if (q.getBoundingClientRect().height > 34) return true;
+            if (host.getBoundingClientRect().height > 56) return true;
+            let o = false;
+            host.querySelectorAll('*').forEach(el => {
+                if (el.getBoundingClientRect().right > hr.right + 1) o = true;
+            });
+            return o;
+        };
+        fitQtyText(q, q.dataset.full, over);
     });
 }
 function renderWaitlistPage() {
@@ -5296,16 +5296,12 @@ const PM_SHORT = {
 };
 function pmFitDisplay() {
     pmDisplayEl.textContent = pmQtyValue;
-    if (
-        pmDisplayEl.clientWidth > 0 &&
-        pmDisplayEl.scrollWidth > pmDisplayEl.clientWidth
-    ) {
-        const pt = pmSplitQty(pmQtyValue);
-        if (pt.word && PM_SHORT[pt.word]) {
-            pmDisplayEl.textContent =
-                pmJoinQty(pt.num, PM_SHORT[pt.word]);
-        }
-    }
+    if (!pmDisplayEl.clientWidth) return;
+    fitQtyText(
+        pmDisplayEl,
+        pmQtyValue,
+        () => pmDisplayEl.scrollWidth > pmDisplayEl.clientWidth
+    );
 }
 function pmJoinQty(num, word) {
     return num + (num && word ? ' ' : '') + word;
