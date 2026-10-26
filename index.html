@@ -1217,6 +1217,7 @@ tr:nth-child(even) td {
 <!-- КЛАВІАТУРА КІЛЬКОСТІ ДЛЯ ПЕРЕДМОНТАЖУ (довге натискання) -->
 <div id="pm-qty-panel" class="pm-qty-panel hidden">
     <div class="qty-title" id="pm-qty-title"></div>
+    <div class="pm-qty-display" id="pm-qty-display"></div>
     <div class="pm-presets" id="pm-presets">
         <button type="button" class="btn pm-preset" data-pmp="Мало">Мало</button>
         <button type="button" class="btn pm-preset" data-pmp="Відсутній">Відсутній</button>
@@ -1225,7 +1226,6 @@ tr:nth-child(even) td {
         <button type="button" class="btn pm-preset" data-pmp="Доставляється">Доставляється</button>
         <button type="button" class="btn pm-preset" data-pmp="Склад">Склад</button>
     </div>
-    <div class="pm-qty-display" id="pm-qty-display"></div>
     <textarea id="pm-qty-comment" class="comment-textarea hidden" placeholder="Коментар..."></textarea>
     <div class="qty-actions">
         <button type="button" class="qty-btn qty-comment" data-pm="comment">💬 Коментар</button>
@@ -1254,7 +1254,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 129;
+const CODE_VERSION = 130;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -4606,10 +4606,10 @@ function buildArticlesLevelHtml(
                     )}
                     style="cursor:pointer; display:grid; grid-template-columns:34px 1fr auto; align-items:center;">
                     <span class="wire-name">
-                        ${escapeHtml(it.station || '—')}
+                        ${hasStn(it.station) ? escapeHtml(it.station) : ''}
                     </span>
                     <span class="qty-slot" style="font-size:16px; font-weight:800; color:#111;">
-                        ${escapeHtml(it.material)}<span class="level-head-tail"> ${escapeHtml(it.kind)}</span>${sptsBadge(it.key)}
+                        ${escapeHtml(it.material)}${it.kind === 'Проводи' ? '' : `<span class="level-head-tail"> ${escapeHtml(it.kind)}</span>`}${sptsBadge(it.key)}
                     </span>
                     <span class="wire-location">
                         ${escapeHtml(it.address)}
