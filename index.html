@@ -1299,7 +1299,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 138;
+const CODE_VERSION = 140;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2599,10 +2599,18 @@ function fitWaitlistQty() {
         });
         if (short === full) return;
         const host =
-            q.closest('.article-row, .pm-group-line, .result-top, .pm-group-item') ||
+            q.closest('.wire-row, .article-row, .pm-group-line, .result-top, .pm-group-item') ||
             q.parentElement;
+        const hr = host.getBoundingClientRect();
+        let over = host.scrollWidth > host.clientWidth + 1;
+        host.querySelectorAll('*').forEach(el => {
+            if (el.getBoundingClientRect().right > hr.right + 1) {
+                over = true;
+            }
+        });
         const tooWide =
-            (host && host.scrollWidth > host.clientWidth + 1) ||
+            over ||
+            host.getBoundingClientRect().height > 56 ||
             q.getBoundingClientRect().height > 34;
         if (tooWide) q.textContent = short;
     });
@@ -2937,7 +2945,7 @@ function buildPmGroupHtml(article, items) {
                 <span class="wire-name">
                     ${hasStn(li.station) ? escapeHtml(li.station) : ''}
                 </span>
-                <span class="qty-slot" style="font-size:16px; font-weight:800; color:#111;">
+                <span class="qty-slot" style="font-size:16px; font-weight:800; color:#111; white-space:nowrap;">
                     ${escapeHtml(li.material)}${li.kind === 'Проводи' ? '' : `<span class="level-head-tail"> ${escapeHtml(li.kind)}</span>`}${x.it.qty ? `<span class="pm-qty-badge">${escapeHtml(x.it.qty)}</span>` : ''}
                 </span>
                 <span class="wire-location">
@@ -2976,7 +2984,6 @@ function buildPmGroupHtml(article, items) {
         groupsOf(
             pm.filter(x => x.li.station === st)
         ).forEach(g => {
-            html += groupHeader(g);
             g.list.forEach(x => {
                 html += renderListRow(x);
             });
@@ -2994,14 +3001,7 @@ function buildPmGroupHtml(article, items) {
             html += renderListRow(x);
         });
         if (pmNo.length) {
-            html += `
-                <div class="list-group-head">
-                    <span style="font-size:15px; font-weight:800; color:#4338ca; white-space:nowrap;"><span class="ico">🧵 </span>Передмонтаж</span>
-                    <span style="flex:1; height:1px; background:#c7d2fe;"></span>
-                </div>
-            `;
             groupsOf(pmNo).forEach(g => {
-                html += groupHeader(g);
                 g.list.forEach(x => {
                     html += renderListRow(x);
                 });
