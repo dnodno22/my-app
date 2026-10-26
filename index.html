@@ -1228,7 +1228,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 123;
+const CODE_VERSION = 125;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3557,10 +3557,26 @@ function buildPmStationResolver(article) {
         return found.length ? [...found].sort(cmp)[0] : '';
     };
 }
+function loadListPmOpen() {
+    try {
+        return localStorage.getItem('listPmOpen') !== '0';
+    } catch (e) {
+        return true;
+    }
+}
+function saveListPmOpen(v) {
+    try {
+        localStorage.setItem('listPmOpen', v ? '1' : '0');
+    } catch (e) {}
+}
 function computeArticleList(article) {
     const items = [];
     const seen = new Set();
+    const LIST_PREFIXES = ['152', '153', '157', '158'];
+    const okPrefix = m =>
+        LIST_PREFIXES.some(pf => String(m).startsWith(pf));
     const add = o => {
+        if (!okPrefix(o.material)) return;
         const k = [o.kind, o.station, o.material, o.address, o.key].join('|');
         if (seen.has(k)) return;
         seen.add(k);
@@ -3583,7 +3599,7 @@ function computeArticleList(article) {
     /* SP і TS (номери 158…) */
     [['sp', 'SP', 1], ['ts', 'TS', 2]].forEach(([action, kind, order]) => {
         computeArticleActionResults(article, action).forEach(r => {
-            const mm = String(r.material || "").match(/158\d+/);
+            const mm = String(r.material || "").match(/(?:152|153|157|158)\d+/);
             if (!mm) return;
             const st = String(r.station || "").trim() || '—';
             const a = String(r.address || "").trim();
@@ -3606,6 +3622,7 @@ function computeArticleList(article) {
             const a = String(w.address || "").trim();
             add({
                 order: 3,
+                group: c,
                 kind: premontageShortName(c),
                 station: st,
                 material: m,
@@ -4516,11 +4533,13 @@ function buildArticlesLevelHtml(
     } else if (
         state.level === 'list'
     ) {
-        const list =
+        const fullList =
             computeArticleList(state.article);
+        const list = fullList.filter(it => it.order !== 3);
+        const pmList = fullList.filter(it => it.order === 3);
         html +=
             '<div class="premontage-title"></div>';
-        if (!list.length) {
+        if (!fullList.length) {
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Немає матеріалів</div>';
         } else {
@@ -4565,6 +4584,75 @@ function buildArticlesLevelHtml(
             });
             html +=
                 '</div>';
+        }
+        if (fullList.length && pmList.length) {
+            const pmOpen = loadListPmOpen();
+            html += `
+                <div
+                    class="wire-row"
+                    data-anav="list-pm-toggle"
+                    style="cursor:pointer; margin-top:12px; background:#eef2ff; border-color:#c7d2fe;">
+                    <span class="wire-name" style="color:#4338ca;">
+                        <span class="ico">🧵 </span>Передмонтаж · ${pmList.length}
+                    </span>
+                    <span style="font-size:16px; font-weight:800; color:#4338ca;">${pmOpen ? '▲' : '▼'}</span>
+                </div>
+            `;
+            if (pmOpen) {
+                html += '<div class="wire-list" style="margin-top:8px;">';
+                const cmpU = (x, y) =>
+                    String(x).localeCompare(
+                        String(y),
+                        'uk',
+                        { numeric: true, sensitivity: 'base' }
+                    );
+                const noStP = v => (!v || v === '—') ? 1 : 0;
+                /* Матеріали одного передмонтажу — разом */
+                const pmSorted = [...pmList].sort((a, b) =>
+                    (noStP(a.station) - noStP(b.station)) ||
+                    cmpU(a.station, b.station) ||
+                    cmpU(a.group, b.group) ||
+                    cmpU(a.material, b.material)
+                );
+                let prevPmGroup = null;
+                pmSorted.forEach(it => {
+                    if (prevPmGroup !== it.group) {
+                        html += `
+                            <div style="margin-top:${prevPmGroup === null ? 0 : 8}px; padding:4px 4px 0; font-size:14px; font-weight:800; color:#4338ca; border-top:${prevPmGroup === null ? 'none' : '2px solid #e5e7eb'};">
+                                ${escapeHtml(premontageShortName(it.group))}
+                            </div>
+                        `;
+                        prevPmGroup = it.group;
+                    }
+                    const hasSt =
+                        it.station && it.station !== '—';
+                    html += `
+                        <div
+                            class="wire-row"
+                            ${toSearchAttr(it.material)}
+                            ${sptsAttrs(
+                                it.key,
+                                it.kind,
+                                hasSt ? it.station : '',
+                                hasSt ? [it.station] : [],
+                                it.material,
+                                it.address
+                            )}
+                            style="cursor:pointer; display:grid; grid-template-columns:34px 1fr auto; align-items:center;">
+                            <span class="wire-name">
+                                ${escapeHtml(it.station || '—')}
+                            </span>
+                            <span class="qty-slot" style="font-size:16px; font-weight:800; color:#111;">
+                                ${escapeHtml(it.material)}<span class="level-head-tail"> ${escapeHtml(it.kind)}</span>${sptsBadge(it.key)}
+                            </span>
+                            <span class="wire-location">
+                                ${escapeHtml(it.address)}
+                            </span>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
         }
     }
     /* ---------- ШАПКА: ліворуч артикул, праворуч назва кнопки ---------- */
@@ -5491,6 +5579,14 @@ articlesPageContent.addEventListener(
             return;
         }
         /* ---------- ДО ПОШУКУ ---------- */
+        if (nav === 'list-pm-toggle') {
+            saveListPmOpen(!loadListPmOpen());
+            articlesPageStack.forEach(st => {
+                delete st.cachedHtml;
+            });
+            renderArticlesPage(true);
+            return;
+        }
         if (nav === 'to-search' && btn.dataset.sptsKey !== undefined) {
             if (pmSkipWaitClick) return;
             const curS =
