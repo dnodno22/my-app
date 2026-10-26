@@ -522,8 +522,9 @@ body.interface-readable .art-readable {
     border-radius: 10px;
     font-size: 14px;
     color: #374151;
-    white-space: pre-wrap;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 /* ==================== ПАНЕЛЬ ПЕРЕДМОНТАЖУ ==================== */
 .premontage-toolbar {
@@ -642,6 +643,35 @@ body.interface-readable .art-readable {
     color: #6b7280;
     flex: 1;
     text-align: center;
+}
+.list-station-box {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #fff;
+    padding: 2px 12px 4px;
+    margin-bottom: 10px;
+}
+.list-station-box .wire-row {
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    padding: 12px 0;
+    border-top: 1px solid #ECECEC;
+}
+.list-station-box > :first-child,
+.list-station-box > :first-child.wire-row,
+.list-group-head + .wire-row {
+    border-top: none;
+}
+.list-group-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0 2px;
+    border-top: 1px solid #ECECEC;
+}
+.list-station-box > .list-group-head:first-child {
+    border-top: none;
 }
 .wire-location {
     font-weight: 600;
@@ -766,8 +796,13 @@ input#input.qty-mode {
     flex: 1 1 0;
     min-width: 0;
     font-size: 12px;
-    line-height: 1.15;
-    padding: 8px 1px;
+    line-height: 1.1;
+    padding: 2px;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -1264,7 +1299,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 135;
+const CODE_VERSION = 138;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2534,6 +2569,28 @@ function fitWaitlistQty() {
         'Замовлено': 'Замовл.',
         'Доставляється': 'Доставл.'
     };
+    waitlistBox.querySelectorAll('.waitlist-comment-text').forEach(c => {
+        if (c.dataset.full === undefined) {
+            c.dataset.full = c.textContent;
+        }
+        c.textContent = c.dataset.full;
+        if (c.scrollWidth > c.clientWidth + 1) {
+            const abbr = [
+                [/відсутній/gi, 'відсут.'],
+                [/замовлено/gi, 'замовл.'],
+                [/доставляється/gi, 'доставл.']
+            ];
+            let t = c.dataset.full;
+            abbr.forEach(([re, sh]) => {
+                t = t.replace(re, m =>
+                    m[0] === m[0].toUpperCase()
+                        ? sh[0].toUpperCase() + sh.slice(1)
+                        : sh
+                );
+            });
+            c.textContent = t;
+        }
+    });
     waitlistBox.querySelectorAll('.waitlist-qty, .pm-qty-badge').forEach(q => {
         const full = q.textContent;
         let short = full;
@@ -2893,13 +2950,12 @@ function buildPmGroupHtml(article, items) {
         `;
     };
     const groupHeader = g => `
-        <div style="display:flex; align-items:center; gap:8px; padding:4px 4px 0;">
+        <div class="list-group-head">
             <span style="font-size:14px; font-weight:800; color:#4338ca; white-space:nowrap;">${escapeHtml(premontageShortName(g.group))}</span>
             <span style="flex:1; height:1px; background:#c7d2fe;"></span>
         </div>
     `;
-    const divider =
-        '<div style="margin-top:6px; border-top:2px solid #e5e7eb;"></div>';
+    const divider = '';
     let firstSection = true;
     const sectionStart = () => {
         if (!firstSection) html += divider;
@@ -2911,7 +2967,7 @@ function buildPmGroupHtml(article, items) {
     });
     [...stSet].sort(cmpU).forEach(st => {
         sectionStart();
-        html += '<div class="wire-list">';
+        html += '<div class="list-station-box">';
         regular
             .filter(x => x.li.station === st)
             .forEach(x => {
@@ -2933,13 +2989,13 @@ function buildPmGroupHtml(article, items) {
         pm.filter(x => !hasStn(x.li.station));
     if (regNo.length || pmNo.length) {
         sectionStart();
-        html += '<div class="wire-list">';
+        html += '<div class="list-station-box">';
         regNo.forEach(x => {
             html += renderListRow(x);
         });
         if (pmNo.length) {
             html += `
-                <div style="display:flex; align-items:center; gap:8px; padding:8px 4px 0;">
+                <div class="list-group-head">
                     <span style="font-size:15px; font-weight:800; color:#4338ca; white-space:nowrap;"><span class="ico">🧵 </span>Передмонтаж</span>
                     <span style="flex:1; height:1px; background:#c7d2fe;"></span>
                 </div>
@@ -4796,9 +4852,10 @@ function buildArticlesLevelHtml(
                 const closed = closedPm.includes(gKey);
                 let h = `
                     <div
+                        class="list-group-head"
                         data-anav="list-pm-group"
                         data-key="${escapeHtml(gKey)}"
-                        style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:4px 4px 0;">
+                        style="cursor:pointer;">
                         <span style="font-size:14px; font-weight:800; color:#4338ca; white-space:nowrap;">
                             ${escapeHtml(premontageShortName(g.group))}
                         </span>
@@ -4822,13 +4879,12 @@ function buildArticlesLevelHtml(
                 if (hasStn(it.station)) stSet.add(it.station);
             });
             const stations = [...stSet].sort(cmpU);
-            const divider =
-                '<div style="margin-top:6px; border-top:2px solid #e5e7eb;"></div>';
+            const divider = '';
             let first = true;
             stations.forEach(st => {
                 if (!first) html += divider;
                 first = false;
-                html += '<div class="wire-list">';
+                html += '<div class="list-station-box">';
                 regular
                     .filter(it => it.station === st)
                     .forEach(it => {
@@ -4848,7 +4904,7 @@ function buildArticlesLevelHtml(
                 pm.filter(it => !hasStn(it.station));
             if (regNo.length || pmNo.length) {
                 if (!first) html += divider;
-                html += '<div class="wire-list">';
+                html += '<div class="list-station-box">';
                 regNo.forEach(it => {
                     html += rowHtml(it);
                 });
@@ -4856,8 +4912,9 @@ function buildArticlesLevelHtml(
                     const pmOpen = loadListPmOpen();
                     html += `
                         <div
+                            class="list-group-head"
                             data-anav="list-pm-toggle"
-                            style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:8px 4px 0;">
+                            style="cursor:pointer;">
                             <span style="font-size:15px; font-weight:800; color:#4338ca; white-space:nowrap;">
                                 <span class="ico">🧵 </span>Передмонтаж
                             </span>
@@ -5166,6 +5223,21 @@ function pmSplitQty(v) {
     }
     return { num: m[1] || "", word: (m[2] || "").trim() };
 }
+function pmFitPresets() {
+    pmPanelEl.querySelectorAll('.pm-preset').forEach(b => {
+        if (!b.clientWidth) return;
+        let fs = 12;
+        b.style.fontSize = fs + 'px';
+        while (
+            fs > 8 &&
+            (b.scrollHeight > b.clientHeight + 1 ||
+             b.scrollWidth > b.clientWidth + 1)
+        ) {
+            fs -= 0.5;
+            b.style.fontSize = fs + 'px';
+        }
+    });
+}
 const PM_SHORT = {
     'Відсутній': 'Відсут.',
     'Замовлено': 'Замовл.',
@@ -5205,6 +5277,7 @@ function pmRefreshPanel() {
         );
     });
     pmFitDisplay();
+    pmFitPresets();
 }
 function pmSearchPick() {
     const idx = searchCardKeys.indexOf(pmQtyKey);
