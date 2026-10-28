@@ -1374,7 +1374,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 147;
+const CODE_VERSION = 148;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -4237,10 +4237,11 @@ function buildArticlesLevelHtml(
                 return set ? set.size : 0;
             };
             let placementRows = [...rows];
-            if (state.shared) {
+            const sharedOn = !!(state.shared || state.sharedAll);
+            if (sharedOn) {
                 placementRows =
                     placementRows.filter(r =>
-                        isWireMaterial(r.material) &&
+                        (state.sharedAll || isWireMaterial(r.material)) &&
                         getOtherArticles(
                             matArticleMap,
                             r.material,
@@ -4335,6 +4336,11 @@ function buildArticlesLevelHtml(
                         <span class="ico">🔗 </span>Спільні
                     </button>
                     <button
+                        class="premontage-nav-btn${state.sharedAll ? ' active' : ''}"
+                        data-anav="toggle-shared-all">
+                        <span class="ico">🔗 </span>Спільні матеріали
+                    </button>
+                    <button
                         class="premontage-nav-btn${state.sortQty ? ' active' : ''}"
                         data-anav="toggle-qty">
                         <span class="ico">🔢 </span>Кількість
@@ -4347,13 +4353,13 @@ function buildArticlesLevelHtml(
             } else {
                 html +=
                     '<table><thead><tr><th>Станція</th><th>Матеріал</th><th>Адреса</th>' +
-                    (state.shared ? '<th>Також в артикулах</th>' : '') +
+                    (sharedOn ? '<th>Також в артикулах</th>' : '') +
                     '</tr></thead><tbody>';
                 displayRows.forEach(r => {
                     const others =
                         (
-                            state.shared &&
-                            isWireMaterial(r.material)
+                            sharedOn &&
+                            (state.sharedAll || isWireMaterial(r.material))
                         )
                             ? getOtherArticles(
                                 matArticleMap,
@@ -4378,7 +4384,7 @@ function buildArticlesLevelHtml(
                             <td${tdStyle}>${escapeHtml(r.station)}</td>
                             <td${tdStyle}>${escapeHtml(r.material)}</td>
                             <td${addrStyle}>${escapeHtml(r.address)}</td>
-                            ${state.shared
+                            ${sharedOn
                                 ? `<td style="white-space:normal; word-break:break-word; min-width:90px;${bg}">${escapeHtml(others.join(", "))}</td>`
                                 : ''}
                         </tr>
@@ -6199,6 +6205,7 @@ articlesPageContent.addEventListener(
         /* ---------- ПЕРЕМИКАЧІ РОЗМІЩЕННЯ ---------- */
         if (
             nav === 'toggle-shared' ||
+            nav === 'toggle-shared-all' ||
             nav === 'toggle-qty'
         ) {
             if (
@@ -6208,6 +6215,11 @@ articlesPageContent.addEventListener(
                 if (nav === 'toggle-shared') {
                     current.shared =
                         !current.shared;
+                    if (current.shared) current.sharedAll = false;
+                } else if (nav === 'toggle-shared-all') {
+                    current.sharedAll =
+                        !current.sharedAll;
+                    if (current.sharedAll) current.shared = false;
                 } else {
                     current.sortQty =
                         !current.sortQty;
