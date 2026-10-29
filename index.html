@@ -1374,7 +1374,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 150;
+const CODE_VERSION = 151;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -4956,7 +4956,99 @@ function buildArticlesLevelHtml(
             computeArticleList(state.article);
         html +=
             '<div class="premontage-title"></div>';
-        if (!fullList.length) {
+        const shMode = state.shMode || '';
+        html += `
+            <div class="premontage-toolbar">
+                <button
+                    class="premontage-nav-btn${shMode ? ' active' : ''}"
+                    data-anav="list-shared-with">
+                    <span class="ico">🔗 </span>Спільні з…${shMode === 'view' ? ' ' + escapeHtml(state.shWith) : ''}
+                </button>
+                ${shMode
+                    ? '<button class="premontage-nav-btn premontage-close-btn" data-anav="list-shared-off">✕</button>'
+                    : ''}
+            </div>
+        `;
+        if (shMode === 'pick') {
+            const arts =
+                sortArticlesWithFavorites(
+                    articleGroups.map(g => g.article)
+                ).filter(a => String(a) !== String(state.article));
+            html += '<div class="premontage-btn-grid">';
+            arts.forEach(a => {
+                const fav = isArticleFavorite(a);
+                html += `
+                    <button
+                        class="premontage-item-btn${fav ? ' favorite' : ''}"
+                        data-anav="list-shared-pick"
+                        data-article="${escapeHtml(a)}">
+                        ${renderArticleNumber(a, "", false, true)}
+                    </button>
+                `;
+            });
+            html += '</div>';
+        } else if (shMode === 'view') {
+            const statsOf = art => {
+                const map = new Map();
+                getAllMaterialsForArticle(art).forEach(r => {
+                    const m = String(r.material || '').trim();
+                    if (!m) return;
+                    if (!map.has(m)) {
+                        map.set(m, {
+                            st: new Set(),
+                            addr: String(r.address || '').trim()
+                        });
+                    }
+                    const e = map.get(m);
+                    e.st.add(String(r.station || '').trim());
+                    if (!e.addr) e.addr = String(r.address || '').trim();
+                });
+                return map;
+            };
+            const mapA = statsOf(state.article);
+            const mapB = statsOf(state.shWith);
+            const shared = [...mapA.keys()]
+                .filter(m => mapB.has(m))
+                .map(m => ({
+                    m,
+                    qa: mapA.get(m).st.size,
+                    qb: mapB.get(m).st.size,
+                    addr: mapA.get(m).addr || mapB.get(m).addr
+                }))
+                .map(x => ({ ...x, total: x.qa + x.qb }))
+                .sort((x, y) =>
+                    (y.total - x.total) ||
+                    String(x.m).localeCompare(
+                        String(y.m),
+                        'uk',
+                        { numeric: true, sensitivity: 'base' }
+                    )
+                );
+            if (!shared.length) {
+                html +=
+                    '<div style="text-align:center; padding:40px; color:#aaa;">Спільних матеріалів не знайдено</div>';
+            } else {
+                html +=
+                    '<table><thead><tr><th>Матеріал</th><th>' +
+                    escapeHtml(state.article) + '</th><th>' +
+                    escapeHtml(state.shWith) +
+                    '</th><th>Σ</th><th>Адреса</th></tr></thead><tbody>';
+                shared.forEach(x => {
+                    html += `
+                        <tr
+                            ${toSearchAttr(x.m)}
+                            style="cursor:pointer;">
+                            <td>${escapeHtml(x.m)}</td>
+                            <td>${x.qa}</td>
+                            <td>${x.qb}</td>
+                            <td style="font-weight:800;">${x.total}</td>
+                            <td style="color:#059669; font-weight:600; font-size:14px;">${escapeHtml(x.addr)}</td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table>';
+            }
+        } else if (!fullList.length) {
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Немає матеріалів</div>';
         } else {
@@ -5541,6 +5633,24 @@ function pmRefreshSearchCard(key) {
         pick.insertAdjacentElement('afterend', badge);
     }
 }
+/* Те, що вже вводили для цього матеріалу будь-де (спершу за тим самим ключем) */
+function pmFindPrev(key, material, article) {
+    const list = loadWaitlist();
+    const exact = list.find(i => i.key === key);
+    if (exact && exact.qty) return exact;
+    const mat = String(material || '').trim();
+    if (mat) {
+        const same = list.filter(i =>
+            i.qty && String(i.material || '').trim() === mat
+        );
+        const m =
+            same.find(i =>
+                article && pmArticleOfItem(i) === String(article)
+            ) || same[0];
+        if (m) return m;
+    }
+    return exact || null;
+}
 function enterPmSearchMode(key, pickEl) {
     const data = searchResultLookup[key];
     if (!data) return;
@@ -5554,10 +5664,11 @@ function enterPmSearchMode(key, pickEl) {
     const existing =
         loadWaitlist().find(i => i.key === key);
     pmQtyHad = !!(existing && existing.qty);
+    const prevS = pmFindPrev(key, data.material, '');
     pmQtyValue =
-        existing && existing.qty ? String(existing.qty) : "";
+        prevS && prevS.qty ? String(prevS.qty) : "";
     pmCommentEl.value =
-        existing && existing.comment ? existing.comment : "";
+        prevS && prevS.comment ? prevS.comment : "";
     pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
     pmKbWasHidden = kbWrapper.classList.contains('hidden');
     kbWrapper.classList.add('hidden');
@@ -5631,10 +5742,11 @@ function enterPmSptsMode(article, rowEl) {
     const existing =
         loadWaitlist().find(i => i.key === pmQtyKey);
     pmQtyHad = !!(existing && existing.qty);
+    const prevP = pmFindPrev(pmQtyKey, material, article);
     pmQtyValue =
-        existing && existing.qty ? String(existing.qty) : "";
+        prevP && prevP.qty ? String(prevP.qty) : "";
     pmCommentEl.value =
-        existing && existing.comment ? existing.comment : "";
+        prevP && prevP.comment ? prevP.comment : "";
     pmCommentEl.classList.toggle('hidden', !pmCommentEl.value);
     pmSetPresets(
         pmQtySource === 'group' ||
@@ -6245,6 +6357,26 @@ articlesPageContent.addEventListener(
                 delete st.cachedHtml;
             });
             renderArticlesPage(true);
+            return;
+        }
+        if (
+            nav === 'list-shared-with' ||
+            nav === 'list-shared-off' ||
+            nav === 'list-shared-pick'
+        ) {
+            if (current && current.level === 'list') {
+                if (nav === 'list-shared-off') {
+                    current.shMode = '';
+                    current.shWith = '';
+                } else if (nav === 'list-shared-pick') {
+                    current.shWith = btn.dataset.article || '';
+                    current.shMode = current.shWith ? 'view' : '';
+                } else {
+                    current.shMode =
+                        current.shMode === 'pick' ? '' : 'pick';
+                }
+                renderArticlesPage(true);
+            }
             return;
         }
         if (nav === 'list-st-toggle') {
