@@ -1374,7 +1374,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 152;
+const CODE_VERSION = 153;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -4384,6 +4384,7 @@ function buildArticlesLevelHtml(
                 const stationsMap = art => {
                     const map = new Map();
                     getAllMaterialsForArticle(art).forEach(r => {
+                        if (isPremontageName(r.station)) return;
                         const m = String(r.material || '').trim();
                         if (!m) return;
                         if (!map.has(m)) map.set(m, new Set());
