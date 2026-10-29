@@ -1374,7 +1374,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 151;
+const CODE_VERSION = 152;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -4237,6 +4237,7 @@ function buildArticlesLevelHtml(
                 return set ? set.size : 0;
             };
             let placementRows = [...rows];
+            const shMode = state.shMode || '';
             const sharedOn = !!(state.shared || state.sharedAll);
             if (sharedOn) {
                 placementRows =
@@ -4345,9 +4346,104 @@ function buildArticlesLevelHtml(
                         data-anav="toggle-qty">
                         <span class="ico">🔢 </span>Кількість
                     </button>
+                    <button
+                        class="premontage-nav-btn${shMode ? ' active' : ''}"
+                        data-anav="plc-shared-with">
+                        <span class="ico">🔗 </span>Спільні з…${shMode === 'view' ? ' ' + escapeHtml(state.shWith) : ''}
+                    </button>
+                    ${shMode
+                        ? '<button class="premontage-nav-btn premontage-close-btn" data-anav="plc-shared-off">✕</button>'
+                        : ''}
                 </div>
             `;
-            if (!displayRows.length) {
+            if (shMode === 'pick') {
+                const arts =
+                    sortArticlesWithFavorites(
+                        articleGroups.map(g => g.article)
+                    ).filter(a => String(a) !== String(state.article));
+                html += '<div class="premontage-btn-grid">';
+                arts.forEach(a => {
+                    const fav = isArticleFavorite(a);
+                    html += `
+                        <button
+                            class="premontage-item-btn${fav ? ' favorite' : ''}"
+                            data-anav="plc-shared-pick"
+                            data-article="${escapeHtml(a)}">
+                            ${renderArticleNumber(a, "", false, true)}
+                        </button>
+                    `;
+                });
+                html += '</div>';
+            } else if (shMode === 'view') {
+                const cmpN = (x, y) =>
+                    String(x).localeCompare(
+                        String(y),
+                        'uk',
+                        { numeric: true, sensitivity: 'base' }
+                    );
+                const stationsMap = art => {
+                    const map = new Map();
+                    getAllMaterialsForArticle(art).forEach(r => {
+                        const m = String(r.material || '').trim();
+                        if (!m) return;
+                        if (!map.has(m)) map.set(m, new Set());
+                        map.get(m).add(
+                            String(r.station || '').trim() || '—'
+                        );
+                    });
+                    return map;
+                };
+                const mapA = stationsMap(state.article);
+                const mapB = stationsMap(state.shWith);
+                const shared = [...mapA.keys()]
+                    .filter(m => mapB.has(m))
+                    .map(m => {
+                        const la = [...mapA.get(m)].sort(cmpN);
+                        const lb = [...mapB.get(m)].sort(cmpN);
+                        return {
+                            m,
+                            la,
+                            lb,
+                            total: la.length + lb.length
+                        };
+                    })
+                    .sort((x, y) =>
+                        (y.total - x.total) || cmpN(x.m, y.m)
+                    );
+                if (!shared.length) {
+                    html +=
+                        '<div style="text-align:center; padding:40px; color:#aaa;">Спільних матеріалів не знайдено</div>';
+                } else {
+                    html +=
+                        '<table><thead><tr><th>' +
+                        escapeHtml(state.article) + '</th><th>' +
+                        escapeHtml(state.shWith) +
+                        '</th></tr></thead><tbody>';
+                    shared.forEach(x => {
+                        const n = Math.max(x.la.length, x.lb.length);
+                        for (let i = 0; i < n; i++) {
+                            const top = i === 0
+                                ? ' style="border-top:2px solid #b6c0cf;"'
+                                : '';
+                            const left = i < x.la.length
+                                ? `<b>${escapeHtml(x.la[i])}</b> ${escapeHtml(x.m)}${i === 0 ? `<span class="level-head-tail"> Σ${x.total}</span>` : ''}`
+                                : '';
+                            const right = i < x.lb.length
+                                ? `<b>${escapeHtml(x.lb[i])}</b>`
+                                : '';
+                            html += `
+                                <tr
+                                    ${toSearchAttr(x.m)}
+                                    style="cursor:pointer;">
+                                    <td${top}>${left}</td>
+                                    <td${top}>${right}</td>
+                                </tr>
+                            `;
+                        }
+                    });
+                    html += '</tbody></table>';
+                }
+            } else if (!displayRows.length) {
                 html +=
                     '<div style="text-align:center; padding:40px; color:#aaa;">Спільних матеріалів не знайдено</div>';
             } else {
@@ -4956,99 +5052,7 @@ function buildArticlesLevelHtml(
             computeArticleList(state.article);
         html +=
             '<div class="premontage-title"></div>';
-        const shMode = state.shMode || '';
-        html += `
-            <div class="premontage-toolbar">
-                <button
-                    class="premontage-nav-btn${shMode ? ' active' : ''}"
-                    data-anav="list-shared-with">
-                    <span class="ico">🔗 </span>Спільні з…${shMode === 'view' ? ' ' + escapeHtml(state.shWith) : ''}
-                </button>
-                ${shMode
-                    ? '<button class="premontage-nav-btn premontage-close-btn" data-anav="list-shared-off">✕</button>'
-                    : ''}
-            </div>
-        `;
-        if (shMode === 'pick') {
-            const arts =
-                sortArticlesWithFavorites(
-                    articleGroups.map(g => g.article)
-                ).filter(a => String(a) !== String(state.article));
-            html += '<div class="premontage-btn-grid">';
-            arts.forEach(a => {
-                const fav = isArticleFavorite(a);
-                html += `
-                    <button
-                        class="premontage-item-btn${fav ? ' favorite' : ''}"
-                        data-anav="list-shared-pick"
-                        data-article="${escapeHtml(a)}">
-                        ${renderArticleNumber(a, "", false, true)}
-                    </button>
-                `;
-            });
-            html += '</div>';
-        } else if (shMode === 'view') {
-            const statsOf = art => {
-                const map = new Map();
-                getAllMaterialsForArticle(art).forEach(r => {
-                    const m = String(r.material || '').trim();
-                    if (!m) return;
-                    if (!map.has(m)) {
-                        map.set(m, {
-                            st: new Set(),
-                            addr: String(r.address || '').trim()
-                        });
-                    }
-                    const e = map.get(m);
-                    e.st.add(String(r.station || '').trim());
-                    if (!e.addr) e.addr = String(r.address || '').trim();
-                });
-                return map;
-            };
-            const mapA = statsOf(state.article);
-            const mapB = statsOf(state.shWith);
-            const shared = [...mapA.keys()]
-                .filter(m => mapB.has(m))
-                .map(m => ({
-                    m,
-                    qa: mapA.get(m).st.size,
-                    qb: mapB.get(m).st.size,
-                    addr: mapA.get(m).addr || mapB.get(m).addr
-                }))
-                .map(x => ({ ...x, total: x.qa + x.qb }))
-                .sort((x, y) =>
-                    (y.total - x.total) ||
-                    String(x.m).localeCompare(
-                        String(y.m),
-                        'uk',
-                        { numeric: true, sensitivity: 'base' }
-                    )
-                );
-            if (!shared.length) {
-                html +=
-                    '<div style="text-align:center; padding:40px; color:#aaa;">Спільних матеріалів не знайдено</div>';
-            } else {
-                html +=
-                    '<table><thead><tr><th>Матеріал</th><th>' +
-                    escapeHtml(state.article) + '</th><th>' +
-                    escapeHtml(state.shWith) +
-                    '</th><th>Σ</th><th>Адреса</th></tr></thead><tbody>';
-                shared.forEach(x => {
-                    html += `
-                        <tr
-                            ${toSearchAttr(x.m)}
-                            style="cursor:pointer;">
-                            <td>${escapeHtml(x.m)}</td>
-                            <td>${x.qa}</td>
-                            <td>${x.qb}</td>
-                            <td style="font-weight:800;">${x.total}</td>
-                            <td style="color:#059669; font-weight:600; font-size:14px;">${escapeHtml(x.addr)}</td>
-                        </tr>
-                    `;
-                });
-                html += '</tbody></table>';
-            }
-        } else if (!fullList.length) {
+        if (!fullList.length) {
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Немає матеріалів</div>';
         } else {
@@ -6360,15 +6364,19 @@ articlesPageContent.addEventListener(
             return;
         }
         if (
-            nav === 'list-shared-with' ||
-            nav === 'list-shared-off' ||
-            nav === 'list-shared-pick'
+            nav === 'plc-shared-with' ||
+            nav === 'plc-shared-off' ||
+            nav === 'plc-shared-pick'
         ) {
-            if (current && current.level === 'list') {
-                if (nav === 'list-shared-off') {
+            if (
+                current &&
+                current.level === 'results' &&
+                current.action === 'розміщення'
+            ) {
+                if (nav === 'plc-shared-off') {
                     current.shMode = '';
                     current.shWith = '';
-                } else if (nav === 'list-shared-pick') {
+                } else if (nav === 'plc-shared-pick') {
                     current.shWith = btn.dataset.article || '';
                     current.shMode = current.shWith ? 'view' : '';
                 } else {
