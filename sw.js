@@ -1,5 +1,5 @@
 /* Версія кешу — підіймай разом із CODE_VERSION в index.html */
-const CACHE = 'search-v107';
+const CACHE = 'search-v108';
 const CORE = ['./', './index.html', './manifest.json'];
 const EXTRA = ['./favicon.png', './apple-touch-icon.png'];
 const NETWORK_TIMEOUT_MS = 3000;
@@ -46,14 +46,17 @@ async function networkFirst(req, fallbackKey) {
   }
 }
 
-/* Кеш одразу, оновлення у фоні (для іконок, маніфесту тощо) */
-async function staleWhileRevalidate(req) {
+/* Для іконок і маніфесту: мережа першою (щоб нова іконка не застрягала в кеші), кеш як запасний варіант */
+async function iconsNetworkFirst(req) {
   const c = await caches.open(CACHE);
-  const cached = await c.match(req, { ignoreSearch: true });
-  const net = fetch(req)
-    .then(r => { if (r && r.ok) c.put(req, r.clone()); return r; })
-    .catch(() => null);
-  return cached || (await net) || Response.error();
+  try {
+    const r = await fetch(req, { cache: 'no-cache' });
+    if (r && r.ok) {
+      c.put(req, r.clone()).catch(() => {});
+      return r;
+    }
+  } catch (_) {}
+  return (await c.match(req, { ignoreSearch: true })) || Response.error();
 }
 
 self.addEventListener('fetch', e => {
@@ -66,5 +69,5 @@ self.addEventListener('fetch', e => {
     e.respondWith(networkFirst(req, './index.html'));
     return;
   }
-  e.respondWith(staleWhileRevalidate(req));
+  e.respondWith(iconsNetworkFirst(req));
 });
