@@ -1,7 +1,7 @@
 /* Версія кешу — підіймай разом із CODE_VERSION в index.html */
 const CACHE = 'search-v108';
 const CORE = ['./', './index.html', './manifest.json'];
-const EXTRA = ['./favicon.png', './apple-touch-icon.png'];
+const EXTRA = ['./favicon.png', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
 const NETWORK_TIMEOUT_MS = 3000;
 
 self.addEventListener('install', e => {
