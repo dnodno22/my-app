@@ -1374,14 +1374,16 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 153;
+const CODE_VERSION = 155;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
 const BMW_GID = "421001458";
 const PREMONTAGE_AUDI_GID = "1146686549";
 /* Усі аркуші (gid), з яких тягнуться дані. Додай сюди нові gid через кому. */
-const SEARCH_GIDS = [AUDI_GID, BMW_GID, PREMONTAGE_AUDI_GID, "2115582321", "994923423"];
+/* Аркуш з адресами матеріалів: B — назва матеріалу, E — адреса на складі */
+const ADDRESS_GID = "994923423";
+const SEARCH_GIDS = [AUDI_GID, BMW_GID, PREMONTAGE_AUDI_GID, "2115582321", ADDRESS_GID];
 /* ================================================================ */
 /* Кеші для швидкодії */
 const _expandCache = new Map();
@@ -2098,6 +2100,24 @@ function parseSearchCSV(parts) {
                 };
             });
         });
+    /*
+        Усі адреси матеріалів беруться з окремого аркуша ADDRESS_GID:
+        колонка B — назва матеріалу, колонка E — адреса на складі.
+        Адреса з цього аркуша має пріоритет над колонкою E інших аркушів.
+    */
+    const addrMap = new Map();
+    searchData.forEach(row => {
+        if (row.sourceGid !== ADDRESS_GID) return;
+        const m = String(row.material || "").trim();
+        const a = String(row.address || "").trim();
+        if (m && a && !addrMap.has(m)) addrMap.set(m, a);
+    });
+    if (addrMap.size) {
+        searchData.forEach(row => {
+            const a = addrMap.get(String(row.material || "").trim());
+            if (a) row.address = a;
+        });
+    }
 }
 /* ==================== CACHE ==================== */
 function gidCacheKey(gid) {
@@ -6576,8 +6596,14 @@ function search() {
         grouped[matKey][x.article]
             .add(x.station);
     });
+    /* Матеріали без артикулу — в кінці списку */
+    const hasArt = k =>
+        Object.keys(grouped[k]).some(a => String(a).trim());
+    const orderedKeys = Object.keys(grouped);
+    const withArt = orderedKeys.filter(k => hasArt(k));
+    const withoutArt = orderedKeys.filter(k => !hasArt(k));
     for (
-        let matKey in grouped
+        const matKey of [...withArt, ...withoutArt]
     ) {
         const [
             matName,
