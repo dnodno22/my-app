@@ -1374,16 +1374,18 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 155;
+const CODE_VERSION = 156;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
 const BMW_GID = "421001458";
 const PREMONTAGE_AUDI_GID = "1146686549";
+/* Аркуш "спільна лінія": рядок зі словом "спільна", далі шапка артикулів, 1-й стовпчик — станції */
+const SHARED_GID = "2115582321";
 /* Усі аркуші (gid), з яких тягнуться дані. Додай сюди нові gid через кому. */
 /* Аркуш з адресами матеріалів: B — назва матеріалу, E — адреса на складі */
 const ADDRESS_GID = "994923423";
-const SEARCH_GIDS = [AUDI_GID, BMW_GID, PREMONTAGE_AUDI_GID, "2115582321", ADDRESS_GID];
+const SEARCH_GIDS = [AUDI_GID, BMW_GID, PREMONTAGE_AUDI_GID, SHARED_GID, ADDRESS_GID];
 /* ================================================================ */
 /* Кеші для швидкодії */
 const _expandCache = new Map();
@@ -2076,6 +2078,74 @@ document.addEventListener(
     }
 );
 /* ==================== CSV ==================== */
+/* Розбір CSV з урахуванням лапок (для аркуша "спільна") */
+function parseCsvRows(text) {
+    const rows = [];
+    let row = [], cell = "", q = false;
+    const s = String(text || "");
+    for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (q) {
+            if (ch === '"' && s[i + 1] === '"') { cell += '"'; i++; }
+            else if (ch === '"') q = false;
+            else cell += ch;
+        } else if (ch === '"') {
+            q = true;
+        } else if (ch === ",") {
+            row.push(cell); cell = "";
+        } else if (ch === "\n" || ch === "\r") {
+            if (ch === "\r" && s[i + 1] === "\n") i++;
+            row.push(cell); rows.push(row); row = []; cell = "";
+        } else {
+            cell += ch;
+        }
+    }
+    if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+}
+/*
+    Аркуш SHARED_GID ("спільна лінія"):
+    рядок зі словом "спільна" → наступний рядок містить назви артикулів
+    (з 2-го стовпчика) → нижче: 1-й стовпчик = номер станції,
+    клітинки під назвою артикулу = матеріали цього артикулу.
+    Усі артикули під цією лінією — спільні (shared: true).
+*/
+function parseSharedSheet(text, gid) {
+    const rows = parseCsvRows(text);
+    const out = [];
+    const isMarker = row =>
+        row.some(c => String(c).trim().toLowerCase() === "спільна");
+    for (let r = 0; r < rows.length; r++) {
+        if (!isMarker(rows[r])) continue;
+        const head = rows[r + 1] || [];
+        const arts = [];
+        for (let j = 1; j < head.length; j++) {
+            const a = String(head[j] || "").trim();
+            if (a) arts.push({ j, a });
+        }
+        let k = r + 2;
+        for (; k < rows.length; k++) {
+            const row = rows[k];
+            if (isMarker(row)) break;
+            const station = String(row[0] || "").trim();
+            arts.forEach(({ j, a }) => {
+                const mat = String(row[j] || "").trim();
+                if (!mat) return;
+                out.push({
+                    station,
+                    material: mat,
+                    article: a,
+                    colD: "",
+                    address: "",
+                    sourceGid: String(gid),
+                    shared: true
+                });
+            });
+        }
+        r = k - 1;
+    }
+    return out;
+}
 function parseSearchCSV(parts) {
     _actionsCache = {};
     _fullCodeMap = null;
@@ -2088,6 +2158,9 @@ function parseSearchCSV(parts) {
             const csv =
                 String(part.text || "").trim();
             if (!csv) return [];
+            if (String(part.gid) === SHARED_GID) {
+                return parseSharedSheet(csv, part.gid);
+            }
             return csv.split(/\r?\n/).map(r => {
                 const c = r.split(",");
                 return {
