@@ -6329,15 +6329,17 @@ function pmStartPress(btn, x, y, kind) {
             const cur =
                 articlesPageStack[articlesPageStack.length - 1];
             if (!cur || cur.level !== 'premontage-categories') return;
-            const catOpen = b.dataset.category;
+            const catQty = b.dataset.category;
+            const labelQty =
+                b.dataset.label || b.textContent.trim();
             pmSkipWaitClick = true;
+            /* Довге натискання на назві передмонтажу = кількість */
             go = () => {
-                articlesPageStack.push({
-                    level: 'premontage-wires',
-                    article: cur.article,
-                    category: catOpen
-                });
-                renderArticlesPage();
+                enterPmQtyMode(
+                    cur.article,
+                    catQty,
+                    labelQty
+                );
             };
         }
         /* Гасимо жести свайпу / "потягнути вниз" для цього дотику */
@@ -6668,14 +6670,15 @@ articlesPageContent.addEventListener(
         }
         /* ---------- КАТЕГОРІЯ ---------- */
         if (nav === 'category') {
-            /* Тап по назві передмонтажу = кількість; утримання = відкрити */
+            /* Тап по назві передмонтажу = відкрити; довге натискання = кількість */
             if (pmSkipWaitClick) return;
             if (current.level === 'premontage-categories') {
-                enterPmQtyMode(
-                    current.article,
-                    btn.dataset.category,
-                    btn.dataset.label || btn.textContent.trim()
-                );
+                articlesPageStack.push({
+                    level: 'premontage-wires',
+                    article: current.article,
+                    category: btn.dataset.category
+                });
+                renderArticlesPage();
             }
             return;
         }
