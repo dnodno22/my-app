@@ -6893,35 +6893,67 @@ function search() {
                 </div>
             `;
         });
+        /*
+            Артикули цього блоку з ОДНАКОВИМИ станціями збираємо в один рядок:
+            артикули один під одним, а станції пишемо лише раз.
+        */
+        const hasRealArt =
+            Object.keys(mergedArticles).some(a => String(a).trim());
+        const sameStations = new Map();
         for (
             let art in mergedArticles
         ) {
             if (sharedSet.has(art)) {
                 continue;
             }
-            if (
-                !String(art).trim() &&
-                Object.keys(mergedArticles).some(a => String(a).trim())
-            ) {
+            if (!String(art).trim() && hasRealArt) {
                 /* Той самий матеріал і адреса вже показані з артикулом */
                 continue;
             }
-            const artHtml =
-                renderArticleNumber(
-                    art,
-                    v,
-                    isNumOnly,
-                    true,
-                    true
+            const stList =
+                uniqueDisplayStations(mergedArticles[art]);
+            const stKey =
+                String(art).trim()
+                    ? [...stList]
+                        .sort((x, y) =>
+                            String(x).localeCompare(
+                                String(y),
+                                'uk',
+                                { numeric: true }
+                            )
+                        )
+                        .join('\u0001')
+                    : '\u0002' + art;
+            if (!sameStations.has(stKey)) {
+                sameStations.set(
+                    stKey,
+                    { arts: [], stList }
                 );
-            const stationHtmlArr =
-                uniqueDisplayStations(
-                    mergedArticles[art]
-                )
-                    .map(st => escapeHtml(st));
+            }
+            sameStations.get(stKey).arts.push(art);
+        }
+        sameStations.forEach(({ arts, stList }) => {
+            const artHtml =
+                arts.length > 1
+                    ? '<span class="art-r-stack">' +
+                        arts.map(a =>
+                            '<span>' +
+                            renderArticleNumber(
+                                a, v, isNumOnly, true, true
+                            ) +
+                            '</span>'
+                        ).join('') +
+                        '</span>'
+                    : renderArticleNumber(
+                        arts[0],
+                        v,
+                        isNumOnly,
+                        true,
+                        true
+                    );
             const stationsHtml =
                 buildStationsHtml(
-                    stationHtmlArr
+                    stList.map(st => escapeHtml(st))
                 );
             html += `
                 <div class="article-row">
@@ -6933,7 +6965,7 @@ function search() {
                     </span>
                 </div>
             `;
-        }
+        });
         html +=
             `</div>`;
     }
