@@ -6683,6 +6683,8 @@ function search() {
     searchCardKeys = [];
     searchResultLookup = {};
     const grouped = {};
+    /* Артикули зі спільної лінії (аркуш SHARED_GID) для кожного матеріалу */
+    const sharedByMat = {};
     filtered.forEach(x => {
         const matKey =
             x.material +
@@ -6699,6 +6701,10 @@ function search() {
         }
         grouped[matKey][x.article]
             .add(x.station);
+        if (x.shared) {
+            (sharedByMat[matKey] =
+                sharedByMat[matKey] || new Set()).add(x.article);
+        }
     });
     /* Матеріали без артикулу — в кінці списку */
     const hasArt = k =>
@@ -6785,9 +6791,51 @@ function search() {
                     </div>
                 </div>
         `;
+        /*
+            Спільна лінія: якщо один матеріал є на кількох артикулах з аркуша
+            SHARED_GID — усі вони збираються в ОДИН блок (артикули один під
+            одним, станції спільні).
+        */
+        const sharedSet = sharedByMat[matKey] || new Set();
+        const sharedList =
+            Object.keys(mergedArticles)
+                .filter(a => sharedSet.has(a) && String(a).trim());
+        const groupShared = sharedList.length > 1;
+        if (groupShared) {
+            const stSet = new Set();
+            sharedList.forEach(a =>
+                mergedArticles[a].forEach(s => stSet.add(s))
+            );
+            const stackHtml =
+                '<span class="art-r-stack">' +
+                sharedList.map(a =>
+                    '<span>' +
+                    renderArticleNumber(a, v, isNumOnly, true, true) +
+                    '</span>'
+                ).join('') +
+                '</span>';
+            const sharedStationsHtml =
+                buildStationsHtml(
+                    uniqueDisplayStations(stSet)
+                        .map(st => escapeHtml(st))
+                );
+            html += `
+                <div class="article-row">
+                    <span class="article-number">
+                        ${stackHtml}
+                    </span>
+                    <span class="article-stations">
+                        ${sharedStationsHtml}
+                    </span>
+                </div>
+            `;
+        }
         for (
             let art in mergedArticles
         ) {
+            if (groupShared && sharedSet.has(art)) {
+                continue;
+            }
             if (
                 !String(art).trim() &&
                 Object.keys(mergedArticles).some(a => String(a).trim())
