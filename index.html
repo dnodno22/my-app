@@ -1374,7 +1374,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 156;
+const CODE_VERSION = 165;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2111,7 +2111,36 @@ function parseCsvRows(text) {
     Усі артикули під цією лінією — спільні (shared: true).
 */
 function parseSharedSheet(text, gid) {
-    const rows = parseCsvRows(text);
+    const all = parseCsvRows(text);
+    /*
+        Групи можуть стояти і збоку одна від одної: повністю порожній
+        (по всьому аркушу) стовпчик розділяє смуги. Кожна смуга розбирається
+        окремо: 1-й стовпчик смуги — станції/передмонтажі, далі артикули,
+        крайній стовпчик смуги — примітки.
+    */
+    let width = 0;
+    all.forEach(r => { width = Math.max(width, r.length); });
+    const filled = [];
+    for (let j = 0; j < width; j++) {
+        filled[j] = all.some(r => String(r[j] || "").trim());
+    }
+    const out = [];
+    let sid = 0;
+    for (let j = 0; j < width; j++) {
+        if (!filled[j]) continue;
+        let e = j;
+        while (e + 1 < width && filled[e + 1]) e++;
+        const strip = all.map(r => {
+            const cells = [];
+            for (let c = j; c <= e; c++) cells.push(r[c] || "");
+            return cells;
+        });
+        out.push(...parseSharedStrip(strip, gid, sid++));
+        j = e;
+    }
+    return out;
+}
+function parseSharedStrip(rows, gid, sid) {
     const out = [];
     const isMarker = row =>
         row.some(c => String(c).trim().toLowerCase() === "спільна");
@@ -2201,7 +2230,7 @@ function parseSharedSheet(text, gid) {
                     sourceGid: String(gid),
                     shared: true,
                     /* Номер лінії "спільна": усі артикули під нею — одна група */
-                    sharedGroup: String(gid) + ":" + headIdx
+                    sharedGroup: String(gid) + ":" + sid + ":" + headIdx
                 });
             };
             arts.forEach(({ j, a }) => {
