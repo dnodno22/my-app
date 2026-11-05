@@ -2115,11 +2115,57 @@ function parseSharedSheet(text, gid) {
     const out = [];
     const isMarker = row =>
         row.some(c => String(c).trim().toLowerCase() === "спільна");
+    const isBlank = row =>
+        !row || row.every(c => !String(c).trim());
+    /*
+        Групи розділяються порожніми рядками. Нова група починається з:
+        - рядка зі словом "спільна" (шапка артикулів — наступний рядок), або
+        - першого непорожнього рядка після порожнього (це і є шапка артикулів).
+        Усе під шапкою до порожнього рядка — одна група (одна лінія).
+    */
     for (let r = 0; r < rows.length; r++) {
-        if (!isMarker(rows[r])) continue;
-        const head = rows[r + 1] || [];
+        if (isBlank(rows[r])) continue;
+        let headIdx = r;
+        if (isMarker(rows[r])) {
+            headIdx = r + 1;
+            while (headIdx < rows.length && isBlank(rows[headIdx])) {
+                headIdx++;
+            }
+        }
+        const head = rows[headIdx] || [];
+        /*
+            Крайній (правий) стовпчик групи — стовпчик ПРИМІТКИ, а не артикул.
+            Якщо в шапці є клітинка з назвою "примітк…", беремо її; інакше
+            — найправіший заповнений стовпчик групи (шапка + рядки до порожнього).
+        */
+        let notesCol = -1;
+        {
+            let lastCol = 0;
+            const lastFilled = row => {
+                for (let j = (row || []).length - 1; j >= 1; j--) {
+                    if (String(row[j] || "").trim()) return j;
+                }
+                return 0;
+            };
+            lastCol = lastFilled(head);
+            for (let q = headIdx + 1; q < rows.length; q++) {
+                if (isBlank(rows[q]) || isMarker(rows[q])) break;
+                lastCol = Math.max(lastCol, lastFilled(rows[q]));
+            }
+            const named = head.findIndex(
+                (c, j) =>
+                    j >= 1 &&
+                    /^примітк/i.test(String(c || "").trim())
+            );
+            if (named >= 1) {
+                notesCol = named;
+            } else if (lastCol >= 2) {
+                notesCol = lastCol;
+            }
+        }
         const arts = [];
         for (let j = 1; j < head.length; j++) {
+            if (j === notesCol) continue;
             const a = String(head[j] || "").trim();
             if (a) arts.push({ j, a });
         }
@@ -2134,21 +2180,28 @@ function parseSharedSheet(text, gid) {
         const sameName = (x, y) =>
             String(x).trim().toLowerCase() ===
             String(y).trim().toLowerCase();
-        let k = r + 2;
+        let k = headIdx + 1;
         for (; k < rows.length; k++) {
             const row = rows[k];
-            if (isMarker(row)) break;
+            if (isBlank(row) || isMarker(row)) break;
             const first = String(row[0] || "").trim();
             const isPmName = !!first && isPremontageName(first);
+            /* Примітка цього рядка — з крайнього стовпчика групи (колонка D) */
+            const note =
+                notesCol >= 1
+                    ? String(row[notesCol] || "").trim()
+                    : "";
             const push = (station, mat, a) => {
                 out.push({
                     station,
                     material: mat,
                     article: a,
-                    colD: "",
+                    colD: note,
                     address: "",
                     sourceGid: String(gid),
-                    shared: true
+                    shared: true,
+                    /* Номер лінії "спільна": усі артикули під нею — одна група */
+                    sharedGroup: String(gid) + ":" + headIdx
                 });
             };
             arts.forEach(({ j, a }) => {
@@ -6701,9 +6754,9 @@ function search() {
         }
         grouped[matKey][x.article]
             .add(x.station);
-        if (x.shared) {
+        if (x.shared && x.sharedGroup) {
             (sharedByMat[matKey] =
-                sharedByMat[matKey] || new Set()).add(x.article);
+                sharedByMat[matKey] || {})[x.article] = x.sharedGroup;
         }
     });
     /* Матеріали без артикулу — в кінці списку */
@@ -6796,12 +6849,19 @@ function search() {
             SHARED_GID — усі вони збираються в ОДИН блок (артикули один під
             одним, станції спільні).
         */
-        const sharedSet = sharedByMat[matKey] || new Set();
-        const sharedList =
-            Object.keys(mergedArticles)
-                .filter(a => sharedSet.has(a) && String(a).trim());
-        const groupShared = sharedList.length > 1;
-        if (groupShared) {
+        const sharedMap = sharedByMat[matKey] || {};
+        const byLine = {};
+        Object.keys(mergedArticles).forEach(a => {
+            const g = sharedMap[a];
+            if (g && String(a).trim()) {
+                (byLine[g] = byLine[g] || []).push(a);
+            }
+        });
+        const sharedSet = new Set();
+        Object.keys(byLine).forEach(g => {
+            const sharedList = byLine[g];
+            if (sharedList.length < 2) return;
+            sharedList.forEach(a => sharedSet.add(a));
             const stSet = new Set();
             sharedList.forEach(a =>
                 mergedArticles[a].forEach(s => stSet.add(s))
@@ -6829,11 +6889,11 @@ function search() {
                     </span>
                 </div>
             `;
-        }
+        });
         for (
             let art in mergedArticles
         ) {
-            if (groupShared && sharedSet.has(art)) {
+            if (sharedSet.has(art)) {
                 continue;
             }
             if (
