@@ -3730,7 +3730,11 @@ function getSearchRowsForFilters() {
                     return row.sourceGid === AUDI_GID;
                 }
                 if (filter === 'bmw') {
-                    return row.sourceGid === BMW_GID;
+                    /* Аркуш "спільна" (2115582321) належить до BMW */
+                    return (
+                        row.sourceGid === BMW_GID ||
+                        row.sourceGid === SHARED_GID
+                    );
                 }
                 return row.sourceGid === PREMONTAGE_AUDI_GID;
             });
