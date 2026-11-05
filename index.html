@@ -2123,14 +2123,24 @@ function parseSharedSheet(text, gid) {
             const a = String(head[j] || "").trim();
             if (a) arts.push({ j, a });
         }
+        /*
+            Передмонтаж: у 1-му стовпчику стоїть назва (напр. X943*1B),
+            така сама назва стоїть у стовпчику артикулу, який її використовує.
+            Матеріали передмонтажу — у стовпчику цього артикулу (на цьому ж
+            рядку і нижче, поки не з'явиться номер станції чи інша назва).
+            Назва однакова для різних артикулів, а матеріали — різні.
+        */
+        const pm = {};
+        const sameName = (x, y) =>
+            String(x).trim().toLowerCase() ===
+            String(y).trim().toLowerCase();
         let k = r + 2;
         for (; k < rows.length; k++) {
             const row = rows[k];
             if (isMarker(row)) break;
-            const station = String(row[0] || "").trim();
-            arts.forEach(({ j, a }) => {
-                const mat = String(row[j] || "").trim();
-                if (!mat) return;
+            const first = String(row[0] || "").trim();
+            const isPmName = !!first && isPremontageName(first);
+            const push = (station, mat, a) => {
                 out.push({
                     station,
                     material: mat,
@@ -2140,6 +2150,27 @@ function parseSharedSheet(text, gid) {
                     sourceGid: String(gid),
                     shared: true
                 });
+            };
+            arts.forEach(({ j, a }) => {
+                const cell = String(row[j] || "").trim();
+                if (isPmName) {
+                    if (!cell) {
+                        pm[a] = null;
+                    } else if (sameName(cell, first)) {
+                        pm[a] = first;
+                    } else {
+                        pm[a] = first;
+                        push(first, cell, a);
+                    }
+                } else if (first) {
+                    /* Номер станції: звичайний матеріал, блок передмонтажу закінчено */
+                    pm[a] = null;
+                    if (cell) push(first, cell, a);
+                } else if (cell) {
+                    /* Порожній 1-й стовпчик: продовження передмонтажу цього артикулу */
+                    if (pm[a]) push(pm[a], cell, a);
+                    else push("", cell, a);
+                }
             });
         }
         r = k - 1;
