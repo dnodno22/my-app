@@ -1374,7 +1374,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 165;
+const CODE_VERSION = 166;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -6927,12 +6927,11 @@ function search() {
             `;
         });
         /*
-            Артикули цього блоку з ОДНАКОВИМИ станціями збираємо в один рядок:
-            артикули один під одним, а станції пишемо лише раз.
+            Решта артикулів — кожен окремим рядком зі своїми станціями.
+            Разом групуються ЛИШЕ артикули однієї лінії "спільна" (вище).
         */
         const hasRealArt =
             Object.keys(mergedArticles).some(a => String(a).trim());
-        const sameStations = new Map();
         for (
             let art in mergedArticles
         ) {
@@ -6943,50 +6942,18 @@ function search() {
                 /* Той самий матеріал і адреса вже показані з артикулом */
                 continue;
             }
-            const stList =
-                uniqueDisplayStations(mergedArticles[art]);
-            const stKey =
-                String(art).trim()
-                    ? [...stList]
-                        .sort((x, y) =>
-                            String(x).localeCompare(
-                                String(y),
-                                'uk',
-                                { numeric: true }
-                            )
-                        )
-                        .join('\u0001')
-                    : '\u0002' + art;
-            if (!sameStations.has(stKey)) {
-                sameStations.set(
-                    stKey,
-                    { arts: [], stList }
-                );
-            }
-            sameStations.get(stKey).arts.push(art);
-        }
-        sameStations.forEach(({ arts, stList }) => {
             const artHtml =
-                arts.length > 1
-                    ? '<span class="art-r-stack">' +
-                        arts.map(a =>
-                            '<span>' +
-                            renderArticleNumber(
-                                a, v, isNumOnly, true, true
-                            ) +
-                            '</span>'
-                        ).join('') +
-                        '</span>'
-                    : renderArticleNumber(
-                        arts[0],
-                        v,
-                        isNumOnly,
-                        true,
-                        true
-                    );
+                renderArticleNumber(
+                    art,
+                    v,
+                    isNumOnly,
+                    true,
+                    true
+                );
             const stationsHtml =
                 buildStationsHtml(
-                    stList.map(st => escapeHtml(st))
+                    uniqueDisplayStations(mergedArticles[art])
+                        .map(st => escapeHtml(st))
                 );
             html += `
                 <div class="article-row">
@@ -6998,7 +6965,7 @@ function search() {
                     </span>
                 </div>
             `;
-        });
+        }
         html +=
             `</div>`;
     }
