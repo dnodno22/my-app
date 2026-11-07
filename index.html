@@ -1374,7 +1374,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 168;
+const CODE_VERSION = 171;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2259,6 +2259,19 @@ function parseSharedStrip(rows, gid, sid) {
     }
     return out;
 }
+/*
+    Ключ за цифрами: найдовша послідовність цифр у назві матеріалу
+    (додатковий текст і короткі числа на кшталт "SP340" ігноруються).
+*/
+function digitKey(s) {
+    const runs = String(s || "").match(/\d+/g);
+    if (!runs) return "";
+    let best = "";
+    runs.forEach(x => {
+        if (x.length > best.length) best = x;
+    });
+    return best.length >= 5 ? best : "";
+}
 function parseSearchCSV(parts) {
     _actionsCache = {};
     _fullCodeMap = null;
@@ -2291,16 +2304,38 @@ function parseSearchCSV(parts) {
         колонка B — назва матеріалу, колонка E — адреса на складі.
         Адреса з цього аркуша має пріоритет над колонкою E інших аркушів.
     */
+    /*
+        Ключ за цифрами: найдовша послідовність цифр у назві матеріалу
+        (додатковий текст і короткі числа на кшталт "SP340" ігноруються).
+        Адреса підставляється лише за ПОВНОГО збігу цієї послідовності,
+        частковий збіг номера не береться до уваги.
+    */
     const addrMap = new Map();
+    const addrByDigits = new Map();
     searchData.forEach(row => {
         if (row.sourceGid !== ADDRESS_GID) return;
         const m = String(row.material || "").trim();
         const a = String(row.address || "").trim();
         if (m && a && !addrMap.has(m)) addrMap.set(m, a);
+        const dk = digitKey(m);
+        if (dk && a) {
+            const cur = addrByDigits.get(dk);
+            if (!cur) {
+                addrByDigits.set(dk, { addr: a, text: m, conflict: false });
+            } else if (cur.text !== m) {
+                /* Однакові цифри, але різний текст — це різні матеріали */
+                cur.conflict = true;
+            }
+        }
     });
     if (addrMap.size) {
         searchData.forEach(row => {
-            const a = addrMap.get(String(row.material || "").trim());
+            const m = String(row.material || "").trim();
+            const dk = digitKey(m);
+            const byDigits = dk ? addrByDigits.get(dk) : null;
+            const a =
+                addrMap.get(m) ||
+                (byDigits && !byDigits.conflict ? byDigits.addr : "");
             if (a) row.address = a;
         });
     }
@@ -6771,6 +6806,30 @@ function search() {
     */
     if (!filtered.length && selectedSearchFilters.length) {
         filtered = searchData.filter(matchesQuery);
+    }
+    /*
+        Запис з адресного аркуша (напр. 15812345) не показуємо окремою
+        карткою, якщо знайдено матеріал з такими самими цифрами
+        (напр. ts15812345), який уже отримав цю адресу.
+    */
+    const coveredByData = new Set();
+    filtered.forEach(x => {
+        if (x.sourceGid === ADDRESS_GID) return;
+        const dk = digitKey(x.material);
+        if (dk) {
+            coveredByData.add(
+                dk + "|" + String(x.address || "").trim()
+            );
+        }
+    });
+    if (coveredByData.size) {
+        filtered = filtered.filter(x =>
+            x.sourceGid !== ADDRESS_GID ||
+            !coveredByData.has(
+                digitKey(x.material) + "|" +
+                String(x.address || "").trim()
+            )
+        );
     }
     if (!filtered.length) {
         resultBox.innerHTML =
