@@ -1374,7 +1374,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 167;
+const CODE_VERSION = 168;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -6749,20 +6749,29 @@ function search() {
     const isNumOnly =
         /^\d+$/.test(v);
     const isSpecialSearch = false;
-    const filtered =
-        getSearchRowsForFilters().filter(x => {
-            const material =
-                String(x.material || "")
-                    .toLowerCase();
-            if (isNumOnly) {
-                /* Тільки збіг з кінця; пробіли наприкінці клітинки не рахуються */
-                return (
-                    material.trimEnd().endsWith(v) ||
-                    material.replace(/\D/g, "") === v
-                );
-            }
-            return material.startsWith(v);
-        });
+    const matchesQuery = x => {
+        const material =
+            String(x.material || "")
+                .toLowerCase();
+        if (isNumOnly) {
+            /* Тільки збіг з кінця; пробіли наприкінці клітинки не рахуються */
+            return (
+                material.trimEnd().endsWith(v) ||
+                material.replace(/\D/g, "") === v
+            );
+        }
+        return material.startsWith(v);
+    };
+    let filtered =
+        getSearchRowsForFilters().filter(matchesQuery);
+    /*
+        Якщо за активними фільтрами нічого не знайдено — показуємо шуканий
+        матеріал з усіх даних (навіть якщо він вимкнений у фільтрі).
+        Налаштування фільтра при цьому не змінюються.
+    */
+    if (!filtered.length && selectedSearchFilters.length) {
+        filtered = searchData.filter(matchesQuery);
+    }
     if (!filtered.length) {
         resultBox.innerHTML =
             '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
