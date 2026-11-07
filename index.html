@@ -1241,98 +1241,9 @@ tr:nth-child(even) td {
 @media (prefers-reduced-motion: no-preference) { #instant-start { animation: instantFade 0.12s ease-out; } }
 @keyframes instantFade { from { opacity:.98; } to { opacity:1; } }
 
-/* ==================== РЕЖИМИ: ПУБЛІЧНИЙ / АДМІНІСТРАТОР ==================== */
-/* Публічний режим: лише пошук матеріалів. Усе інше приховано. */
-body.mode-public #page-waitlist,
-body.mode-public #page-articles {
-    visibility: hidden;
-}
-body.mode-public #result .select-btn,
-body.mode-public #result .pm-qty-badge,
-body.mode-public #filter-menu [data-interface-expand],
-body.mode-public #filter-menu .interface-choice,
-body.mode-public #qty-bar,
-body.mode-public #pm-qty-panel,
-body.mode-public .articles-dots {
-    display: none !important;
-}
-body.mode-public .mat-pick {
-    pointer-events: none;
-}
-body.mode-public #result .art-r.art-r-fav {
-    border-left: 1px solid #e5e7eb;
-    padding-left: 14px;
-}
-.pw-dialog {
-    position: fixed;
-    inset: 0;
-    z-index: 100000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    background: rgba(0,0,0,0.45);
-}
-.pw-box {
-    width: 100%;
-    max-width: 340px;
-    background: #fff;
-    border-radius: 18px;
-    padding: 20px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-}
-.pw-title {
-    font-size: 16px;
-    font-weight: 800;
-    color: #111;
-    text-align: center;
-    margin-bottom: 14px;
-}
-.pw-input {
-    width: 100%;
-    height: 52px;
-    padding: 0 16px;
-    font-size: 20px;
-    text-align: center;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    background: #f9fafb;
-    color: #111;
-    outline: none;
-    -webkit-user-select: text;
-    user-select: text;
-}
-.pw-error {
-    min-height: 20px;
-    margin: 8px 0 6px;
-    font-size: 14px;
-    font-weight: 700;
-    color: #dc2626;
-    text-align: center;
-}
-.pw-actions {
-    display: flex;
-    gap: 8px;
-}
-.access-toast {
-    position: fixed;
-    left: 50%;
-    bottom: calc(90px + env(safe-area-inset-bottom));
-    transform: translateX(-50%);
-    z-index: 100001;
-    padding: 10px 18px;
-    border-radius: 12px;
-    background: rgba(17,24,39,0.92);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 700;
-    pointer-events: none;
-    white-space: nowrap;
-}
-
 </style>
 </head>
-<body class="mode-public">
+<body>
 <div id="instant-start" aria-label="Пошук">
     <div class="instant-head"><div class="instant-input">Пошук</div></div>
     <div class="instant-spacer"></div>
@@ -1423,19 +1334,6 @@ body.mode-public #result .art-r.art-r-fav {
 </div>
 <!-- КРАПОЧКИ ГЛИБИНИ (глобально: пошук + артикули) -->
 <div class="articles-dots" id="articles-dots"></div>
-<!-- ПАРОЛЬ АДМІНІСТРАТОРА (довге натискання кнопки версії) -->
-<div id="pw-dialog" class="pw-dialog hidden" role="dialog" aria-modal="true" aria-label="Пароль адміністратора">
-    <div class="pw-box">
-        <div class="pw-title">Режим адміністратора</div>
-        <input id="pw-input" class="pw-input" type="password" autocomplete="off" placeholder="Пароль">
-        <div id="pw-error" class="pw-error"></div>
-        <div class="pw-actions">
-            <button type="button" class="qty-btn" id="pw-cancel">Скасувати</button>
-            <button type="button" class="qty-btn qty-ok" id="pw-ok">Увійти</button>
-        </div>
-    </div>
-</div>
-<div id="access-toast" class="access-toast hidden"></div>
 <!-- КЛАВІАТУРА КІЛЬКОСТІ ДЛЯ ПЕРЕДМОНТАЖУ (довге натискання) -->
 <div id="pm-qty-panel" class="pm-qty-panel hidden">
     <div class="qty-title" id="pm-qty-title"></div>
@@ -1476,7 +1374,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 176;
+const CODE_VERSION = 173;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1592,23 +1490,6 @@ function loadInterfaceMode() {
     }
 }
 let interfaceMode = loadInterfaceMode();
-/* ==================== РЕЖИМ ДОСТУПУ ==================== */
-/*
-    Публічний (за замовчуванням): лише пошук матеріалів.
-    Адміністратор: усі функції. Режим зберігається в localStorage
-    (так само, як "Обрані матеріали"). УВАГА: пароль зберігається в самому
-    файлі, тож це обмеження інтерфейсу, а не справжній захист даних.
-*/
-const ACCESS_MODE_KEY = "appAccessMode";
-const ADMIN_PASSWORD = "admin"; /* ЗМІНІТЬ на свій пароль */
-function loadAccessMode() {
-    try {
-        return localStorage.getItem(ACCESS_MODE_KEY) === 'admin';
-    } catch (e) {
-        return false;
-    }
-}
-let adminMode = loadAccessMode();
 function loadSearchFilters() {
     try {
         const saved =
@@ -2108,14 +1989,6 @@ document
         }
         const expandInterfaceButton =
             e.target.closest('[data-interface-expand]');
-        /* Перемикач інтерфейсу — лише для адміністратора */
-        if (
-            !adminMode &&
-            (expandInterfaceButton ||
-                e.target.closest('[data-interface-mode]'))
-        ) {
-            return;
-        }
         if (expandInterfaceButton) {
             e.preventDefault();
             e.stopPropagation();
@@ -2172,8 +2045,6 @@ document
         if (!btn) return;
         e.stopPropagation();
         if (btn.id === 'kb-version') {
-            /* Після довгого натискання (перемикання режиму) клік ігноруємо */
-            if (Date.now() - versionLongPressAt < 1000) return;
             if (qtyMode) return;
             const isOpening =
                 filterMenu.classList.contains('hidden');
@@ -3655,7 +3526,6 @@ waitlistBox.addEventListener('click', (e) => {
 let searchCardKeys = [];
 let searchResultLookup = {};
 resultBox.addEventListener('click', (e) => {
-    if (!adminMode) return;
     const pick =
         e.target.closest('.mat-pick');
     if (pick) {
@@ -5771,13 +5641,13 @@ function renderArticlesPage(
 }
 /* Системне контекстне меню (копіювати) вимкнено скрізь, крім текстових полів */
 document.addEventListener('contextmenu', e => {
-    if (e.target.closest && e.target.closest('textarea, #pw-input')) {
+    if (e.target.closest && e.target.closest('textarea')) {
         return;
     }
     e.preventDefault();
 });
 document.addEventListener('selectstart', e => {
-    if (e.target && e.target.closest && e.target.closest('textarea, #pw-input')) {
+    if (e.target && e.target.closest && e.target.closest('textarea')) {
         return;
     }
     e.preventDefault();
@@ -6907,18 +6777,8 @@ function search() {
     if (pmQtyMode && pmQtySource === 'search') return;
     const v =
         input.value.toLowerCase();
-    const showKeyboard = () => {
-        if (
-            !qtyMode &&
-            !pmQtyMode &&
-            currentPage === SEARCH_PAGE_INDEX
-        ) {
-            kbWrapper.classList.remove('hidden');
-        }
-    };
     if (!v) {
         resultBox.innerHTML = "";
-        showKeyboard();
         return;
     }
     const isNumOnly =
@@ -6974,7 +6834,6 @@ function search() {
     if (!filtered.length) {
         resultBox.innerHTML =
             '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
-        showKeyboard();
         return;
     }
     let html = "";
@@ -7198,8 +7057,6 @@ function formatDate(ts) {
 }
 /* ==================== ПЕРЕХІД МІЖ ГОЛОВНИМИ СТОРІНКАМИ ==================== */
 function goToPage(n) {
-    /* У публічному режимі доступна лише сторінка пошуку */
-    if (!adminMode) n = SEARCH_PAGE_INDEX;
     exitPmQtyMode(false);
     setWaitlistLogOpen(false);
     n =
@@ -7488,12 +7345,6 @@ document.addEventListener(
             ) {
                 return;
             }
-            /* Публічний режим: свайпи між сторінками вимкнено */
-            if (!adminMode) {
-                pageDragging = false;
-                pageSwipeCandidate = false;
-                return;
-            }
             if (
                 absY > absX
             ) {
@@ -7695,14 +7546,9 @@ document.addEventListener(
                     '[data-anav]'
                 )
             ) {
-                if (noSearchResults()) {
-                    /* Немає результатів — клавіатура завжди видима */
-                    kbWrapper.classList.remove('hidden');
-                } else {
-                    kbWrapper.classList.toggle(
-                        'hidden'
-                    );
-                }
+                kbWrapper.classList.toggle(
+                    'hidden'
+                );
             }
             /*
                 Швидкий тап: виконуємо клік ОДРАЗУ на touchend,
@@ -7779,7 +7625,6 @@ document.addEventListener(
         ) {
             return;
         }
-        if (!adminMode) return;
         if (
             e.altKey ||
             e.ctrlKey ||
@@ -7822,7 +7667,7 @@ document.addEventListener(
         ) {
             return;
         }
-        mouseSwipeActive = adminMode;
+        mouseSwipeActive = true;
         mousePullActive = false;
         mousePullArea = null;
         mousePullDy = 0;
@@ -8001,10 +7846,6 @@ scrollAreaEl.addEventListener(
         passive: true
     }
 );
-/* Є лише порожній екран або "Не знайдено" — клавіатуру не ховаємо */
-function noSearchResults() {
-    return !resultBox.querySelector('.result-card');
-}
 scrollAreaEl.addEventListener(
     'touchmove',
     (e) => {
@@ -8015,7 +7856,7 @@ scrollAreaEl.addEventListener(
         ) {
             return;
         }
-        if (qtyMode || noSearchResults()) {
+        if (qtyMode) {
             return;
         }
         const dy =
@@ -8036,7 +7877,6 @@ scrollAreaEl.addEventListener(
     () => {
         if (
             !qtyMode &&
-            !noSearchResults() &&
             scrollAreaEl.scrollTop > 4 &&
             !kbWrapper.classList.contains(
                 'hidden'
@@ -8263,150 +8103,6 @@ document.addEventListener(
     },
     { passive: true }
 );
-/* ==================== РЕЖИМИ: ПУБЛІЧНИЙ / АДМІНІСТРАТОР ==================== */
-const accessToastEl = document.getElementById('access-toast');
-const pwDialog = document.getElementById('pw-dialog');
-const pwInput = document.getElementById('pw-input');
-const pwError = document.getElementById('pw-error');
-let accessToastTimer = null;
-function showAccessToast(text) {
-    if (!accessToastEl) return;
-    accessToastEl.textContent = text;
-    accessToastEl.classList.remove('hidden');
-    clearTimeout(accessToastTimer);
-    accessToastTimer = setTimeout(() => {
-        accessToastEl.classList.add('hidden');
-    }, 1800);
-}
-function applyAccessMode() {
-    document.body.classList.toggle('mode-public', !adminMode);
-    document.body.classList.toggle('mode-admin', adminMode);
-    if (!adminMode) {
-        /* Закриваємо все, що доступне лише адміністратору */
-        exitPmQtyMode(false);
-        exitQtyMode();
-        setFilterPanelOpen(false);
-        setWaitlistLogOpen(false);
-        articlesPageStack = [{ level: 'articles' }];
-        if (currentPage !== SEARCH_PAGE_INDEX) {
-            goToPage(SEARCH_PAGE_INDEX);
-        }
-    }
-    renderArticlesDots();
-}
-function setAccessMode(admin) {
-    adminMode = !!admin;
-    try {
-        if (adminMode) {
-            localStorage.setItem(ACCESS_MODE_KEY, 'admin');
-        } else {
-            localStorage.removeItem(ACCESS_MODE_KEY);
-        }
-    } catch (e) {
-        /* Режим діє в цій сесії, навіть якщо сховище недоступне */
-    }
-    applyAccessMode();
-}
-function openPasswordDialog() {
-    pwInput.value = '';
-    pwError.textContent = '';
-    pwDialog.classList.remove('hidden');
-    setTimeout(() => pwInput.focus(), 60);
-}
-function closePasswordDialog() {
-    pwDialog.classList.add('hidden');
-    pwInput.blur();
-    pwInput.value = '';
-    pwError.textContent = '';
-}
-function submitPassword() {
-    if (pwInput.value === ADMIN_PASSWORD) {
-        closePasswordDialog();
-        setAccessMode(true);
-        showAccessToast('Режим адміністратора');
-    } else {
-        pwError.textContent = 'Невірний пароль';
-        pwInput.value = '';
-        pwInput.focus();
-    }
-}
-document.getElementById('pw-ok').addEventListener('click', submitPassword);
-document.getElementById('pw-cancel').addEventListener('click', closePasswordDialog);
-pwInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        submitPassword();
-    } else if (e.key === 'Escape') {
-        closePasswordDialog();
-    }
-});
-pwDialog.addEventListener('click', e => {
-    if (e.target === pwDialog) closePasswordDialog();
-});
-/* Дотики в діалозі не повинні запускати жести/клавіатуру додатка */
-['touchstart', 'touchmove', 'touchend', 'touchcancel',
- 'mousedown', 'mousemove', 'mouseup'].forEach(ev => {
-    pwDialog.addEventListener(ev, e => e.stopPropagation(), { passive: true });
-});
-/* Довге натискання кнопки версії: публічний ⇄ адміністратор */
-const VERSION_LONG_PRESS_MS = 2000;
-let versionPressTimer = null;
-let versionPressX = 0;
-let versionPressY = 0;
-let versionLongPressAt = 0;
-function versionPressCancel() {
-    if (versionPressTimer) {
-        clearTimeout(versionPressTimer);
-        versionPressTimer = null;
-    }
-}
-function versionPressStart(x, y) {
-    versionPressCancel();
-    versionPressX = x;
-    versionPressY = y;
-    versionPressTimer = setTimeout(() => {
-        versionPressTimer = null;
-        versionLongPressAt = Date.now();
-        try {
-            if (navigator.vibrate) navigator.vibrate(40);
-        } catch (_) {}
-        if (adminMode) {
-            /* Назад у публічний режим — без пароля */
-            setAccessMode(false);
-            showAccessToast('Публічний режим');
-        } else {
-            openPasswordDialog();
-        }
-    }, VERSION_LONG_PRESS_MS);
-}
-if (kbVersionEl) {
-    kbVersionEl.addEventListener('touchstart', e => {
-        if (!e.touches || e.touches.length !== 1) {
-            versionPressCancel();
-            return;
-        }
-        versionPressStart(e.touches[0].clientX, e.touches[0].clientY);
-    }, { passive: true });
-    kbVersionEl.addEventListener('touchmove', e => {
-        if (!versionPressTimer || !e.touches.length) return;
-        const t = e.touches[0];
-        if (
-            Math.abs(t.clientX - versionPressX) > 12 ||
-            Math.abs(t.clientY - versionPressY) > 12
-        ) {
-            versionPressCancel();
-        }
-    }, { passive: true });
-    kbVersionEl.addEventListener('touchend', versionPressCancel, { passive: true });
-    kbVersionEl.addEventListener('touchcancel', versionPressCancel, { passive: true });
-    kbVersionEl.addEventListener('mousedown', e => {
-        if (e.button === 0) versionPressStart(e.clientX, e.clientY);
-    });
-    kbVersionEl.addEventListener('mouseup', versionPressCancel);
-    kbVersionEl.addEventListener('mouseleave', versionPressCancel);
-}
-/* Початковий режим: відновлюємо збережений (інакше — публічний) */
-applyAccessMode();
 /* ==================== ПЕРВИННИЙ СТАН КРАПОЧОК ==================== */
 renderArticlesDots();
 /* ==================== SERVICE WORKER (швидкий старт з кешу) ==================== */
