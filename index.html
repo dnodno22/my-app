@@ -1476,7 +1476,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 175;
+const CODE_VERSION = 176;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -6907,8 +6907,18 @@ function search() {
     if (pmQtyMode && pmQtySource === 'search') return;
     const v =
         input.value.toLowerCase();
+    const showKeyboard = () => {
+        if (
+            !qtyMode &&
+            !pmQtyMode &&
+            currentPage === SEARCH_PAGE_INDEX
+        ) {
+            kbWrapper.classList.remove('hidden');
+        }
+    };
     if (!v) {
         resultBox.innerHTML = "";
+        showKeyboard();
         return;
     }
     const isNumOnly =
@@ -6964,6 +6974,7 @@ function search() {
     if (!filtered.length) {
         resultBox.innerHTML =
             '<div style="text-align:center; padding:40px; color:#aaa;">Не знайдено</div>';
+        showKeyboard();
         return;
     }
     let html = "";
@@ -7684,9 +7695,14 @@ document.addEventListener(
                     '[data-anav]'
                 )
             ) {
-                kbWrapper.classList.toggle(
-                    'hidden'
-                );
+                if (noSearchResults()) {
+                    /* Немає результатів — клавіатура завжди видима */
+                    kbWrapper.classList.remove('hidden');
+                } else {
+                    kbWrapper.classList.toggle(
+                        'hidden'
+                    );
+                }
             }
             /*
                 Швидкий тап: виконуємо клік ОДРАЗУ на touchend,
@@ -7985,6 +8001,10 @@ scrollAreaEl.addEventListener(
         passive: true
     }
 );
+/* Є лише порожній екран або "Не знайдено" — клавіатуру не ховаємо */
+function noSearchResults() {
+    return !resultBox.querySelector('.result-card');
+}
 scrollAreaEl.addEventListener(
     'touchmove',
     (e) => {
@@ -7995,7 +8015,7 @@ scrollAreaEl.addEventListener(
         ) {
             return;
         }
-        if (qtyMode) {
+        if (qtyMode || noSearchResults()) {
             return;
         }
         const dy =
@@ -8016,6 +8036,7 @@ scrollAreaEl.addEventListener(
     () => {
         if (
             !qtyMode &&
+            !noSearchResults() &&
             scrollAreaEl.scrollTop > 4 &&
             !kbWrapper.classList.contains(
                 'hidden'
