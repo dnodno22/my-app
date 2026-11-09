@@ -1123,11 +1123,20 @@ mark.hl {
 .filter-menu:not(.interface-options-open) .interface-choice {
     display: none;
 }
-.filter-menu.filter-options-open [data-filter-expand],
-.filter-menu.filter-options-open [data-interface-expand],
-.filter-menu.interface-options-open [data-filter-expand],
-.filter-menu.interface-options-open [data-interface-expand] {
+.filter-menu:not(.smooth-options-open) .smooth-choice {
     display: none;
+}
+.filter-menu.filter-options-open .filter-menu-heading,
+.filter-menu.interface-options-open .filter-menu-heading,
+.filter-menu.smooth-options-open .filter-menu-heading {
+    display: none;
+}
+body.drag-light .result-card,
+body.drag-light .card {
+    box-shadow: none !important;
+}
+body.drag-light .page {
+    contain: layout paint;
 }
 .filter-menu-heading {
     background: #f1f5f9;
@@ -1250,6 +1259,8 @@ body.mode-public #page-articles {
 body.mode-public #result .select-btn,
 body.mode-public #result .pm-qty-badge,
 body.mode-public #filter-menu [data-interface-expand],
+body.mode-public #filter-menu [data-smooth-expand],
+body.mode-public #filter-menu .smooth-choice,
 body.mode-public #filter-menu .interface-choice,
 body.mode-public #qty-bar,
 body.mode-public #pm-qty-panel,
@@ -1398,6 +1409,7 @@ body.mode-public #result .art-r.art-r-fav {
             <div id="filter-menu" class="filter-menu hidden" role="group" aria-label="Параметри пошуку">
                 <button type="button" class="filter-option filter-menu-heading" data-filter-expand aria-expanded="false">Фільтр</button>
                 <button type="button" class="filter-option filter-menu-heading" data-interface-expand aria-expanded="false">Інтерфейс</button>
+                <button type="button" class="filter-option filter-menu-heading" data-smooth-expand aria-expanded="false">Плавність</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="all">Усі дані</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="audi">Audi</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="bmw">BMW</button>
@@ -1406,6 +1418,12 @@ body.mode-public #result .art-r.art-r-fav {
                 <button type="button" class="filter-option filter-choice" data-search-filter="materials">Матеріал</button>
                 <button type="button" class="filter-option interface-choice" data-interface-mode="classic">Класичний · v66</button>
                 <button type="button" class="filter-option interface-choice" data-interface-mode="readable">Читабельний · v73</button>
+                <button type="button" class="filter-option smooth-choice" data-smooth-mode="base">Звичайна</button>
+                <button type="button" class="filter-option smooth-choice" data-smooth-mode="raf">Кадр</button>
+                <button type="button" class="filter-option smooth-choice" data-smooth-mode="px">Піксель</button>
+                <button type="button" class="filter-option smooth-choice" data-smooth-mode="light">Легкі</button>
+                <button type="button" class="filter-option smooth-choice" data-smooth-mode="prebuild">Заздалегідь</button>
+                <button type="button" class="filter-option smooth-choice" data-smooth-mode="inertia">Інерція</button>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
@@ -1476,7 +1494,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 178;
+const CODE_VERSION = 179;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1502,6 +1520,14 @@ let searchData = [];
 let selectedSearchFilters = [];
 let filterOptionsOpen = false;
 let interfaceOptionsOpen = false;
+let smoothOptionsOpen = false;
+const SMOOTH_MODE_KEY = 'smoothMode';
+const SMOOTH_MODES = ['base','raf','px','light','prebuild','inertia'];
+let smoothMode = 'base';
+try {
+    const sm = localStorage.getItem(SMOOTH_MODE_KEY);
+    if (SMOOTH_MODES.includes(sm)) smoothMode = sm;
+} catch (e) {}
 let pageWidthPercent = 100 / TOTAL_PAGES;
 let articleGroups = [];
 /* Режим введення кількості для матеріалу з пошуку */
@@ -1791,6 +1817,7 @@ function setFilterPanelOpen(open) {
     if (!open) {
         setFilterOptionsOpen(false);
         setInterfaceOptionsOpen(false);
+        setSmoothOptionsOpen(false);
     }
     filterMenu.classList.toggle(
         'hidden',
@@ -1811,6 +1838,7 @@ function setFilterOptionsOpen(open) {
     if (!filterMenu) return;
     filterOptionsOpen = open;
     if (open) {
+        setSmoothOptionsOpen(false);
         interfaceOptionsOpen = false;
         filterMenu.classList.remove(
             'interface-options-open'
@@ -1843,6 +1871,7 @@ function setInterfaceOptionsOpen(open) {
     if (!filterMenu) return;
     interfaceOptionsOpen = open;
     if (open) {
+        setSmoothOptionsOpen(false);
         filterOptionsOpen = false;
         filterMenu.classList.remove(
             'filter-options-open'
@@ -1873,6 +1902,33 @@ function setInterfaceOptionsOpen(open) {
         );
     }
 }
+function setSmoothOptionsOpen(open) {
+    if (!filterMenu) return;
+    smoothOptionsOpen = open;
+    if (open) {
+        filterOptionsOpen = false;
+        interfaceOptionsOpen = false;
+        filterMenu.classList.remove('filter-options-open', 'interface-options-open');
+        filterMenu.querySelectorAll('[data-filter-expand],[data-interface-expand]')
+            .forEach(t => t.setAttribute('aria-expanded', 'false'));
+    }
+    filterMenu.classList.toggle('smooth-options-open', open);
+    const trigger = filterMenu.querySelector('[data-smooth-expand]');
+    if (trigger) trigger.setAttribute('aria-expanded', String(open));
+}
+function setSmoothMode(mode) {
+    if (!SMOOTH_MODES.includes(mode)) return;
+    smoothMode = mode;
+    try { localStorage.setItem(SMOOTH_MODE_KEY, mode); } catch (e) {}
+    if (filterMenu) {
+        filterMenu.querySelectorAll('[data-smooth-mode]').forEach(o => {
+            const sel = o.dataset.smoothMode === mode;
+            o.classList.toggle('active', sel);
+            o.setAttribute('aria-pressed', String(sel));
+        });
+    }
+}
+setSmoothMode(smoothMode);
 function setInterfaceMode(mode) {
     if (!INTERFACE_MODE_KEYS.includes(mode)) {
         return;
@@ -2116,12 +2172,30 @@ document
         }
         const expandInterfaceButton =
             e.target.closest('[data-interface-expand]');
+        const expandSmoothButton =
+            e.target.closest('[data-smooth-expand]');
+        const smoothOption =
+            e.target.closest('[data-smooth-mode]');
         /* Перемикач інтерфейсу — лише для адміністратора */
         if (
             !adminMode &&
             (expandInterfaceButton ||
+                expandSmoothButton ||
+                smoothOption ||
                 e.target.closest('[data-interface-mode]'))
         ) {
+            return;
+        }
+        if (expandSmoothButton) {
+            e.preventDefault();
+            e.stopPropagation();
+            setSmoothOptionsOpen(!smoothOptionsOpen);
+            return;
+        }
+        if (smoothOption) {
+            e.preventDefault();
+            e.stopPropagation();
+            setSmoothMode(smoothOption.dataset.smoothMode);
             return;
         }
         if (expandInterfaceButton) {
@@ -5776,6 +5850,15 @@ function renderArticlesPage(
     container.innerHTML = html;
     fitRowQty(container);
     if (pmQtyMode) pmApplyTarget(false);
+    if (smoothMode === 'prebuild' && idx > 0) {
+        setTimeout(() => {
+            const pi = idx - 1;
+            const ps = articlesPageStack[pi];
+            if (ps && !ps.cachedHtml && articlesPageStack.length - 2 === pi) {
+                try { ps.cachedHtml = buildArticlesLevelHtml(pi); } catch (e) {}
+            }
+        }, 60);
+    }
 }
 /* Системне контекстне меню (копіювати) вимкнено скрізь, крім текстових полів */
 document.addEventListener('contextmenu', e => {
@@ -7259,17 +7342,76 @@ let pageMoved = false;
 let pageDragPxWidth = 0;
 let pageSwipeCandidate = false;
 let suppressNextClick = false;
+let dragVel = 0, dragLastT = 0, dragLastX = 0;
+let dragRaf = 0, dragPending = null;
+let dragLightTimer = 0;
+function dragLightOn() {
+    if (smoothMode !== 'light') return;
+    clearTimeout(dragLightTimer);
+    document.body.classList.add('drag-light');
+}
+function dragLightOff() {
+    clearTimeout(dragLightTimer);
+    dragLightTimer = setTimeout(() => {
+        document.body.classList.remove('drag-light');
+    }, 420);
+}
+function dragCancelRaf() {
+    if (dragRaf) cancelAnimationFrame(dragRaf);
+    dragRaf = 0;
+    dragPending = null;
+}
+function dragApply(fn) {
+    if (smoothMode !== 'raf') { fn(); return; }
+    dragPending = fn;
+    if (dragRaf) return;
+    dragRaf = requestAnimationFrame(() => {
+        dragRaf = 0;
+        const f = dragPending;
+        dragPending = null;
+        if (f && pageDragging && pageMoved) f();
+    });
+}
+function dragSample(x) {
+    const t = performance.now();
+    if (dragLastT) {
+        const dt = t - dragLastT;
+        if (dt > 0) dragVel = dragVel * 0.6 + ((x - dragLastX) / dt) * 0.4;
+    }
+    dragLastT = t;
+    dragLastX = x;
+}
 /*
     ЗБІЛЬШЕНО з 14 до 24: дрейф пальця при звичайному натисканні
     більше не сприймається як початок свайпу.
 */
 const PAGE_SWIPE_START_PX = 24;
 function finishPageDrag(dx) {
+    dragCancelRaf();
+    dragLightOff();
+    let vel = 0;
+    if (smoothMode === 'inertia' &&
+        dragLastT && performance.now() - dragLastT < 80) {
+        vel = dragVel;
+    }
+    const FLICK = Math.abs(vel) > 0.35 && Math.abs(dx) > 16;
     const SWIPE_THRESHOLD =
         Math.max(
             55,
             pageDragPxWidth * 0.20
         );
+    let moveDur = 0.35;
+    let moveEase = 'cubic-bezier(0.4, 0, 0.2, 1)';
+    if (smoothMode === 'inertia') {
+        moveEase = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
+        const sp = Math.max(0.4, Math.abs(vel));
+        /* залишок шляху ≈ ширина*(1-частка) */
+        const frac = Math.min(1, Math.abs(dx) / (pageDragPxWidth || 1));
+        const remain = (FLICK || Math.abs(dx) >= SWIPE_THRESHOLD)
+            ? (1 - frac) * pageDragPxWidth
+            : frac * pageDragPxWidth;
+        moveDur = Math.max(0.18, Math.min(0.4, remain / sp / 1000 * 1.6));
+    }
     const pageArticlesEl =
         document.getElementById(
             'page-articles'
@@ -7310,7 +7452,7 @@ function finishPageDrag(dx) {
             }
         };
         wrapper.style.transition =
-            'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+            `transform ${moveDur}s ${moveEase}`;
         /*
             Крапочки оновлюємо ВІДРАЗУ, в момент прийняття рішення —
             ще до того, як почалась/завершилась сама анімація зсуву.
@@ -7318,7 +7460,7 @@ function finishPageDrag(dx) {
             запасного таймауту) і помітно відставали б від переходу.
         */
         const willGoBack =
-            dx >= SWIPE_THRESHOLD;
+            FLICK ? vel > 0 : dx >= SWIPE_THRESHOLD;
         renderArticlesDots(
             ARTICLES_PAGE_INDEX,
             willGoBack
@@ -7381,11 +7523,12 @@ function finishPageDrag(dx) {
     let target =
         pageDragBasePage;
     if (
+        FLICK ||
         Math.abs(dx) >=
         SWIPE_THRESHOLD
     ) {
         const dir =
-            dx > 0 ? -1 : 1;
+            (FLICK ? vel > 0 : dx > 0) ? -1 : 1;
         target =
             Math.max(
                 0,
@@ -7396,7 +7539,7 @@ function finishPageDrag(dx) {
             );
     }
     pagesEl.style.transition =
-        'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
+        `transform ${moveDur}s ${moveEase}`;
     if (target !== SEARCH_PAGE_INDEX) {
         exitQtyMode();
     }
@@ -7518,6 +7661,10 @@ document.addEventListener(
             pageDragStartX = touch.clientX;
             pageDragStartY = touch.clientY;
             dx = 0;
+            dragVel = 0;
+            dragLastT = 0;
+            dragSample(touch.clientX);
+            dragLightOn();
             try {
                 e.preventDefault();
             } catch (_) {}
@@ -7609,6 +7756,7 @@ document.addEventListener(
             try {
                 e.preventDefault();
             } catch (_) {}
+            dragSample(touch.clientX);
         }
         const maxDelta =
             pageDragPxWidth;
@@ -7637,10 +7785,13 @@ document.addEventListener(
                         limitedDx
                     )
                 );
+            dragApply(() => {
             wrapper.style.transition =
                 'none';
             wrapper.style.transform =
-                `translateX(${visualDx - pageDragPxWidth}px)`;
+                smoothMode === 'px'
+                    ? `translate3d(${visualDx - pageDragPxWidth}px,0,0)`
+                    : `translateX(${visualDx - pageDragPxWidth}px)`;
             /*
                 Крапочки "йдуть за пальцем" ще під час самого свайпу —
                 так зміна помітна ще швидше, ніж сам перехід.
@@ -7656,6 +7807,7 @@ document.addEventListener(
                     ? articlesPageStack.length - 1
                     : articlesPageStack.length
             );
+            });
             return;
         }
         let livePos =
@@ -7670,11 +7822,15 @@ document.addEventListener(
                     livePos
                 )
             );
-        pagesEl.style.transform =
-            `translateX(-${livePos * pageWidthPercent}%)`;
-        renderArticlesDots(
-            Math.round(livePos)
-        );
+        dragApply(() => {
+            pagesEl.style.transform =
+                smoothMode === 'px'
+                    ? `translate3d(${-livePos * pageDragPxWidth}px,0,0)`
+                    : `translateX(-${livePos * pageWidthPercent}%)`;
+            renderArticlesDots(
+                Math.round(livePos)
+            );
+        });
     },
     {
         passive: false
