@@ -1494,7 +1494,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 179;
+const CODE_VERSION = 180;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1523,10 +1523,11 @@ let interfaceOptionsOpen = false;
 let smoothOptionsOpen = false;
 const SMOOTH_MODE_KEY = 'smoothMode';
 const SMOOTH_MODES = ['base','raf','px','light','prebuild','inertia'];
-let smoothMode = 'base';
+const smoothSet = new Set();
+function smoothOn(m) { return smoothSet.has(m); }
 try {
-    const sm = localStorage.getItem(SMOOTH_MODE_KEY);
-    if (SMOOTH_MODES.includes(sm)) smoothMode = sm;
+    const sm = localStorage.getItem(SMOOTH_MODE_KEY) || '';
+    sm.split(',').forEach(m => { if (SMOOTH_MODES.includes(m) && m !== 'base') smoothSet.add(m); });
 } catch (e) {}
 let pageWidthPercent = 100 / TOTAL_PAGES;
 let articleGroups = [];
@@ -1918,17 +1919,23 @@ function setSmoothOptionsOpen(open) {
 }
 function setSmoothMode(mode) {
     if (!SMOOTH_MODES.includes(mode)) return;
-    smoothMode = mode;
-    try { localStorage.setItem(SMOOTH_MODE_KEY, mode); } catch (e) {}
-    if (filterMenu) {
-        filterMenu.querySelectorAll('[data-smooth-mode]').forEach(o => {
-            const sel = o.dataset.smoothMode === mode;
-            o.classList.toggle('active', sel);
-            o.setAttribute('aria-pressed', String(sel));
-        });
-    }
+    if (mode === 'base') smoothSet.clear();
+    else if (smoothSet.has(mode)) smoothSet.delete(mode);
+    else smoothSet.add(mode);
+    document.body.classList.remove('drag-light');
+    try { localStorage.setItem(SMOOTH_MODE_KEY, [...smoothSet].join(',')); } catch (e) {}
+    refreshSmoothButtons();
 }
-setSmoothMode(smoothMode);
+function refreshSmoothButtons() {
+    if (!filterMenu) return;
+    filterMenu.querySelectorAll('[data-smooth-mode]').forEach(o => {
+        const m = o.dataset.smoothMode;
+        const sel = m === 'base' ? smoothSet.size === 0 : smoothSet.has(m);
+        o.classList.toggle('active', sel);
+        o.setAttribute('aria-pressed', String(sel));
+    });
+}
+refreshSmoothButtons();
 function setInterfaceMode(mode) {
     if (!INTERFACE_MODE_KEYS.includes(mode)) {
         return;
@@ -5850,7 +5857,7 @@ function renderArticlesPage(
     container.innerHTML = html;
     fitRowQty(container);
     if (pmQtyMode) pmApplyTarget(false);
-    if (smoothMode === 'prebuild' && idx > 0) {
+    if (smoothOn('prebuild') && idx > 0) {
         setTimeout(() => {
             const pi = idx - 1;
             const ps = articlesPageStack[pi];
@@ -7346,7 +7353,7 @@ let dragVel = 0, dragLastT = 0, dragLastX = 0;
 let dragRaf = 0, dragPending = null;
 let dragLightTimer = 0;
 function dragLightOn() {
-    if (smoothMode !== 'light') return;
+    if (!smoothOn('light')) return;
     clearTimeout(dragLightTimer);
     document.body.classList.add('drag-light');
 }
@@ -7362,7 +7369,7 @@ function dragCancelRaf() {
     dragPending = null;
 }
 function dragApply(fn) {
-    if (smoothMode !== 'raf') { fn(); return; }
+    if (!smoothOn('raf')) { fn(); return; }
     dragPending = fn;
     if (dragRaf) return;
     dragRaf = requestAnimationFrame(() => {
@@ -7390,7 +7397,7 @@ function finishPageDrag(dx) {
     dragCancelRaf();
     dragLightOff();
     let vel = 0;
-    if (smoothMode === 'inertia' &&
+    if (smoothOn('inertia') &&
         dragLastT && performance.now() - dragLastT < 80) {
         vel = dragVel;
     }
@@ -7402,7 +7409,7 @@ function finishPageDrag(dx) {
         );
     let moveDur = 0.35;
     let moveEase = 'cubic-bezier(0.4, 0, 0.2, 1)';
-    if (smoothMode === 'inertia') {
+    if (smoothOn('inertia')) {
         moveEase = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
         const sp = Math.max(0.4, Math.abs(vel));
         /* залишок шляху ≈ ширина*(1-частка) */
@@ -7789,7 +7796,7 @@ document.addEventListener(
             wrapper.style.transition =
                 'none';
             wrapper.style.transform =
-                smoothMode === 'px'
+                smoothOn('px')
                     ? `translate3d(${visualDx - pageDragPxWidth}px,0,0)`
                     : `translateX(${visualDx - pageDragPxWidth}px)`;
             /*
@@ -7824,7 +7831,7 @@ document.addEventListener(
             );
         dragApply(() => {
             pagesEl.style.transform =
-                smoothMode === 'px'
+                smoothOn('px')
                     ? `translate3d(${-livePos * pageDragPxWidth}px,0,0)`
                     : `translateX(-${livePos * pageWidthPercent}%)`;
             renderArticlesDots(
