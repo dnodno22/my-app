@@ -1549,7 +1549,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 191;
+const CODE_VERSION = 192;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3668,9 +3668,7 @@ function buildPmGroupHtml(article, items) {
         sections.push(boxesFor(() => true));
     } else {
         sections.push(boxesFor(matcher));
-        if (wlSortMode !== 'pmwire') {
-            sections.push(boxesFor(x => !matcher(x)));
-        }
+        sections.push(boxesFor(x => !matcher(x)));
     }
     let anyRows = false;
     sections.forEach(boxes => {
@@ -3684,10 +3682,7 @@ function buildPmGroupHtml(article, items) {
             html += '</div>';
         });
     });
-    if (wlSortMode === 'pmwire' && !anyRows) {
-        html += '<div class="wl-sort-empty">Немає проводів у передмонтажах</div>';
-    }
-    if (other.length && wlSortMode !== 'pmwire') {
+    if (other.length) {
         html += '<div class="list-station-box">';
         other.forEach((it, i) => {
             html += renderItem(it, i === 0);
