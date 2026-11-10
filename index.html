@@ -1549,7 +1549,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 185;
+const CODE_VERSION = 186;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2999,8 +2999,28 @@ function wlDiffTexts(prev, next) {
     }
     return out;
 }
+/* Останнє видалення (все, що прибрано одним натисканням) — для кнопки «Відновити» */
+const WL_LAST_REMOVED_KEY = 'wlLastRemoved';
+function loadLastRemoved() {
+    try {
+        const v = JSON.parse(localStorage.getItem(WL_LAST_REMOVED_KEY) || 'null');
+        return v && Array.isArray(v.items) && v.items.length ? v : null;
+    } catch (e) {
+        return null;
+    }
+}
 function saveWaitlist(list) {
     const prev = loadWaitlist();
+    try {
+        const nextKeys = new Set(list.map(i => i.key));
+        const removedItems = prev.filter(i => !nextKeys.has(i.key));
+        if (removedItems.length) {
+            localStorage.setItem(
+                WL_LAST_REMOVED_KEY,
+                JSON.stringify({ t: Date.now(), items: removedItems })
+            );
+        }
+    } catch (e) {}
     localStorage.setItem(
         CACHE_KEY_WAITLIST,
         JSON.stringify(list)
@@ -3339,6 +3359,27 @@ function renderWaitlistLog() {
                 </div>`).join('')
             : '<div class="wl-history-empty">Змін ще немає</div>') +
         renderTapStatsHtml();
+    const lr = loadLastRemoved();
+    const restoreHtml =
+        '<div class="wl-history-row"><button type="button" id="wl-restore-btn" ' +
+        (lr ? '' : 'disabled ') +
+        'style="width:100%;border:1px solid #c7d2fe;background:' + (lr ? '#eef2ff' : '#f3f4f6') +
+        ';color:' + (lr ? '#4338ca' : '#9ca3af') +
+        ';border-radius:10px;padding:9px 6px;font-size:14px;font-weight:800;">' +
+        (lr ? 'Відновити останні видалені (' + lr.items.length + ')' : 'Немає що відновлювати') +
+        '</button></div>';
+    wlHistoryEl.innerHTML = restoreHtml + wlHistoryEl.innerHTML;
+    const restoreBtn = document.getElementById('wl-restore-btn');
+    if (restoreBtn && lr) restoreBtn.onclick = ev => {
+        ev.stopPropagation();
+        const cur = loadWaitlist();
+        const have = new Set(cur.map(i => i.key));
+        const back = lr.items.filter(i => !have.has(i.key));
+        saveWaitlist([...cur, ...back]);
+        try { localStorage.removeItem(WL_LAST_REMOVED_KEY); } catch (_) {}
+        renderWaitlistPage();
+        renderWaitlistLog();
+    };
     const rb = document.getElementById('tap-stats-reset');
     if (rb) rb.onclick = ev => {
         ev.stopPropagation();
