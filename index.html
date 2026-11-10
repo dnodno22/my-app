@@ -967,6 +967,34 @@ input#input.qty-mode {
     color: #111;
     margin-bottom: 10px;
 }
+.wl-sort-row {
+    display: flex;
+    gap: 6px;
+    margin: 0 0 10px;
+}
+.wl-sort-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    border: 1px solid #c7d2fe;
+    background: #fff;
+    color: #4338ca;
+    border-radius: 10px;
+    padding: 7px 4px;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.15;
+    touch-action: manipulation;
+}
+.wl-sort-btn.active {
+    background: #4338ca;
+    border-color: #4338ca;
+    color: #fff;
+}
+.wl-sort-empty {
+    padding: 10px 2px;
+    color: #9ca3af;
+    font-size: 14px;
+}
 .pm-group-clear-btn {
     border: none;
     background: #fff7e0;
@@ -1521,7 +1549,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 184;
+const CODE_VERSION = 185;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3353,6 +3381,18 @@ function pmArticleOfItem(item) {
     const arts = expandArticleValue(keys[0]);
     return arts.length === 1 && arts[0] ? arts[0] : null;
 }
+/* Сортування блоку артикулу на сторінці обраних: '' | 'pm' | 'wire' | 'pmwire' */
+const WL_SORT_KEY = 'wlSortMode';
+let wlSortMode = '';
+try {
+    const v = localStorage.getItem(WL_SORT_KEY);
+    if (v === 'pm' || v === 'wire' || v === 'pmwire') wlSortMode = v;
+} catch (e) {}
+function wlSortButtonsHtml() {
+    const b = (m, t) =>
+        `<button type="button" class="wl-sort-btn${wlSortMode === m ? ' active' : ''}" data-wl-sort="${m}" aria-pressed="${wlSortMode === m}">${t}</button>`;
+    return `<div class="wl-sort-row">${b('pm', 'Передмонтаж')}${b('wire', 'Провід')}${b('pmwire', 'Проводи передмонтажів')}</div>`;
+}
 function buildPmGroupHtml(article, items) {
     let html = `
         <div class="result-card pm-flat">
@@ -3364,6 +3404,7 @@ function buildPmGroupHtml(article, items) {
                     Очистити
                 </button>
             </div>
+            ${wlSortButtonsHtml()}
     `;
     const renderItem = (item, first) => {
         const idx =
@@ -3524,57 +3565,58 @@ function buildPmGroupHtml(article, items) {
         if (!firstSection) html += divider;
         firstSection = false;
     };
+    /* Порядок рядків у станції залежить від вибраного сортування */
+    const wires = regular.filter(x => x.li.order === 0);
+    const restReg = regular.filter(x => x.li.order !== 0);
+    const orderRows = (st) => {
+        const pick = arr => arr.filter(x =>
+            st === null ? !hasStn(x.li.station) : x.li.station === st
+        );
+        const pmRows = [];
+        groupsOf(pick(pm)).forEach(g => g.list.forEach(x => pmRows.push(x)));
+        if (wlSortMode === 'pm') {
+            return [...pick(grp), ...pick(regular), ...pmRows];
+        }
+        if (wlSortMode === 'wire') {
+            return [...pick(wires), ...pick(restReg), ...pick(grp), ...pmRows];
+        }
+        if (wlSortMode === 'pmwire') {
+            return pmRows;
+        }
+        return [...pick(regular), ...pick(grp), ...pmRows];
+    };
     const stSet = new Set();
     inList.forEach(x => {
         if (hasStn(x.li.station)) stSet.add(x.li.station);
     });
+    let anyRows = false;
     [...stSet].sort(cmpU).forEach(st => {
+        const rows = orderRows(st);
+        if (!rows.length) return;
+        anyRows = true;
         sectionStart();
         html += '<div class="list-station-box">';
-        regular
-            .filter(x => x.li.station === st)
-            .forEach(x => {
-                html += renderListRow(x);
-            });
-        grp
-            .filter(x => x.li.station === st)
-            .forEach(x => {
-                html += renderListRow(x);
-            });
-        groupsOf(
-            pm.filter(x => x.li.station === st)
-        ).forEach(g => {
-            g.list.forEach(x => {
-                html += renderListRow(x);
-            });
+        rows.forEach(x => {
+            html += renderListRow(x);
         });
         html += '</div>';
     });
-    const regNo =
-        regular.filter(x => !hasStn(x.li.station));
-    const pmNo =
-        pm.filter(x => !hasStn(x.li.station));
-    const grpNo =
-        grp.filter(x => !hasStn(x.li.station));
-    if (regNo.length || pmNo.length || grpNo.length) {
-        sectionStart();
-        html += '<div class="list-station-box">';
-        regNo.forEach(x => {
-            html += renderListRow(x);
-        });
-        grpNo.forEach(x => {
-            html += renderListRow(x);
-        });
-        if (pmNo.length) {
-            groupsOf(pmNo).forEach(g => {
-                g.list.forEach(x => {
-                    html += renderListRow(x);
-                });
+    {
+        const rows = orderRows(null);
+        if (rows.length) {
+            anyRows = true;
+            sectionStart();
+            html += '<div class="list-station-box">';
+            rows.forEach(x => {
+                html += renderListRow(x);
             });
+            html += '</div>';
         }
-        html += '</div>';
     }
-    if (other.length) {
+    if (wlSortMode === 'pmwire' && !anyRows) {
+        html += '<div class="wl-sort-empty">Немає проводів у передмонтажах</div>';
+    }
+    if (other.length && wlSortMode !== 'pmwire') {
         html += '<div class="list-station-box">';
         other.forEach((it, i) => {
             html += renderItem(it, i === 0);
@@ -3585,6 +3627,19 @@ function buildPmGroupHtml(article, items) {
     return html;
 }
 waitlistBox.addEventListener('click', (e) => {
+    const sortBtn = e.target.closest('[data-wl-sort]');
+    if (sortBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const m = sortBtn.dataset.wlSort;
+        wlSortMode = wlSortMode === m ? '' : m;
+        try { localStorage.setItem(WL_SORT_KEY, wlSortMode); } catch (err) {}
+        const sc = document.querySelector('#page-waitlist .scroll-area');
+        const top = sc ? sc.scrollTop : 0;
+        renderWaitlistPage();
+        if (sc) sc.scrollTop = top;
+        return;
+    }
     const starBtn = e.target.closest('.wl-star-btn');
     if (starBtn) {
         if (pmQtyMode) return;
