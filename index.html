@@ -86,13 +86,17 @@ input#input {
     gap: 7px;
     z-index: 30;
     pointer-events: none;
+    /* окремий шар: перебудова крапочок не торкається сторінок */
+    contain: layout paint style;
+    will-change: transform;
+    transform: translateZ(0);
 }
 .articles-dots .dot {
     width: 7px;
     height: 7px;
     border-radius: 50%;
     background: #d1d5db;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, width 0.2s ease, height 0.2s ease;
 }
 .articles-dots .dot.past {
     background: #9ca3af;
@@ -1494,7 +1498,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 180;
+const CODE_VERSION = 182;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -7352,6 +7356,17 @@ let suppressNextClick = false;
 let dragVel = 0, dragLastT = 0, dragLastX = 0;
 let dragRaf = 0, dragPending = null;
 let dragLightTimer = 0;
+let dragDotsTimer = 0;
+/* Крапочки оновлюються окремо від тягнення: у власному шарі, після кадру. */
+function dragDots(fn) {
+    clearTimeout(dragDotsTimer);
+    /* після кадру (не в обробнику руху) і не частіше ніж раз на 50 мс */
+    dragDotsTimer = setTimeout(() => {
+        requestAnimationFrame(() => {
+            if (pageDragging && pageMoved) fn();
+        });
+    }, 50);
+}
 function dragLightOn() {
     if (!smoothOn('light')) return;
     clearTimeout(dragLightTimer);
@@ -7394,6 +7409,7 @@ function dragSample(x) {
 */
 const PAGE_SWIPE_START_PX = 24;
 function finishPageDrag(dx) {
+    clearTimeout(dragDotsTimer);
     dragCancelRaf();
     dragLightOff();
     let vel = 0;
@@ -7808,12 +7824,12 @@ document.addEventListener(
                     55,
                     pageDragPxWidth * 0.20
                 );
-            renderArticlesDots(
+            dragDots(() => renderArticlesDots(
                 ARTICLES_PAGE_INDEX,
                 visualDx >= liveThreshold
                     ? articlesPageStack.length - 1
                     : articlesPageStack.length
-            );
+            ));
             });
             return;
         }
@@ -7834,9 +7850,9 @@ document.addEventListener(
                 smoothOn('px')
                     ? `translate3d(${-livePos * pageDragPxWidth}px,0,0)`
                     : `translateX(-${livePos * pageWidthPercent}%)`;
-            renderArticlesDots(
+            dragDots(() => renderArticlesDots(
                 Math.round(livePos)
-            );
+            ));
         });
     },
     {
