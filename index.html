@@ -25,6 +25,47 @@ html, body {
     background: #fff;
     touch-action: none;
 }
+#pages-viewport {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+/* РІДНИЙ режим: горизонтальний свайп сторінок робить сам браузер (як вертикальний скрол) */
+body.native-swipe #pages-viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+}
+body.native-swipe #pages-viewport::-webkit-scrollbar { display: none; }
+body.native-swipe #pages-viewport.native-lock,
+body.native-swipe.mode-public #pages-viewport {
+    overflow-x: hidden;
+    touch-action: pan-y;
+}
+body.native-swipe #pages {
+    transform: none !important;
+    transition: none !important;
+}
+body.native-swipe .page {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
+body.native-swipe .scroll-area {
+    overscroll-behavior-x: auto;
+}
+body.native-swipe #pages-viewport:not(.native-lock) .scroll-area,
+body.native-swipe #pages-viewport:not(.native-lock) #page-articles table,
+body.native-swipe #pages-viewport:not(.native-lock) #page-articles td,
+body.native-swipe #pages-viewport:not(.native-lock) #page-articles th,
+body.native-swipe #pages-viewport:not(.native-lock) #page-articles .result-card,
+body.native-swipe #pages-viewport:not(.native-lock) #page-articles .premontage-title {
+    touch-action: pan-x pan-y;
+}
 #pages {
     display: flex;
     width: 300%; /* Початкове розташування без очікування JavaScript */
@@ -1359,6 +1400,7 @@ body.mode-public #result .art-r.art-r-fav {
     </div>
     <div class="instant-note"> </div>
 </div>
+<div id="pages-viewport">
 <div id="pages">
     <!-- PAGE (waitlist): свайп управо від пошуку -->
     <div class="page" id="page-waitlist">
@@ -1428,6 +1470,7 @@ body.mode-public #result .art-r.art-r-fav {
                 <button type="button" class="filter-option smooth-choice" data-smooth-mode="light">Легкі</button>
                 <button type="button" class="filter-option smooth-choice" data-smooth-mode="prebuild">Заздалегідь</button>
                 <button type="button" class="filter-option smooth-choice" data-smooth-mode="inertia">Інерція</button>
+                <button type="button" class="filter-option smooth-choice" data-smooth-mode="native">Рідний</button>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
@@ -1442,6 +1485,7 @@ body.mode-public #result .art-r.art-r-fav {
             <div id="articles-page-content"></div>
         </div>
     </div>
+</div>
 </div>
 <!-- КРАПОЧКИ ГЛИБИНИ (глобально: пошук + артикули) -->
 <div class="articles-dots" id="articles-dots"></div>
@@ -1498,7 +1542,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 182;
+const CODE_VERSION = 183;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1526,7 +1570,7 @@ let filterOptionsOpen = false;
 let interfaceOptionsOpen = false;
 let smoothOptionsOpen = false;
 const SMOOTH_MODE_KEY = 'smoothMode';
-const SMOOTH_MODES = ['base','raf','px','light','prebuild','inertia'];
+const SMOOTH_MODES = ['base','raf','px','light','prebuild','inertia','native'];
 const smoothSet = new Set();
 function smoothOn(m) { return smoothSet.has(m); }
 try {
@@ -1584,6 +1628,7 @@ const resultBox = document.getElementById('result');
 const waitlistBox = document.getElementById('waitlist-result');
 const kbWrapper = document.getElementById('kb-wrapper');
 const pagesEl = document.getElementById('pages');
+const pagesViewport = document.getElementById('pages-viewport');
 const articlesPageContent =
     document.getElementById('articles-page-content');
 const articlesDots =
@@ -1927,6 +1972,7 @@ function setSmoothMode(mode) {
     else if (smoothSet.has(mode)) smoothSet.delete(mode);
     else smoothSet.add(mode);
     document.body.classList.remove('drag-light');
+    if (typeof applyNativeSwipe === 'function') applyNativeSwipe();
     try { localStorage.setItem(SMOOTH_MODE_KEY, [...smoothSet].join(',')); } catch (e) {}
     refreshSmoothButtons();
 }
@@ -5861,6 +5907,7 @@ function renderArticlesPage(
     container.innerHTML = html;
     fitRowQty(container);
     if (pmQtyMode) pmApplyTarget(false);
+    syncNativeLock();
     if (smoothOn('prebuild') && idx > 0) {
         setTimeout(() => {
             const pi = idx - 1;
@@ -7298,6 +7345,81 @@ function formatDate(ts) {
                 .padStart(2, '0');
     return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+/* ==================== РІДНИЙ СВАЙП СТОРІНОК ==================== */
+function nativeScrollToPage(n, smooth) {
+    if (!pagesViewport) return;
+    pagesViewport.scrollTo({
+        left: n * pagesViewport.clientWidth,
+        behavior: smooth ? 'smooth' : 'auto'
+    });
+}
+function syncNativeLock() {
+    if (!pagesViewport) return;
+    pagesViewport.classList.toggle(
+        'native-lock',
+        smoothOn('native') &&
+        currentPage === ARTICLES_PAGE_INDEX &&
+        articlesPageStack.length > 1
+    );
+}
+function applyNativeSwipe() {
+    document.body.classList.toggle('native-swipe', smoothOn('native'));
+    syncNativeLock();
+    if (smoothOn('native')) {
+        nativeScrollToPage(currentPage, false);
+    } else if (pagesViewport) {
+        pagesViewport.scrollLeft = 0;
+        pagesEl.style.transition = 'none';
+        pagesEl.style.transform =
+            `translateX(-${currentPage * pageWidthPercent}%)`;
+    }
+}
+/* Сторінка змінилась рідним скролом — виконуємо те саме, що після свайпу */
+function nativePageSettled() {
+    if (!smoothOn('native') || !pagesViewport) return;
+    const w = pagesViewport.clientWidth || 1;
+    let target = Math.round(pagesViewport.scrollLeft / w);
+    target = Math.max(0, Math.min(TOTAL_PAGES - 1, target));
+    if (target === currentPage) return;
+    if (!adminMode && target !== SEARCH_PAGE_INDEX) {
+        nativeScrollToPage(SEARCH_PAGE_INDEX, false);
+        return;
+    }
+    if (target !== SEARCH_PAGE_INDEX) exitQtyMode();
+    exitPmQtyMode(false);
+    setWaitlistLogOpen(false);
+    currentPage = target;
+    renderArticlesDots();
+    if (target === SEARCH_PAGE_INDEX) {
+        kbWrapper.classList.remove('hidden');
+        if (input.value) search();
+    } else {
+        kbWrapper.classList.add('hidden');
+        if (target === 0) {
+            renderWaitlistPage();
+        } else if (target === ARTICLES_PAGE_INDEX) {
+            renderArticlesPage();
+        }
+    }
+    syncNativeLock();
+}
+if (pagesViewport) {
+    let nativeTimer = 0;
+    pagesViewport.addEventListener('scroll', () => {
+        if (!smoothOn('native')) return;
+        clearTimeout(nativeTimer);
+        nativeTimer = setTimeout(nativePageSettled, 90);
+    }, { passive: true });
+    if ('onscrollend' in window) {
+        pagesViewport.addEventListener('scrollend', () => {
+            clearTimeout(nativeTimer);
+            nativePageSettled();
+        }, { passive: true });
+    }
+    window.addEventListener('resize', () => {
+        if (smoothOn('native')) nativeScrollToPage(currentPage, false);
+    });
+}
 /* ==================== ПЕРЕХІД МІЖ ГОЛОВНИМИ СТОРІНКАМИ ==================== */
 function goToPage(n) {
     /* У публічному режимі доступна лише сторінка пошуку */
@@ -7318,6 +7440,8 @@ function goToPage(n) {
     currentPage = n;
     pagesEl.style.transform =
         `translateX(-${n * pageWidthPercent}%)`;
+    if (smoothOn('native')) nativeScrollToPage(n, true);
+    syncNativeLock();
     /*
         Оновлюємо крапочки тут також.
         Це гарантує, що коли залишаємо сторінку
@@ -7641,6 +7765,15 @@ document.addEventListener(
         ) {
             return;
         }
+        /* Рідний режим: якщо браузер уже забрав жест — не втручаємось і не вважаємо тапом */
+        if (
+            !pageMoved && smoothOn('native') && !e.cancelable &&
+            !(pageDragBasePage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1)
+        ) {
+            pageDragging = false;
+            pageSwipeCandidate = false;
+            return;
+        }
         const touch =
             e.touches[0];
         let dx =
@@ -7674,6 +7807,14 @@ document.addEventListener(
                 pageDragging = false;
                 pageSwipeCandidate =
                     false;
+                return;
+            }
+            if (
+                smoothOn('native') &&
+                !(pageDragBasePage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1)
+            ) {
+                pageDragging = false;
+                pageSwipeCandidate = false;
                 return;
             }
             pageMoved = true;
@@ -8603,6 +8744,7 @@ if (kbVersionEl) {
 applyAccessMode();
 /* ==================== ПЕРВИННИЙ СТАН КРАПОЧОК ==================== */
 renderArticlesDots();
+applyNativeSwipe();
 /* ==================== SERVICE WORKER (швидкий старт з кешу) ==================== */
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
