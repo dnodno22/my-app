@@ -1549,7 +1549,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 187;
+const CODE_VERSION = 188;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3606,41 +3606,42 @@ function buildPmGroupHtml(article, items) {
         if (!firstSection) html += divider;
         firstSection = false;
     };
-    /* Порядок рядків у станції залежить від вибраного сортування */
-    const wires = regular.filter(x => x.li.order === 0);
-    const restReg = regular.filter(x => x.li.order !== 0);
+    /* Сортування: вибране піднімаємо вгору (станції теж), решту опускаємо нижче; нічого не ховаємо (крім «Проводи передмонтажів») */
+    const isPmRel = x => !!x.isGroup || x.li.order === 3;
+    const isWire = x => !x.isGroup && x.li.order === 0;
+    const written = x =>
+        !!(x.it.qty || (x.it.comment && x.it.comment.trim()));
+    const matcher =
+        wlSortMode === 'pm' ? isPmRel
+        : wlSortMode === 'wire' ? isWire
+        : wlSortMode === 'pmwire' ? (x => !x.isGroup && x.li.order === 3)
+        : null;
     const orderRows = (st) => {
         const pick = arr => arr.filter(x =>
             st === null ? !hasStn(x.li.station) : x.li.station === st
         );
         const pmRows = [];
         groupsOf(pick(pm)).forEach(g => g.list.forEach(x => pmRows.push(x)));
+        const base = [...pick(regular), ...pick(grp), ...pmRows];
+        if (!matcher) return base;
+        let top = base.filter(matcher);
         if (wlSortMode === 'pm') {
-            /* Угору: передмонтажі з дописом (кількість/коментар) до назви; решта — нижче, нічого не ховаємо */
-            const written = x =>
-                !!(x.it.qty || (x.it.comment && x.it.comment.trim()));
-            const g = pick(grp);
-            return [
-                ...g.filter(written),
-                ...g.filter(x => !written(x)),
-                ...pick(regular),
-                ...pmRows
-            ];
+            top = [...top.filter(written), ...top.filter(x => !written(x))];
         }
-        if (wlSortMode === 'wire') {
-            return [...pick(wires), ...pick(restReg), ...pick(grp), ...pmRows];
-        }
-        if (wlSortMode === 'pmwire') {
-            return pmRows;
-        }
-        return [...pick(regular), ...pick(grp), ...pmRows];
+        if (wlSortMode === 'pmwire') return top;
+        return [...top, ...base.filter(x => !matcher(x))];
     };
     const stSet = new Set();
     inList.forEach(x => {
         if (hasStn(x.li.station)) stSet.add(x.li.station);
     });
+    const stList = [...stSet].sort(cmpU);
+    if (matcher) {
+        const has = st => inList.some(x => x.li.station === st && matcher(x));
+        stList.sort((a, b) => (has(b) ? 1 : 0) - (has(a) ? 1 : 0));
+    }
     let anyRows = false;
-    [...stSet].sort(cmpU).forEach(st => {
+    stList.forEach(st => {
         const rows = orderRows(st);
         if (!rows.length) return;
         anyRows = true;
