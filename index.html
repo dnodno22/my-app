@@ -1549,7 +1549,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 190;
+const CODE_VERSION = 191;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3639,53 +3639,50 @@ function buildPmGroupHtml(article, items) {
     /* Сортування: вибране піднімаємо вгору (станції теж), решту опускаємо нижче; нічого не ховаємо (крім «Проводи передмонтажів») */
     const isPmRel = x => !!x.isGroup || x.li.order === 3;
     const isWire = x => !x.isGroup && x.li.order === 0;
-    const written = x =>
-        !!(x.it.qty || (x.it.comment && x.it.comment.trim()));
     const matcher =
         wlSortMode === 'pm' ? isPmRel
         : wlSortMode === 'wire' ? isWire
         : wlSortMode === 'pmwire' ? (x => !x.isGroup && x.li.order === 3)
         : null;
-    const orderRows = (st) => {
+    /* Рядки блоку: station === null → без станції; pred — які рядки брати */
+    const baseRows = (st, pred) => {
         const pick = arr => arr.filter(x =>
-            st === null ? !hasStn(x.li.station) : x.li.station === st
+            (st === null ? !hasStn(x.li.station) : x.li.station === st) && pred(x)
         );
         const pmRows = [];
         groupsOf(pick(pm)).forEach(g => g.list.forEach(x => pmRows.push(x)));
-        const base = [...pick(regular), ...pick(grp), ...pmRows];
-        if (!matcher) return base;
-        const top = base.filter(matcher);
-        if (wlSortMode === 'pmwire') return top;
-        return [
-            ...top.filter(written),
-            ...top.filter(x => !written(x)),
-            ...base.filter(x => !matcher(x))
-        ];
+        return [...pick(regular), ...pick(grp), ...pmRows];
     };
-    const stSet = new Set();
-    inList.forEach(x => {
-        if (hasStn(x.li.station)) stSet.add(x.li.station);
-    });
-    /* Блоки: станції за алфавітом, «без станції» — останній; сортування піднімає блоки з вибраним (з дописом — найвище) */
-    const boxes = [...stSet].sort(cmpU).map(st => ({ st }));
-    boxes.push({ st: null });
-    boxes.forEach((bx, i) => {
-        bx.i = i;
-        bx.rows = orderRows(bx.st);
-        const m = bx.rows.filter(x => matcher && matcher(x));
-        bx.rank = !matcher ? 0 : (m.some(written) ? 0 : (m.length ? 1 : 2));
-    });
-    if (matcher) boxes.sort((a, b) => (a.rank - b.rank) || (a.i - b.i));
-    let anyRows = false;
-    boxes.forEach(bx => {
-        if (!bx.rows.length) return;
-        anyRows = true;
-        sectionStart();
-        html += '<div class="list-station-box">';
-        bx.rows.forEach(x => {
-            html += renderListRow(x);
+    /* Станції за зростанням, «без станції» — останні */
+    const boxesFor = pred => {
+        const sts = new Set();
+        inList.forEach(x => {
+            if (pred(x) && hasStn(x.li.station)) sts.add(x.li.station);
         });
-        html += '</div>';
+        const out = [...sts].sort(cmpU).map(st => baseRows(st, pred));
+        out.push(baseRows(null, pred));
+        return out.filter(r => r.length);
+    };
+    const sections = [];
+    if (!matcher) {
+        sections.push(boxesFor(() => true));
+    } else {
+        sections.push(boxesFor(matcher));
+        if (wlSortMode !== 'pmwire') {
+            sections.push(boxesFor(x => !matcher(x)));
+        }
+    }
+    let anyRows = false;
+    sections.forEach(boxes => {
+        boxes.forEach(rows => {
+            anyRows = true;
+            sectionStart();
+            html += '<div class="list-station-box">';
+            rows.forEach(x => {
+                html += renderListRow(x);
+            });
+            html += '</div>';
+        });
     });
     if (wlSortMode === 'pmwire' && !anyRows) {
         html += '<div class="wl-sort-empty">Немає проводів у передмонтажах</div>';
