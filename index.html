@@ -1549,7 +1549,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 186;
+const CODE_VERSION = 187;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3616,7 +3616,16 @@ function buildPmGroupHtml(article, items) {
         const pmRows = [];
         groupsOf(pick(pm)).forEach(g => g.list.forEach(x => pmRows.push(x)));
         if (wlSortMode === 'pm') {
-            return [...pick(grp), ...pick(regular), ...pmRows];
+            /* Угору: передмонтажі з дописом (кількість/коментар) до назви; решта — нижче, нічого не ховаємо */
+            const written = x =>
+                !!(x.it.qty || (x.it.comment && x.it.comment.trim()));
+            const g = pick(grp);
+            return [
+                ...g.filter(written),
+                ...g.filter(x => !written(x)),
+                ...pick(regular),
+                ...pmRows
+            ];
         }
         if (wlSortMode === 'wire') {
             return [...pick(wires), ...pick(restReg), ...pick(grp), ...pmRows];
