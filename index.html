@@ -1549,7 +1549,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 188;
+const CODE_VERSION = 190;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3497,9 +3497,15 @@ function buildPmGroupHtml(article, items) {
     };
     /* Структура як у «Списку»: станції, передмонтажі під своєю станцією, без станції — внизу */
     const listMap = new Map();
+    const groupStation = new Map();
     try {
         computeArticleList(article).forEach(li => {
             listMap.set(li.key, li);
+            /* станція передмонтажу = станція його першого проводу (як у «Списку») */
+            if (li.order === 3 && !groupStation.has(li.group) &&
+                li.station && li.station !== '—') {
+                groupStation.set(li.group, li.station);
+            }
         });
     } catch (e) {}
     const cmpU = (x, y) =>
@@ -3516,6 +3522,30 @@ function buildPmGroupHtml(article, items) {
         const li = listMap.get(it.key);
         if (li) {
             inList.push({ it, li });
+        } else if (String(it.key).startsWith('spts|') && it.kind) {
+            /* Позиція зі списку, якої немає в поточному розрахунку (інший префікс тощо): розкладаємо за власними даними */
+            const kp = String(it.key).split('|');
+            const act = kp[2] || '';
+            const order =
+                act.startsWith('pm:') ? 3
+                : it.kind === 'SP' ? 1
+                : it.kind === 'TS' ? 2
+                : 0;
+            const st =
+                it.station ||
+                (Array.isArray(it.stations) && it.stations.length === 1 ? it.stations[0] : '');
+            inList.push({
+                it,
+                li: {
+                    order,
+                    group: act.startsWith('pm:') ? act.slice(3) : '',
+                    kind: order === 3 ? it.kind : (order === 0 ? 'Проводи' : it.kind),
+                    station: st || '',
+                    material: it.material || '',
+                    address: it.address || '',
+                    key: it.key
+                }
+            });
         } else if (String(it.key).startsWith('pm|')) {
             /* Передмонтаж цілком: рядок у списку з назвою передмонтажу замість матеріалу */
             if (!resolveSt) {
@@ -3533,7 +3563,7 @@ function buildPmGroupHtml(article, items) {
                     order: 4,
                     group: cat,
                     kind: '',
-                    station: resolveSt(cat) || '',
+                    station: resolveSt(cat) || groupStation.get(cat) || '',
                     material: premontageShortName(cat),
                     address: '',
                     key: it.key
@@ -3624,46 +3654,39 @@ function buildPmGroupHtml(article, items) {
         groupsOf(pick(pm)).forEach(g => g.list.forEach(x => pmRows.push(x)));
         const base = [...pick(regular), ...pick(grp), ...pmRows];
         if (!matcher) return base;
-        let top = base.filter(matcher);
-        if (wlSortMode === 'pm') {
-            top = [...top.filter(written), ...top.filter(x => !written(x))];
-        }
+        const top = base.filter(matcher);
         if (wlSortMode === 'pmwire') return top;
-        return [...top, ...base.filter(x => !matcher(x))];
+        return [
+            ...top.filter(written),
+            ...top.filter(x => !written(x)),
+            ...base.filter(x => !matcher(x))
+        ];
     };
     const stSet = new Set();
     inList.forEach(x => {
         if (hasStn(x.li.station)) stSet.add(x.li.station);
     });
-    const stList = [...stSet].sort(cmpU);
-    if (matcher) {
-        const has = st => inList.some(x => x.li.station === st && matcher(x));
-        stList.sort((a, b) => (has(b) ? 1 : 0) - (has(a) ? 1 : 0));
-    }
+    /* Блоки: станції за алфавітом, «без станції» — останній; сортування піднімає блоки з вибраним (з дописом — найвище) */
+    const boxes = [...stSet].sort(cmpU).map(st => ({ st }));
+    boxes.push({ st: null });
+    boxes.forEach((bx, i) => {
+        bx.i = i;
+        bx.rows = orderRows(bx.st);
+        const m = bx.rows.filter(x => matcher && matcher(x));
+        bx.rank = !matcher ? 0 : (m.some(written) ? 0 : (m.length ? 1 : 2));
+    });
+    if (matcher) boxes.sort((a, b) => (a.rank - b.rank) || (a.i - b.i));
     let anyRows = false;
-    stList.forEach(st => {
-        const rows = orderRows(st);
-        if (!rows.length) return;
+    boxes.forEach(bx => {
+        if (!bx.rows.length) return;
         anyRows = true;
         sectionStart();
         html += '<div class="list-station-box">';
-        rows.forEach(x => {
+        bx.rows.forEach(x => {
             html += renderListRow(x);
         });
         html += '</div>';
     });
-    {
-        const rows = orderRows(null);
-        if (rows.length) {
-            anyRows = true;
-            sectionStart();
-            html += '<div class="list-station-box">';
-            rows.forEach(x => {
-                html += renderListRow(x);
-            });
-            html += '</div>';
-        }
-    }
     if (wlSortMode === 'pmwire' && !anyRows) {
         html += '<div class="wl-sort-empty">Немає проводів у передмонтажах</div>';
     }
