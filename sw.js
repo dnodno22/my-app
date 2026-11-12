@@ -1,8 +1,7 @@
 /* Версія кешу — підіймай разом із CODE_VERSION в index.html */
-const CACHE = 'search-v108';
+const CACHE = 'search-v194';
 const CORE = ['./', './index.html', './manifest.json'];
 const EXTRA = ['./favicon.png', './apple-touch-icon.png', './icon-192.png'];
-const NETWORK_TIMEOUT_MS = 3000;
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
@@ -23,40 +22,53 @@ self.addEventListener('activate', e => {
   })());
 });
 
-/* Мережа з таймаутом → кеш. Нова версія видна з першого запуску,
-   а при відсутності зв'язку (або слабкому) відкривається кеш. */
-async function networkFirst(req, fallbackKey) {
-  const c = await caches.open(CACHE);
-  const fromCache = async () =>
-    (await c.match(req, { ignoreSearch: true })) ||
-    (fallbackKey && (await c.match(fallbackKey))) ||
-    Response.error();
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), NETWORK_TIMEOUT_MS);
-    const r = await fetch(req, { signal: ctrl.signal, cache: 'no-cache' });
-    clearTimeout(timer);
-    if (r && r.ok) {
-      c.put(fallbackKey || req, r.clone()).catch(() => {});
-      return r;
-    }
-    return await fromCache();
-  } catch (_) {
-    return await fromCache();
+let pendingUpdate = false;
+self.addEventListener('message', e => {
+  /* Застосунок після старту питає, чи не з'явилась нова версія, поки він завантажувався */
+  if (e.data === 'hello' && pendingUpdate && e.source) {
+    pendingUpdate = false;
+    e.source.postMessage({ type: 'app-updated' });
   }
+});
+async function tellClients(msg) {
+  const all = await self.clients.matchAll({ type: 'window' });
+  all.forEach(c => c.postMessage(msg));
 }
 
-/* Для іконок і маніфесту: мережа першою (щоб нова іконка не застрягала в кеші), кеш як запасний варіант */
-async function iconsNetworkFirst(req) {
+/* Швидкий старт: одразу віддаємо кеш, а свіжу версію перевіряємо у фоні.
+   Якщо сторінка змінилась — повідомляємо застосунок (він сам перезавантажиться,
+   якщо ще нічого не встиг зробити). Без кешу — звичайна мережа. */
+async function cacheFirstRefresh(req, key, isPage) {
   const c = await caches.open(CACHE);
-  try {
-    const r = await fetch(req, { cache: 'no-cache' });
-    if (r && r.ok) {
-      c.put(req, r.clone()).catch(() => {});
+  const cached = await c.match(key, { ignoreSearch: true });
+  /* копія для порівняння: сам cached піде у відповідь і його тіло буде спожите */
+  const forCompare = cached ? cached.clone() : null;
+  const refresh = (async () => {
+    try {
+      const r = await fetch(isPage ? key : req, { cache: 'no-cache' });
+      if (r && r.ok) {
+        let changed = false;
+        if (isPage && forCompare) {
+          try {
+            changed = (await r.clone().text()) !== (await forCompare.text());
+          } catch (_) {}
+        }
+        await c.put(key, r.clone());
+        if (changed) {
+          pendingUpdate = true;
+          await tellClients({ type: 'app-updated' });
+        }
+      }
       return r;
+    } catch (_) {
+      return null;
     }
-  } catch (_) {}
-  return (await c.match(req, { ignoreSearch: true })) || Response.error();
+  })();
+  if (cached) {
+    return { res: cached, refresh };
+  }
+  const r = await refresh;
+  return { res: r || Response.error(), refresh: null };
 }
 
 self.addEventListener('fetch', e => {
@@ -65,9 +77,11 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   /* Google Sheets та інші чужі запити не чіпаємо: дані кешує сам застосунок */
   if (url.origin !== location.origin) return;
-  if (req.mode === 'navigate') {
-    e.respondWith(networkFirst(req, './index.html'));
-    return;
-  }
-  e.respondWith(iconsNetworkFirst(req));
+  const isPage = req.mode === 'navigate';
+  const key = isPage ? './index.html' : req;
+  e.respondWith((async () => {
+    const { res, refresh } = await cacheFirstRefresh(req, key, isPage);
+    if (refresh) e.waitUntil(refresh);
+    return res;
+  })());
 });
