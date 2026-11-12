@@ -2,9 +2,12 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
+<meta name="color-scheme" content="light only">
+<style>html,body{background:#fff;color-scheme:light}</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -1549,7 +1552,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 192;
+const CODE_VERSION = 195;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -8676,9 +8679,23 @@ renderArticlesDots();
 applyNativeSwipe();
 /* ==================== SERVICE WORKER (швидкий старт з кешу) ==================== */
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
+    /* Цей код виконується вже ПІСЛЯ події load — тому реєструємо одразу, а не чекаємо на неї */
+    const registerSw = () => {
         navigator.serviceWorker.register('sw.js').catch(() => {});
+    };
+    if (document.readyState === 'complete') registerSw();
+    else window.addEventListener('load', registerSw);
+    /* Свіжа версія знайдена у фоні: якщо запуск щойно відбувся і користувач
+       ще нічого не вводив — тихо перезавантажуємось на неї */
+    navigator.serviceWorker.addEventListener('message', ev => {
+        if (!ev.data || ev.data.type !== 'app-updated') return;
+        const fresh =
+            performance.now() < 8000 &&
+            !(input && input.value) &&
+            currentPage === SEARCH_PAGE_INDEX;
+        if (fresh) location.reload();
     });
+    if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage('hello');
 }
 const instantStart = document.getElementById('instant-start');
 if (instantStart) instantStart.remove();
