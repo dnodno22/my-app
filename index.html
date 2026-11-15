@@ -1552,7 +1552,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 200;
+const CODE_VERSION = 201;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2434,9 +2434,8 @@ function splitSharedRegions(all) {
     if (all.length && width) cut(0, all.length - 1, 0, width - 1);
     return leaves;
 }
-function parseSharedSheet(text, gid) {
+function collectSharedGroups(text, gid) {
     const all = parseCsvRows(text);
-    sharedGroupsList = [];
     const out = [];
     let sid = 0;
     splitSharedRegions(all).forEach(({ r0, r1, c0, c1 }) => {
@@ -2461,11 +2460,46 @@ function parseSharedSheet(text, gid) {
         ) {
             strip.forEach(row => row.unshift(""));
         }
-        out.push(...parseSharedStrip(strip, gid, sid++));
+        parseSharedStrip(strip, gid, sid++, out);
     });
     return out;
 }
-function parseSharedStrip(rows, gid, sid) {
+/*
+    РЯДКИ ДЛЯ ПОШУКУ: розбір як раніше (смуги за повністю порожніми стовпчиками).
+    Групи для панелі артикулів визначаються окремо (collectSharedGroups).
+*/
+function parseSharedSheet(text, gid) {
+    sharedGroupsList = collectSharedGroups(text, gid);
+    const all = parseCsvRows(text);
+    /*
+        Групи можуть стояти і збоку одна від одної: повністю порожній
+        (по всьому аркушу) стовпчик розділяє смуги. Кожна смуга розбирається
+        окремо: 1-й стовпчик смуги — станції/передмонтажі, далі артикули,
+        крайній стовпчик смуги — примітки.
+    */
+    let width = 0;
+    all.forEach(r => { width = Math.max(width, r.length); });
+    const filled = [];
+    for (let j = 0; j < width; j++) {
+        filled[j] = all.some(r => String(r[j] || "").trim());
+    }
+    const out = [];
+    let sid = 0;
+    for (let j = 0; j < width; j++) {
+        if (!filled[j]) continue;
+        let e = j;
+        while (e + 1 < width && filled[e + 1]) e++;
+        const strip = all.map(r => {
+            const cells = [];
+            for (let c = j; c <= e; c++) cells.push(r[c] || "");
+            return cells;
+        });
+        out.push(...parseSharedStrip(strip, gid, sid++, false));
+        j = e;
+    }
+    return out;
+}
+function parseSharedStrip(rows, gid, sid, groupsOut) {
     const out = [];
     const isMarker = row =>
         row.some(c => String(c).trim().toLowerCase() === "спільна");
@@ -2523,8 +2557,8 @@ function parseSharedStrip(rows, gid, sid) {
             const a = String(head[j] || "").trim();
             if (a) arts.push({ j, a });
         }
-        if (arts.length) {
-            sharedGroupsList.push({
+        if (arts.length && groupsOut) {
+            groupsOut.push({
                 id: String(gid) + ":" + sid + ":" + headIdx,
                 articles: arts.map(x => x.a)
             });
