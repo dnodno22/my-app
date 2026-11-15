@@ -1626,7 +1626,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 207;
+const CODE_VERSION = 208;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -7787,17 +7787,27 @@ function renderArticlesPrevPane() {
     }
 }
 let articlesPagerTimer = 0;
-function articlesPagerSettled() {
+let articlesPagerTouching = false;
+function articlesPagerSettled(limit) {
     if (!articlesPager || !articlesPager.classList.contains('has-prev')) return;
     if (articlesPageStack.length <= 1) return;
-    if (articlesPager.scrollLeft > 2) return;
+    if (articlesPager.scrollLeft > (limit === undefined ? 2 : limit)) return;
     /* Доїхали до попереднього рівня — повертаємось на нього по-справжньому */
     const sc = document.querySelector('#page-articles .scroll-area');
     if (sc) sc.scrollTop = 0;
     popArticlesPageLevel();
 }
 if (articlesPager) {
+    articlesPager.addEventListener('touchstart', () => { articlesPagerTouching = true; }, { passive: true });
+    const pagerTouchEnd = () => {
+        articlesPagerTouching = false;
+        /* Палець відпущено і вже ближче до попереднього рівня — не чекаємо кінця анімації */
+        articlesPagerSettled(articlesPager.clientWidth * 0.4);
+    };
+    articlesPager.addEventListener('touchend', pagerTouchEnd, { passive: true });
+    articlesPager.addEventListener('touchcancel', pagerTouchEnd, { passive: true });
     articlesPager.addEventListener('scroll', () => {
+        if (!articlesPagerTouching) articlesPagerSettled(articlesPager.clientWidth * 0.4);
         clearTimeout(articlesPagerTimer);
         articlesPagerTimer = setTimeout(articlesPagerSettled, 90);
     }, { passive: true });
