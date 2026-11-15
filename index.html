@@ -58,6 +58,10 @@ body.native-swipe .page {
     scroll-snap-align: start;
     scroll-snap-stop: always;
 }
+/* Режим «Чистий»: без кнопки «Очистити», видалення свайпом по назві */
+body.mode-clean .pm-group-clear-btn {
+    display: none !important;
+}
 body.native-swipe .scroll-area {
     overscroll-behavior-x: auto;
 }
@@ -92,8 +96,47 @@ body.native-swipe #pages-viewport:not(.native-lock) #page-articles .premontage-t
     padding-top: calc(30px + env(safe-area-inset-top));
     flex-shrink: 0;
 }
-#page-articles .scroll-area {
+/* Горизонтальний «пейджер» рівнів артикулів: [попередній рівень][поточний], свайп назад робить браузер */
+#articles-pager {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+}
+#articles-pager::-webkit-scrollbar { display: none; }
+#articles-pager.has-prev {
+    overflow-x: auto;
+}
+#articles-pager > .scroll-area {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
+#articles-pager > .articles-prev-pane {
+    order: -1;
+    display: none;
+    pointer-events: none;
+}
+#articles-pager.has-prev > .articles-prev-pane {
+    display: block;
+}
+#page-articles .scroll-area,
+#page-waitlist .scroll-area {
     padding-top: calc(30px + env(safe-area-inset-top));
+}
+#page-waitlist .waitlist-title {
+    padding: 0 0 10px;
+}
+#page-waitlist .wl-menu-btn {
+    margin-left: 0;
 }
 input#input {
     width: 100%;
@@ -617,6 +660,20 @@ body.interface-readable .art-readable {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    /* Закріплена шапка: назва артикулу + назва розділу лишаються зверху при прокручуванні */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #fff;
+}
+.level-head::before {
+    content: "";
+    position: absolute;
+    left: -16px;
+    right: -16px;
+    bottom: 100%;
+    height: calc(30px + env(safe-area-inset-top));
+    background: #fff;
 }
 .level-head-left {
     font-size: 20px;
@@ -1422,11 +1479,9 @@ body.mode-public #result .art-r.art-r-fav {
 <div id="pages">
     <!-- PAGE (waitlist): свайп управо від пошуку -->
     <div class="page" id="page-waitlist">
-        <div class="search-header">
-            <div class="waitlist-title"><span class="ico">⭐ </span>Обрані матеріали<button type="button" id="wl-menu-btn" class="wl-menu-btn" aria-label="Останні зміни" aria-expanded="false">☰</button></div>
-        </div>
         <div id="wl-history" class="wl-history hidden"></div>
         <div class="scroll-area">
+            <div class="waitlist-title"><button type="button" id="wl-menu-btn" class="wl-menu-btn" aria-label="Останні зміни" aria-expanded="false">≡</button></div>
             <div id="waitlist-result"></div>
         </div>
     </div>
@@ -1481,6 +1536,7 @@ body.mode-public #result .art-r.art-r-fav {
                 <button type="button" class="filter-option filter-choice" data-search-filter="materials">Матеріал</button>
                 <button type="button" class="filter-option interface-choice" data-interface-mode="classic">Класичний · v66</button>
                 <button type="button" class="filter-option interface-choice" data-interface-mode="readable">Читабельний · v73</button>
+                <button type="button" class="filter-option interface-choice" data-clean-toggle aria-pressed="false">Чистий</button>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
@@ -1491,8 +1547,13 @@ body.mode-public #result .art-r.art-r-fav {
     </div>
     <!-- PAGE (артикули): свайп ліворуч від пошуку -->
     <div class="page" id="page-articles">
-        <div class="scroll-area">
-            <div id="articles-page-content"></div>
+        <div id="articles-pager">
+            <div class="scroll-area">
+                <div id="articles-page-content"></div>
+            </div>
+            <div class="scroll-area articles-prev-pane" id="articles-prev-pane" aria-hidden="true">
+                <div id="articles-prev-content"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -1552,7 +1613,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 202;
+const CODE_VERSION = 205;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1989,6 +2050,23 @@ function setInterfaceMode(mode) {
     }
 }
 setInterfaceMode(interfaceMode);
+/* ---------- Режим «Чистий» ---------- */
+const CLEAN_MODE_KEY = 'cleanMode';
+let cleanMode = false;
+try { cleanMode = localStorage.getItem(CLEAN_MODE_KEY) === '1'; } catch (e) {}
+function applyCleanMode() {
+    document.body.classList.toggle('mode-clean', cleanMode);
+    document.querySelectorAll('[data-clean-toggle]').forEach(b => {
+        b.classList.toggle('active', cleanMode);
+        b.setAttribute('aria-pressed', String(cleanMode));
+    });
+}
+function setCleanMode(on) {
+    cleanMode = !!on;
+    try { localStorage.setItem(CLEAN_MODE_KEY, cleanMode ? '1' : '0'); } catch (e) {}
+    applyCleanMode();
+}
+applyCleanMode();
 document.querySelectorAll('.page').forEach(p => {
     p.style.width = pageWidthPercent + '%';
 });
@@ -2251,8 +2329,15 @@ document
         if (
             !adminMode &&
             (expandInterfaceButton ||
+                e.target.closest('[data-clean-toggle]') ||
                 e.target.closest('[data-interface-mode]'))
         ) {
+            return;
+        }
+        if (e.target.closest('[data-clean-toggle]')) {
+            e.preventDefault();
+            e.stopPropagation();
+            setCleanMode(!cleanMode);
             return;
         }
         if (expandInterfaceButton) {
@@ -3865,6 +3950,92 @@ function buildPmGroupHtml(article, items) {
     html += `</div>`;
     return html;
 }
+/* ---------- «Чистий»: видалення свайпом зліва направо ---------- */
+let cleanSwipedAt = 0;
+let cleanSw = null;
+function cleanDeleteItem(key) {
+    if (key === undefined) return;
+    saveWaitlist(loadWaitlist().filter(i => i.key !== key));
+    renderWaitlistPage();
+}
+function cleanDeleteArticle(art) {
+    if (!art) return;
+    saveWaitlist(loadWaitlist().filter(i => pmArticleOfItem(i) !== art));
+    articlesPageStack.forEach(st => { delete st.cachedHtml; });
+    renderWaitlistPage();
+}
+waitlistBox.addEventListener('touchstart', e => {
+    cleanSw = null;
+    if (!cleanMode || pmQtyMode || !e.touches || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const head = e.target.closest('.pm-group-article');
+    const row = e.target.closest('[data-pm-edit]');
+    let el = null;
+    let kind = '';
+    if (head) {
+        kind = 'article';
+        el = head.closest('.result-card');
+    } else if (row) {
+        kind = 'item';
+        const card = row.closest('.result-card');
+        el = (card && !card.classList.contains('pm-flat')) ? card : row;
+    }
+    if (!el) return;
+    cleanSw = { x: t.clientX, y: t.clientY, kind, el, row, head, active: false, dead: false, dx: 0 };
+}, { passive: true });
+waitlistBox.addEventListener('touchmove', e => {
+    const c = cleanSw;
+    if (!c || c.dead || !e.touches || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const dx = t.clientX - c.x;
+    const dy = t.clientY - c.y;
+    if (!c.active) {
+        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { c.dead = true; return; }
+        if (dx < -12) { c.dead = true; return; }
+        if (!(dx > 12 && dx > Math.abs(dy) * 1.5)) return;
+        c.active = true;
+    }
+    try { e.preventDefault(); } catch (_) {}
+    c.dx = Math.max(0, dx);
+    const w = waitlistBox.clientWidth || 360;
+    c.el.style.transition = 'none';
+    c.el.style.transform = `translateX(${c.dx}px)`;
+    c.el.style.opacity = String(Math.max(0.25, 1 - c.dx / w));
+}, { passive: false });
+function cleanSwipeEnd(cancel) {
+    const c = cleanSw;
+    cleanSw = null;
+    if (!c || !c.active) return;
+    cleanSwipedAt = Date.now();
+    const w = waitlistBox.clientWidth || 360;
+    const done = !cancel && c.dx >= Math.max(90, w * 0.35);
+    c.el.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+    if (!done) {
+        c.el.style.transform = '';
+        c.el.style.opacity = '';
+        return;
+    }
+    c.el.style.transform = `translateX(${w}px)`;
+    c.el.style.opacity = '0';
+    setTimeout(() => {
+        if (c.kind === 'article') {
+            const b = c.head && c.head.querySelector('[data-pm-clear]');
+            cleanDeleteArticle(b ? b.dataset.pmClear : '');
+        } else {
+            const idx = parseInt(c.row && c.row.dataset.pmEdit, 10);
+            cleanDeleteItem(waitlistCardKeys[idx]);
+        }
+    }, 190);
+}
+waitlistBox.addEventListener('touchend', () => cleanSwipeEnd(false), { passive: true });
+waitlistBox.addEventListener('touchcancel', () => cleanSwipeEnd(true), { passive: true });
+/* Після свайпу не даємо спрацювати натисканню (правка кількості) */
+waitlistBox.addEventListener('click', e => {
+    if (Date.now() - cleanSwipedAt < 500) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}, true);
 waitlistBox.addEventListener('click', (e) => {
     const sortBtn = e.target.closest('[data-wl-sort]');
     if (sortBtn) {
@@ -4841,7 +5012,8 @@ function popArticlesPageLevel() {
 }
 /* ==================== ПОБУДОВА СТОРІНКИ ==================== */
 function buildArticlesLevelHtml(
-    stateIndex
+    stateIndex,
+    limit
 ) {
     const state =
         articlesPageStack[stateIndex];
@@ -4851,13 +5023,18 @@ function buildArticlesLevelHtml(
     if (state.level === 'articles') {
         html +=
             '<div class="premontage-title"></div>';
-        const articles =
+        let articles =
             sortArticlesWithFavorites(
                 articleGroups.map(
                     g => g.article
                 ),
                 true
             );
+        /* Скорочена версія (для перетягування назад): лише верх списку */
+        if (limit && articles.length > limit) {
+            articles = articles.slice(0, limit);
+        }
+        const favSet = new Set(loadArticleFavorites());
         if (!articles.length) {
             html +=
                 '<div style="text-align:center; padding:40px; color:#aaa;">Немає даних</div>';
@@ -4866,7 +5043,7 @@ function buildArticlesLevelHtml(
                 '<div class="premontage-btn-grid">';
             articles.forEach(a => {
                 const favorite =
-                    isArticleFavorite(a);
+                    favSet.has(String(a));
                 html += `
                     <button
                         class="premontage-item-btn${favorite ? ' favorite' : ''}"
@@ -6117,7 +6294,18 @@ function renderArticlesPage(
     container.innerHTML = html;
     fitRowQty(container);
     if (pmQtyMode) pmApplyTarget(false);
+    renderArticlesPrevPane();
     syncNativeLock();
+    /* Заздалегідь готуємо попередній рівень (для швидкого повернення), коли браузер вільний */
+    if (idx > 0) {
+        setTimeout(() => {
+            const pi = articlesPageStack.length - 2;
+            const ps = articlesPageStack[pi];
+            if (ps && !ps.cachedHtml && pi >= 0) {
+                try { ps.cachedHtml = buildArticlesLevelHtml(pi); } catch (e) {}
+            }
+        }, 300);
+    }
 }
 /* Системне контекстне меню (копіювати) вимкнено скрізь, крім текстових полів */
 document.addEventListener('contextmenu', e => {
@@ -7555,12 +7743,61 @@ function nativeScrollToPage(n, smooth) {
     });
 }
 function syncNativeLock() {
-    if (!pagesViewport) return;
-    pagesViewport.classList.toggle(
-        'native-lock',
-        currentPage === ARTICLES_PAGE_INDEX &&
-        articlesPageStack.length > 1
-    );
+    /* Рівні артикулів тепер теж гортаються рідним скролом (пейджер), блокування не потрібне */
+    if (pagesViewport) pagesViewport.classList.remove('native-lock');
+}
+/* ---------- Пейджер рівнів артикулів ---------- */
+const articlesPager = document.getElementById('articles-pager');
+const articlesPrevContent = document.getElementById('articles-prev-content');
+function renderArticlesPrevPane() {
+    if (!articlesPager || !articlesPrevContent) return;
+    if (articlesPageStack.length > 1) {
+        const pi = articlesPageStack.length - 2;
+        const ps = articlesPageStack[pi];
+        let html = '';
+        try {
+            if (ps && ps.level === 'articles') {
+                html = buildArticlesLevelHtml(pi, 40);
+            } else if (ps) {
+                if (!ps.cachedHtml) ps.cachedHtml = buildArticlesLevelHtml(pi);
+                html = ps.cachedHtml;
+            }
+        } catch (e) {}
+        articlesPrevContent.innerHTML = html;
+        articlesPager.classList.add('has-prev');
+        articlesPager.scrollLeft = articlesPager.clientWidth;
+    } else {
+        articlesPager.classList.remove('has-prev');
+        articlesPrevContent.innerHTML = '';
+        articlesPager.scrollLeft = 0;
+    }
+}
+let articlesPagerTimer = 0;
+function articlesPagerSettled() {
+    if (!articlesPager || !articlesPager.classList.contains('has-prev')) return;
+    if (articlesPageStack.length <= 1) return;
+    if (articlesPager.scrollLeft > 2) return;
+    /* Доїхали до попереднього рівня — повертаємось на нього по-справжньому */
+    const sc = document.querySelector('#page-articles .scroll-area');
+    if (sc) sc.scrollTop = 0;
+    popArticlesPageLevel();
+}
+if (articlesPager) {
+    articlesPager.addEventListener('scroll', () => {
+        clearTimeout(articlesPagerTimer);
+        articlesPagerTimer = setTimeout(articlesPagerSettled, 90);
+    }, { passive: true });
+    if ('onscrollend' in window) {
+        articlesPager.addEventListener('scrollend', () => {
+            clearTimeout(articlesPagerTimer);
+            articlesPagerSettled();
+        }, { passive: true });
+    }
+    window.addEventListener('resize', () => {
+        if (articlesPager.classList.contains('has-prev')) {
+            articlesPager.scrollLeft = articlesPager.clientWidth;
+        }
+    });
 }
 function applyNativeSwipe() {
     document.body.classList.add('native-swipe');
@@ -7670,6 +7907,8 @@ let pageDragPxWidth = 0;
 let pageSwipeCandidate = false;
 let suppressNextClick = false;
 let dragDotsTimer = 0;
+let innerDragRaf = 0;
+let innerDragX = 0;
 /* Крапочки оновлюються окремо від тягнення: у власному шарі, після кадру. */
 function dragDots(fn) {
     clearTimeout(dragDotsTimer);
@@ -7687,6 +7926,10 @@ function dragDots(fn) {
 const PAGE_SWIPE_START_PX = 24;
 function finishPageDrag(dx) {
     clearTimeout(dragDotsTimer);
+    if (innerDragRaf) {
+        cancelAnimationFrame(innerDragRaf);
+        innerDragRaf = 0;
+    }
     const SWIPE_THRESHOLD =
         Math.max(
             55,
@@ -7902,7 +8145,7 @@ document.addEventListener(
         /* Рідний режим: якщо браузер уже забрав жест — не втручаємось і не вважаємо тапом */
         if (
             !pageMoved && !e.cancelable &&
-            !(pageDragBasePage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1)
+            true
         ) {
             pageDragging = false;
             pageSwipeCandidate = false;
@@ -7944,7 +8187,7 @@ document.addEventListener(
                 return;
             }
             if (
-                !(pageDragBasePage === ARTICLES_PAGE_INDEX && articlesPageStack.length > 1)
+                true
             ) {
                 pageDragging = false;
                 pageSwipeCandidate = false;
@@ -7977,17 +8220,27 @@ document.addEventListener(
                     articlesPageStack[
                         articlesPageStack.length - 2
                     ];
+                /*
+                    Під час перетягування попередня панель потрібна лише для вигляду:
+                    для довгого списку артикулів будуємо тільки його верх (легко),
+                    повний список малюється вже після завершення переходу.
+                */
                 const prevHtml =
-                    (
-                        prevState &&
-                        prevState.cachedHtml
-                    )
-                        ? prevState.cachedHtml
-                        : buildArticlesLevelHtml(
-                            articlesPageStack.length - 2
+                    (prevState && prevState.level === 'articles')
+                        ? buildArticlesLevelHtml(
+                            articlesPageStack.length - 2,
+                            40
+                        )
+                        : (
+                            (prevState && prevState.cachedHtml)
+                                ? prevState.cachedHtml
+                                : buildArticlesLevelHtml(
+                                    articlesPageStack.length - 2
+                                )
                         );
                 if (
                     prevState &&
+                    prevState.level !== 'articles' &&
                     !prevState.cachedHtml
                 ) {
                     prevState.cachedHtml =
@@ -8077,10 +8330,17 @@ document.addEventListener(
                         limitedDx
                     )
                 );
-            wrapper.style.transition =
-                'none';
-            wrapper.style.transform =
-                `translateX(${visualDx - pageDragPxWidth}px)`;
+            innerDragX = visualDx - pageDragPxWidth;
+            if (!innerDragRaf) {
+                innerDragRaf = requestAnimationFrame(() => {
+                    innerDragRaf = 0;
+                    const w = document.getElementById('articles-drag-wrapper');
+                    if (w && pageDragging && pageMoved) {
+                        w.style.transition = 'none';
+                        w.style.transform = `translateX(${innerDragX}px)`;
+                    }
+                });
+            }
             /*
                 Крапочки "йдуть за пальцем" ще під час самого свайпу —
                 так зміна помітна ще швидше, ніж сам перехід.
