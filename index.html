@@ -179,39 +179,6 @@ input#input {
     overscroll-behavior: contain;
     touch-action: pan-y;
 }
-/* ==================== КРАПОЧКИ ГЛИБИНИ АРТИКУЛІВ ==================== */
-.articles-dots {
-    position: fixed;
-    bottom: calc(8px + env(safe-area-inset-bottom));
-    left: 0;
-    right: 0;
-    height: 18px;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    z-index: 30;
-    pointer-events: none;
-    /* окремий шар: перебудова крапочок не торкається сторінок */
-    contain: layout paint style;
-    will-change: transform;
-    transform: translateZ(0);
-}
-.articles-dots .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #d1d5db;
-    transition: background-color 0.2s ease, width 0.2s ease, height 0.2s ease;
-}
-.articles-dots .dot.past {
-    background: #9ca3af;
-}
-.articles-dots .dot.active {
-    width: 9px;
-    height: 9px;
-    background: #111827;
-}
 /* ==================== СВАЙП ВНУТРІШНІХ РІВНІВ ==================== */
 .articles-drag-wrapper {
     display: flex;
@@ -1228,8 +1195,7 @@ mark.hl {
     background: #fff;
     border-top: 1px solid #e5e7eb;
     padding: 12px;
-    /* Extra space below 0-key for depth dots */
-    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 .kb-grid {
     display: grid;
@@ -1241,7 +1207,7 @@ mark.hl {
     left: 12px;
     right: 12px;
     top: 12px;
-    bottom: calc(28px + env(safe-area-inset-bottom));
+    bottom: calc(12px + env(safe-area-inset-bottom));
     z-index: 45;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1402,8 +1368,7 @@ body.mode-public #result .pm-qty-badge,
 body.mode-public #filter-menu [data-interface-expand],
 body.mode-public #filter-menu .interface-choice,
 body.mode-public #qty-bar,
-body.mode-public #pm-qty-panel,
-body.mode-public .articles-dots {
+body.mode-public #pm-qty-panel {
     display: none !important;
 }
 body.mode-public .mat-pick {
@@ -1577,8 +1542,6 @@ body.mode-public #result .art-r.art-r-fav {
     </div>
 </div>
 </div>
-<!-- КРАПОЧКИ ГЛИБИНИ (глобально: пошук + артикули) -->
-<div class="articles-dots" id="articles-dots"></div>
 <!-- ПАРОЛЬ АДМІНІСТРАТОРА (довге натискання кнопки версії) -->
 <div id="pw-dialog" class="pw-dialog hidden" role="dialog" aria-modal="true" aria-label="Пароль адміністратора">
     <div class="pw-box">
@@ -1712,8 +1675,6 @@ const pagesEl = document.getElementById('pages');
 const pagesViewport = document.getElementById('pages-viewport');
 const articlesPageContent =
     document.getElementById('articles-page-content');
-const articlesDots =
-    document.getElementById('articles-dots');
 const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 const CACHE_KEY_SEARCH_FILTERS = "searchActiveFilters";
@@ -1816,77 +1777,6 @@ function saveSearchFilters() {
     }
 }
 selectedSearchFilters = loadSearchFilters();
-/* ==================== КРАПОЧКИ ГЛИБИНИ ==================== */
-function renderArticlesDots(overridePage, overrideDepth) {
-    if (!articlesDots) return;
-    /*
-        overridePage / overrideDepth дозволяють показати крапочки
-        "наперед" — просто щоб ПІД ЧАС самого свайпу (ще до того, як
-        currentPage чи articlesPageStack реально зміняться) крапочки
-        вже відображали стан, в який ми прямуємо. Так вони йдуть
-        синхронно з переходом, а не з запізненням після нього.
-    */
-    const page =
-        overridePage !== undefined
-            ? overridePage
-            : currentPage;
-    /*
-        Крапочки показуємо на сторінках "Пошук" і "Артикули".
-        На "Обрані матеріали" їх немає.
-    */
-    if (
-        page !== ARTICLES_PAGE_INDEX &&
-        page !== SEARCH_PAGE_INDEX
-    ) {
-        articlesDots.style.display = 'none';
-        articlesDots.innerHTML = '';
-        return;
-    }
-    /*
-        Пошук завжди 1-а крапочка (перша сторінка).
-        Панель артикулів = 2-а крапочка, кожен рівень углиб додає ще одну.
-        Тому на сторінці артикулів: глибина стеку + 1.
-    */
-    let depth;
-    if (page === SEARCH_PAGE_INDEX) {
-        depth = 1;
-    } else {
-        depth =
-            (
-                overrideDepth !== undefined
-                    ? overrideDepth
-                    : articlesPageStack.length
-            ) + 1;
-    }
-    if (depth <= 0) {
-        articlesDots.style.display = 'none';
-        articlesDots.innerHTML = '';
-        return;
-    }
-    /* Не перебудовуємо крапки на кожен рух пальця, якщо нічого не змінилось */
-    if (
-        articlesDots.style.display === 'flex' &&
-        articlesDots.dataset.depth === String(depth)
-    ) {
-        return;
-    }
-    articlesDots.dataset.depth = String(depth);
-    articlesDots.style.display = 'flex';
-    let html = '';
-    for (let i = 0; i < depth; i++) {
-        let className = 'dot';
-        /*
-            Остання крапочка = поточний рівень.
-        */
-        if (i === depth - 1) {
-            className += ' active';
-        } else {
-            className += ' past';
-        }
-        html += `<span class="${className}"></span>`;
-    }
-    articlesDots.innerHTML = html;
-}
 /* ==================== РОЗМІР СТОРІНОК ==================== */
 const kbVersionEl = document.getElementById('kb-version');
 const filterMenu = document.getElementById('filter-menu');
@@ -6268,7 +6158,6 @@ function plainActionName(key) {
 function renderArticlesPage(
     forceRebuild
 ) {
-    /* Спочатку контент сторінки — крапочки не повинні блокувати перехід */
     const container =
         document.getElementById(
             'articles-page-content'
@@ -6312,8 +6201,6 @@ function renderArticlesPage(
     if (pmQtyMode) pmApplyTarget(false);
     renderArticlesPrevPane();
     syncNativeLock();
-    /* Крапочки — після кадру, щоб не гальмували перехід сторінки */
-    requestAnimationFrame(() => renderArticlesDots());
     /* Заздалегідь готуємо попередній рівень (для швидкого повернення), коли браузер вільний */
     if (idx > 0) {
         setTimeout(() => {
@@ -7923,7 +7810,6 @@ function nativePageSettled() {
     exitPmQtyMode(false);
     setWaitlistLogOpen(false);
     currentPage = target;
-    renderArticlesDots();
     if (target === SEARCH_PAGE_INDEX) {
         kbWrapper.classList.remove('hidden');
         if (input.value) search();
@@ -7975,12 +7861,6 @@ function goToPage(n) {
         `translateX(-${n * pageWidthPercent}%)`;
     nativeScrollToPage(n, true);
     syncNativeLock();
-    /*
-        Оновлюємо крапочки тут також.
-        Це гарантує, що коли залишаємо сторінку
-        "Артикули", вони одразу зникають.
-    */
-    renderArticlesDots();
     if (
         n === SEARCH_PAGE_INDEX
     ) {
@@ -8010,26 +7890,14 @@ let pageMoved = false;
 let pageDragPxWidth = 0;
 let pageSwipeCandidate = false;
 let suppressNextClick = false;
-let dragDotsTimer = 0;
 let innerDragRaf = 0;
 let innerDragX = 0;
-/* Крапочки оновлюються окремо від тягнення: у власному шарі, після кадру. */
-function dragDots(fn) {
-    clearTimeout(dragDotsTimer);
-    /* після кадру (не в обробнику руху) і не частіше ніж раз на 50 мс */
-    dragDotsTimer = setTimeout(() => {
-        requestAnimationFrame(() => {
-            if (pageDragging && pageMoved) fn();
-        });
-    }, 50);
-}
 /*
     ЗБІЛЬШЕНО з 14 до 24: дрейф пальця при звичайному натисканні
     більше не сприймається як початок свайпу.
 */
 const PAGE_SWIPE_START_PX = 24;
 function finishPageDrag(dx) {
-    clearTimeout(dragDotsTimer);
     if (innerDragRaf) {
         cancelAnimationFrame(innerDragRaf);
         innerDragRaf = 0;
@@ -8082,20 +7950,8 @@ function finishPageDrag(dx) {
         };
         wrapper.style.transition =
             `transform ${moveDur}s ${moveEase}`;
-        /*
-            Крапочки оновлюємо ВІДРАЗУ, в момент прийняття рішення —
-            ще до того, як почалась/завершилась сама анімація зсуву.
-            Інакше вони чекали б на transitionend (чи й цілих 400мс
-            запасного таймауту) і помітно відставали б від переходу.
-        */
         const willGoBack =
             dx >= SWIPE_THRESHOLD;
-        renderArticlesDots(
-            ARTICLES_PAGE_INDEX,
-            willGoBack
-                ? articlesPageStack.length - 1
-                : articlesPageStack.length
-        );
         if (
             willGoBack
         ) {
@@ -8174,10 +8030,6 @@ function finishPageDrag(dx) {
     currentPage = target;
     pagesEl.style.transform =
         `translateX(-${target * pageWidthPercent}%)`;
-    /*
-        Оновлення крапочок після завершення свайпу.
-    */
-    renderArticlesDots();
     if (
         target === SEARCH_PAGE_INDEX
     ) {
@@ -8445,21 +8297,6 @@ document.addEventListener(
                     }
                 });
             }
-            /*
-                Крапочки "йдуть за пальцем" ще під час самого свайпу —
-                так зміна помітна ще швидше, ніж сам перехід.
-            */
-            const liveThreshold =
-                Math.max(
-                    55,
-                    pageDragPxWidth * 0.20
-                );
-            dragDots(() => renderArticlesDots(
-                ARTICLES_PAGE_INDEX,
-                visualDx >= liveThreshold
-                    ? articlesPageStack.length - 1
-                    : articlesPageStack.length
-            ));
             return;
         }
     },
@@ -8720,7 +8557,6 @@ document.addEventListener(
         pagesEl.style.transition = 'none';
         pagesEl.style.transform =
             `translateX(-${livePos * pageWidthPercent}%)`;
-        renderArticlesDots(Math.round(livePos));
     },
     { passive: false }
 );
@@ -9094,7 +8930,6 @@ function applyAccessMode() {
             goToPage(SEARCH_PAGE_INDEX);
         }
     }
-    renderArticlesDots();
 }
 function setAccessMode(admin) {
     adminMode = !!admin;
@@ -9210,7 +9045,6 @@ if (kbVersionEl) {
 /* Початковий режим: відновлюємо збережений (інакше — публічний) */
 applyAccessMode();
 /* ==================== ПЕРВИННИЙ СТАН КРАПОЧОК ==================== */
-renderArticlesDots();
 applyNativeSwipe();
 /* ==================== SERVICE WORKER (швидкий старт з кешу) ==================== */
 if ('serviceWorker' in navigator) {
