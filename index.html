@@ -6268,13 +6268,7 @@ function plainActionName(key) {
 function renderArticlesPage(
     forceRebuild
 ) {
-    /*
-        ВАЖЛИВО:
-        Крапочки оновлюємо ПЕРЕД рендером контенту.
-        Тому при переході на наступний рівень
-        вони одразу змінюють кількість.
-    */
-    renderArticlesDots();
+    /* Спочатку контент сторінки — крапочки не повинні блокувати перехід */
     const container =
         document.getElementById(
             'articles-page-content'
@@ -6318,6 +6312,8 @@ function renderArticlesPage(
     if (pmQtyMode) pmApplyTarget(false);
     renderArticlesPrevPane();
     syncNativeLock();
+    /* Крапочки — після кадру, щоб не гальмували перехід сторінки */
+    requestAnimationFrame(() => renderArticlesDots());
     /* Заздалегідь готуємо попередній рівень (для швидкого повернення), коли браузер вільний */
     if (idx > 0) {
         setTimeout(() => {
