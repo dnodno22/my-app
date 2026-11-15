@@ -117,7 +117,8 @@ body.native-swipe #pages-viewport:not(.native-lock) #page-articles .premontage-t
     width: 100%;
     min-width: 0;
     scroll-snap-align: start;
-    scroll-snap-stop: always;
+    /* stop: normal — дозволяє швидким свайпам проходити рівні без «залипання» на пів екрана */
+    scroll-snap-stop: normal;
 }
 #articles-pager > .articles-prev-pane {
     order: -1;
@@ -5014,14 +5015,16 @@ function getAvailableActionsForArticle(
     return result;
 }
 /* ==================== НАЗАД ==================== */
+let articlesPagerLock = false;
 function popArticlesPageLevel() {
     exitPmQtyMode(false);
-    if (
-        articlesPageStack.length > 1
-    ) {
-        articlesPageStack.pop();
-        renderArticlesPage();
-    }
+    if (articlesPageStack.length <= 1) return;
+    articlesPageStack.pop();
+    /* Блокуємо scroll-обробники на час перемальовування, щоб не було подвійних pop і стрибків */
+    articlesPagerLock = true;
+    renderArticlesPage();
+    /* Короткий lock: браузер встигає застосувати новий scrollLeft без повторного settle */
+    setTimeout(() => { articlesPagerLock = false; }, 120);
 }
 /* ==================== ПОБУДОВА СТОРІНКИ ==================== */
 function buildArticlesLevelHtml(
@@ -7778,48 +7781,63 @@ function renderArticlesPrevPane() {
         } catch (e) {}
         articlesPrevContent.innerHTML = html;
         articlesPager.classList.add('has-prev');
-        articlesPager.scrollLeft = articlesPager.clientWidth;
+        /* Миттєво ставимо на поточний рівень — без smooth, щоб не було «пів екрана» */
+        articlesPager.scrollTo({ left: articlesPager.clientWidth, behavior: 'instant' });
     } else {
         clearTimeout(articlesPagerTimer);
         articlesPager.classList.remove('has-prev');
         articlesPrevContent.innerHTML = '';
-        articlesPager.scrollLeft = 0;
+        articlesPager.scrollTo({ left: 0, behavior: 'instant' });
     }
 }
 let articlesPagerTimer = 0;
 let articlesPagerTouching = false;
 function articlesPagerSettled(limit) {
+    if (articlesPagerLock) return;
     if (!articlesPager || !articlesPager.classList.contains('has-prev')) return;
     if (articlesPageStack.length <= 1) return;
-    if (articlesPager.scrollLeft > (limit === undefined ? 2 : limit)) return;
-    /* Доїхали до попереднього рівня — повертаємось на нього по-справжньому */
+    const threshold = limit === undefined ? 2 : limit;
+    if (articlesPager.scrollLeft > threshold) return;
+    /* Доїхали до попереднього рівня — одразу ставимо в 0 і комітимо, без «пів екрана» */
+    articlesPagerLock = true;
+    articlesPager.scrollTo({ left: 0, behavior: 'instant' });
     const sc = document.querySelector('#page-articles .scroll-area');
     if (sc) sc.scrollTop = 0;
     popArticlesPageLevel();
 }
 if (articlesPager) {
-    articlesPager.addEventListener('touchstart', () => { articlesPagerTouching = true; }, { passive: true });
+    articlesPager.addEventListener('touchstart', () => {
+        articlesPagerTouching = true;
+        clearTimeout(articlesPagerTimer);
+    }, { passive: true });
     const pagerTouchEnd = () => {
         articlesPagerTouching = false;
-        /* Палець відпущено і вже ближче до попереднього рівня — не чекаємо кінця анімації */
-        articlesPagerSettled(articlesPager.clientWidth * 0.4);
+        /* Палець відпущено: якщо вже пройшли ~35% — одразу комітимо рівень (чіткий snap) */
+        const w = articlesPager.clientWidth || 1;
+        if (articlesPager.scrollLeft < w * 0.65) {
+            articlesPagerSettled(w * 0.65);
+        } else {
+            /* Недостатньо — повертаємо на поточний рівень без блимання */
+            articlesPager.scrollTo({ left: w, behavior: 'smooth' });
+        }
     };
     articlesPager.addEventListener('touchend', pagerTouchEnd, { passive: true });
     articlesPager.addEventListener('touchcancel', pagerTouchEnd, { passive: true });
     articlesPager.addEventListener('scroll', () => {
-        if (!articlesPagerTouching) articlesPagerSettled(articlesPager.clientWidth * 0.4);
+        if (articlesPagerLock || articlesPagerTouching) return;
         clearTimeout(articlesPagerTimer);
-        articlesPagerTimer = setTimeout(articlesPagerSettled, 90);
+        articlesPagerTimer = setTimeout(() => articlesPagerSettled(articlesPager.clientWidth * 0.4), 80);
     }, { passive: true });
     if ('onscrollend' in window) {
         articlesPager.addEventListener('scrollend', () => {
+            if (articlesPagerLock || articlesPagerTouching) return;
             clearTimeout(articlesPagerTimer);
             articlesPagerSettled();
         }, { passive: true });
     }
     window.addEventListener('resize', () => {
-        if (articlesPager.classList.contains('has-prev')) {
-            articlesPager.scrollLeft = articlesPager.clientWidth;
+        if (articlesPager.classList.contains('has-prev') && !articlesPagerLock) {
+            articlesPager.scrollTo({ left: articlesPager.clientWidth, behavior: 'instant' });
         }
     });
 }
