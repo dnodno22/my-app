@@ -1552,7 +1552,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 195;
+const CODE_VERSION = 197;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2139,17 +2139,65 @@ function toggleArticleFavorite(article) {
     saveArticleFavorites(list);
     return true;
 }
-function sortArticlesWithFavorites(articles) {
+/* «Блок артикулів»: артикули, що стоять разом в одному рядку даних (як в одному блоці пошуку) */
+let articleMatesCache = { src: null, len: -1, map: null };
+function getArticleMates() {
+    if (
+        articleMatesCache.src === searchData &&
+        articleMatesCache.len === searchData.length
+    ) {
+        return articleMatesCache.map;
+    }
+    const map = new Map();
+    searchData.forEach(row => {
+        let arts;
+        try {
+            arts = expandArticleValue(row.article);
+        } catch (e) {
+            return;
+        }
+        arts = arts.filter(Boolean).map(String);
+        if (arts.length < 2) return;
+        arts.forEach(a => {
+            if (!map.has(a)) map.set(a, new Set());
+            const set = map.get(a);
+            arts.forEach(o => {
+                if (o !== a) set.add(o);
+            });
+        });
+    });
+    articleMatesCache = {
+        src: searchData,
+        len: searchData.length,
+        map
+    };
+    return map;
+}
+function sortArticlesWithFavorites(articles, withMates) {
     const favorites =
         new Set(loadArticleFavorites());
+    /* Решта блоку обраного артикулу теж іде на початок (без підсвітки) */
+    const mates = new Set();
+    if (withMates && favorites.size) {
+        const map = getArticleMates();
+        favorites.forEach(f => {
+            const m = map.get(String(f));
+            if (m) m.forEach(x => mates.add(x));
+        });
+    }
+    const rank = x => {
+        const k = String(x);
+        if (favorites.has(k)) return 0;
+        return mates.has(k) ? 1 : 2;
+    };
     return [...articles].sort((a, b) => {
+        const ra = rank(a);
+        const rb = rank(b);
+        if (ra !== rb) return ra - rb;
         const aFav =
             favorites.has(String(a));
         const bFav =
             favorites.has(String(b));
-        if (aFav !== bFav) {
-            return aFav ? -1 : 1;
-        }
         /* Від більшого до меншого */
         return String(b).localeCompare(
             String(a),
@@ -4685,7 +4733,8 @@ function buildArticlesLevelHtml(
             sortArticlesWithFavorites(
                 articleGroups.map(
                     g => g.article
-                )
+                ),
+                true
             );
         if (!articles.length) {
             html +=
