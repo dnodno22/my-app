@@ -1552,7 +1552,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 197;
+const CODE_VERSION = 198;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2139,7 +2139,7 @@ function toggleArticleFavorite(article) {
     saveArticleFavorites(list);
     return true;
 }
-/* «Блок артикулів»: артикули, що стоять разом в одному рядку даних (як в одному блоці пошуку) */
+/* «Блок артикулів» = як у результатах пошуку: усі артикули одного матеріалу (картка матеріал|адреса) */
 let articleMatesCache = { src: null, len: -1, map: null };
 function getArticleMates() {
     if (
@@ -2148,8 +2148,10 @@ function getArticleMates() {
     ) {
         return articleMatesCache.map;
     }
-    const map = new Map();
+    const byCard = new Map();
     searchData.forEach(row => {
+        const mat = String(row.material || '').trim();
+        if (!mat) return;
         let arts;
         try {
             arts = expandArticleValue(row.article);
@@ -2157,12 +2159,26 @@ function getArticleMates() {
             return;
         }
         arts = arts.filter(Boolean).map(String);
-        if (arts.length < 2) return;
-        arts.forEach(a => {
-            if (!map.has(a)) map.set(a, new Set());
-            const set = map.get(a);
-            arts.forEach(o => {
-                if (o !== a) set.add(o);
+        if (!arts.length) return;
+        const key = mat + '|' + String(row.address || '');
+        let set = byCard.get(key);
+        if (!set) {
+            set = new Set();
+            byCard.set(key, set);
+        }
+        arts.forEach(a => set.add(a));
+    });
+    const map = new Map();
+    byCard.forEach(set => {
+        if (set.size < 2) return;
+        set.forEach(a => {
+            let m = map.get(a);
+            if (!m) {
+                m = new Set();
+                map.set(a, m);
+            }
+            set.forEach(o => {
+                if (o !== a) m.add(o);
             });
         });
     });
