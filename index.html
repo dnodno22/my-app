@@ -103,15 +103,14 @@ body.native-swipe #pages-viewport:not(.native-lock) #page-articles .premontage-t
     display: flex;
     overflow-x: hidden;
     overflow-y: hidden;
-    scroll-snap-type: x mandatory;
     scrollbar-width: none;
-    overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-x pan-y;
 }
 #articles-pager::-webkit-scrollbar { display: none; }
 #articles-pager.has-prev {
     overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
 }
 #articles-pager > .scroll-area {
     flex: 0 0 100%;
@@ -132,11 +131,25 @@ body.native-swipe #pages-viewport:not(.native-lock) #page-articles .premontage-t
 #page-waitlist .scroll-area {
     padding-top: calc(30px + env(safe-area-inset-top));
 }
+/* ≡ — в одному ряді з першим артикулом, біля правого краю */
 #page-waitlist .waitlist-title {
-    padding: 0 0 10px;
+    position: relative;
+    display: block;
+    height: 0;
+    padding: 0;
 }
 #page-waitlist .wl-menu-btn {
-    margin-left: 0;
+    position: absolute;
+    right: 0;
+    top: 5px;
+    margin: 0;
+    z-index: 5;
+}
+#waitlist-result > .result-card.pm-flat:first-child .pm-group-clear-btn {
+    margin-right: 50px;
+}
+#waitlist-result > :first-child:not(.pm-flat) {
+    margin-top: 46px;
 }
 input#input {
     width: 100%;
@@ -1613,7 +1626,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 205;
+const CODE_VERSION = 207;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -7767,6 +7780,7 @@ function renderArticlesPrevPane() {
         articlesPager.classList.add('has-prev');
         articlesPager.scrollLeft = articlesPager.clientWidth;
     } else {
+        clearTimeout(articlesPagerTimer);
         articlesPager.classList.remove('has-prev');
         articlesPrevContent.innerHTML = '';
         articlesPager.scrollLeft = 0;
