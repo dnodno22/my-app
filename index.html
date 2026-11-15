@@ -1552,7 +1552,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 201;
+const CODE_VERSION = 202;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2140,12 +2140,30 @@ function toggleArticleFavorite(article) {
     return true;
 }
 /* Групи спільних артикулів (аркуш «спільна лінія»): стаття → групи, група → артикули в порядку таблиці */
-let sharedIndexCache = { src: null, byArt: null, byGroup: null };
+let sharedIndexCache = { src: null, len: -1, byArt: null, byGroup: null };
 function getSharedIndex() {
-    if (sharedIndexCache.src === sharedGroupsList) return sharedIndexCache;
+    if (
+        sharedIndexCache.src === sharedGroupsList &&
+        sharedIndexCache.len === searchData.length
+    ) {
+        return sharedIndexCache;
+    }
     const byArt = new Map();
     const byGroup = new Map();
-    sharedGroupsList.forEach(g => {
+    /*
+        Групи: (1) лінії з аркуша «спільна»; (2) на решті аркушів — артикули,
+        записані в одній клітинці через «/» (наприклад 7340121/012/013).
+    */
+    const groups = sharedGroupsList.map(g => ({ id: g.id, articles: g.articles }));
+    const seenCells = new Set();
+    searchData.forEach(row => {
+        if (row.shared) return;
+        const raw = String(row.article || "").trim();
+        if (!raw || !raw.includes("/") || seenCells.has(raw)) return;
+        seenCells.add(raw);
+        groups.push({ id: "cell:" + raw, articles: [raw] });
+    });
+    groups.forEach(g => {
         const members = [];
         g.articles.forEach(raw => {
             let arts = [];
@@ -2160,7 +2178,7 @@ function getSharedIndex() {
             byArt.get(a).push(g.id);
         });
     });
-    sharedIndexCache = { src: sharedGroupsList, byArt, byGroup };
+    sharedIndexCache = { src: sharedGroupsList, len: searchData.length, byArt, byGroup };
     return sharedIndexCache;
 }
 function sortArticlesWithFavorites(articles, withMates) {
