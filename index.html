@@ -110,7 +110,6 @@ body.native-swipe #pages-viewport:not(.native-lock) #page-articles .premontage-t
 #articles-pager.has-prev {
     overflow-x: auto;
     scroll-snap-type: x mandatory;
-    overscroll-behavior-x: contain;
 }
 #articles-pager > .scroll-area {
     flex: 0 0 100%;
@@ -120,18 +119,8 @@ body.native-swipe #pages-viewport:not(.native-lock) #page-articles .premontage-t
     /* always — один свайп = рівно один рівень, без проскакування */
     scroll-snap-stop: always;
 }
-#articles-pager.pager-committing {
-    /* Під час коміту вимикаємо snap, щоб не було «пів екрана» */
-    scroll-snap-type: none !important;
-    overflow-x: hidden !important;
-}
 #articles-pager > .articles-prev-pane {
-    order: -1;
-    display: none;
     pointer-events: none;
-}
-#articles-pager.has-prev > .articles-prev-pane {
-    display: block;
 }
 #page-articles .scroll-area,
 #page-waitlist .scroll-area {
@@ -1535,9 +1524,6 @@ body.mode-public #result .art-r.art-r-fav {
             <div class="scroll-area">
                 <div id="articles-page-content"></div>
             </div>
-            <div class="scroll-area articles-prev-pane" id="articles-prev-pane" aria-hidden="true">
-                <div id="articles-prev-content"></div>
-            </div>
         </div>
     </div>
 </div>
@@ -1595,7 +1581,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 211;
+const CODE_VERSION = 212;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -4910,18 +4896,13 @@ function getAvailableActionsForArticle(
     return result;
 }
 /* ==================== НАЗАД ==================== */
-let articlesPagerLockUntil = 0;
-function popArticlesPageLevel() {
-    if (articlesPageStack.length <= 1) return;
-    if (articlesPager) articlesPager.classList.add('pager-committing');
-    articlesPagerLockUntil = Date.now() + 140;
+function popArticlesPageLevel(toLength) {
+    const target = Math.max(1, toLength || (articlesPageStack.length - 1));
+    if (articlesPageStack.length <= target) return;
     exitPmQtyMode(false);
-    articlesPageStack.pop();
+    while (articlesPageStack.length > target) articlesPageStack.pop();
     articlesLazyFull = true;
     renderArticlesPage();
-    requestAnimationFrame(() => {
-        if (articlesPager) articlesPager.classList.remove('pager-committing');
-    });
 }
 /* Після повернення на великий список спершу малюємо верх (швидко), повний список — коли браузер вільний */
 let articlesLazyFull = false;
@@ -6219,7 +6200,7 @@ function renderArticlesPage(
     const lazy = articlesLazyFull;
     articlesLazyFull = false;
     if (lazy && state && state.level === 'articles' && !pmQtyMode && html.length > 60000) {
-        container.innerHTML = buildArticlesLevelHtml(idx, 40);
+        container.innerHTML = buildArticlesLevelHtml(idx, 50);
         scheduleFullArticlesList(idx, html);
     } else {
         container.innerHTML = html;
@@ -7681,152 +7662,102 @@ function syncNativeLock() {
 /* ---------- Пейджер рівнів артикулів ---------- */
 const articlesPager = document.getElementById('articles-pager');
 const articlesPrevContent = document.getElementById('articles-prev-content');
+/* Усі попередні рівні лежать у пейджері зліва від поточного — як сторінки в головному перемикачі:
+   [рівень 1][рівень 2]…[поточний]. Свайп назад — це просто прокрутка до сусіднього рівня. */
 function renderArticlesPrevPane() {
-    if (!articlesPager || !articlesPrevContent) return;
-    if (articlesPageStack.length > 1) {
-        const pi = articlesPageStack.length - 2;
-        const ps = articlesPageStack[pi];
-        let html = '';
-        try {
-            if (ps && ps.level === 'articles') {
-                html = buildArticlesLevelHtml(pi, 40);
-            } else if (ps) {
-                if (!ps.cachedHtml) ps.cachedHtml = buildArticlesLevelHtml(pi);
-                html = ps.cachedHtml;
-            }
-        } catch (e) {}
-        articlesPrevContent.innerHTML = html;
+    if (!articlesPager) return;
+    articlesPager.querySelectorAll('.articles-prev-pane').forEach(el => el.remove());
+    const cur = articlesPager.querySelector('.scroll-area:not(.articles-prev-pane)');
+    const depth = articlesPageStack.length;
+    if (depth > 1 && cur) {
+        for (let i = 0; i < depth - 1; i++) {
+            const ps = articlesPageStack[i];
+            let html = '';
+            try {
+                if (ps && ps.level === 'articles') {
+                    html = buildArticlesLevelHtml(i, 50);
+                } else if (ps) {
+                    if (!ps.cachedHtml) ps.cachedHtml = buildArticlesLevelHtml(i);
+                    html = ps.cachedHtml;
+                }
+            } catch (e) {}
+            const pane = document.createElement('div');
+            pane.className = 'scroll-area articles-prev-pane';
+            pane.setAttribute('aria-hidden', 'true');
+            pane.style.order = String(i - (depth - 1));
+            pane.innerHTML = '<div>' + html + '</div>';
+            articlesPager.appendChild(pane);
+        }
         articlesPager.classList.add('has-prev');
-        /* Миттєво ставимо на поточний рівень — без smooth, щоб не було «пів екрана» */
-        articlesPager.scrollTo({ left: articlesPager.clientWidth, behavior: 'instant' });
+        articlesPager.scrollTo({ left: (depth - 1) * articlesPager.clientWidth, behavior: 'instant' });
     } else {
-        clearTimeout(articlesPagerTimer);
         articlesPager.classList.remove('has-prev');
-        articlesPrevContent.innerHTML = '';
         articlesPager.scrollTo({ left: 0, behavior: 'instant' });
     }
 }
 let articlesPagerTimer = 0;
 let articlesPagerTouching = false;
-let articlesPagerPendingBack = false;
-let articlesPagerVelX = 0;   /* px/ms, <0 = свайп назад (scrollLeft зменшується) */
-let articlesPagerLastX = 0;
-let articlesPagerLastT = 0;
-function finishArticlesBackCommit() {
-    articlesPagerPendingBack = false;
-    if (!articlesPager || articlesPageStack.length <= 1) return;
-    if (!articlesPager.classList.contains('has-prev')) return;
-    /* Де зараз візуально панель — щоб після перемикання рівня не було стрибка */
-    const fromX = articlesPager.scrollLeft;
-    popArticlesPageLevel();
-    const sc = document.querySelector('#page-articles .scroll-area');
-    if (sc) {
-        sc.scrollTop = 0;
-        if (fromX > 2) {
-            sc.style.transition = 'none';
-            sc.style.transform = 'translateX(' + (-fromX) + 'px)';
-            void sc.offsetWidth;
-            sc.style.transition = 'transform 110ms ease-out';
-            sc.style.transform = 'translateX(0)';
-            setTimeout(() => {
-                sc.style.transition = '';
-                sc.style.transform = '';
-            }, 140);
-        }
-    }
-}
-function cancelArticlesBack() {
-    articlesPagerPendingBack = false;
+/* Рівень «закріплюється» лише коли прокрутка спинилась на сусідньому рівні: до цього жодних змін у DOM */
+function articlesPagerCommit() {
     if (!articlesPager || !articlesPager.classList.contains('has-prev')) return;
-    const w = articlesPager.clientWidth || 1;
-    if (Math.abs(articlesPager.scrollLeft - w) < 2) return;
-    articlesPager.scrollTo({ left: w, behavior: 'smooth' });
-}
-function settleArticlesPager() {
-    if (articlesPagerTouching || Date.now() < articlesPagerLockUntil) return;
-    if (!articlesPager || !articlesPager.classList.contains('has-prev')) return;
-    if (articlesPageStack.length <= 1) return;
+    if (articlesPagerTouching) return;
+    const depth = articlesPageStack.length;
+    if (depth <= 1) return;
     const w = articlesPager.clientWidth || 1;
     const x = articlesPager.scrollLeft;
-    if (x < 8) {
-        /* Доїхали до попереднього рівня (нативний momentum) — комітимо */
-        finishArticlesBackCommit();
-    } else if (x > w - 8) {
-        articlesPagerPendingBack = false;
-    } else if (articlesPagerPendingBack || x < w * 0.7) {
-        /* Зависли між — дотягуємо в бік наміру */
-        articlesPagerPendingBack = true;
-        articlesPager.scrollTo({ left: 0, behavior: 'smooth' });
-    } else {
-        cancelArticlesBack();
-    }
+    const idx = Math.round(x / w);
+    if (Math.abs(x - idx * w) > 2) return;
+    if (idx >= depth - 1) return;
+    const sc = articlesPager.querySelector('.scroll-area:not(.articles-prev-pane)');
+    if (sc) sc.scrollTop = 0;
+    popArticlesPageLevel(idx + 1);
 }
 if (articlesPager) {
-    articlesPager.addEventListener('touchstart', e => {
-        articlesPagerTouching = true;
+    articlesPager.addEventListener('touchstart', () => {
         clearTimeout(articlesPagerTimer);
-        articlesPagerVelX = 0;
-        if (e.touches && e.touches[0]) {
-            articlesPagerLastX = e.touches[0].clientX;
-            articlesPagerLastT = performance.now();
-        }
-        if (articlesPagerPendingBack) {
+        /* Новий дотик, поки пейджер ще доїжджає до попереднього рівня: закріплюємо рівень одразу
+           (з коротким плавним доїздом замість стрибка), щоб цей свайп пішов далі на головний перемикач */
+        if (articlesPager.classList.contains('has-prev') && articlesPageStack.length > 1) {
             const w = articlesPager.clientWidth || 1;
-            /* Жест «назад» уже вирішено — завершуємо рівень одразу з плавним доїздом без стрибка,
-               щоб цей дотик відразу працював на перемикач сторінок */
-            finishArticlesBackCommit();
+            const x = articlesPager.scrollLeft;
+            const idx = Math.round(x / w);
+            const off = x - idx * w;
+            if (idx < articlesPageStack.length - 1 && Math.abs(off) > 2 && Math.abs(off) < w * 0.5) {
+                popArticlesPageLevel(idx + 1);
+                const sc = articlesPager.querySelector('.scroll-area:not(.articles-prev-pane)');
+                if (sc) {
+                    sc.scrollTop = 0;
+                    sc.style.transition = 'none';
+                    sc.style.transform = 'translateX(' + (-off) + 'px)';
+                    void sc.offsetWidth;
+                    sc.style.transition = 'transform 110ms ease-out';
+                    sc.style.transform = 'translateX(0)';
+                    setTimeout(() => { sc.style.transition = ''; sc.style.transform = ''; }, 140);
+                }
+            }
         }
-    }, { passive: true });
-    articlesPager.addEventListener('touchmove', e => {
-        if (!e.touches || !e.touches[0]) return;
-        const now = performance.now();
-        const x = e.touches[0].clientX;
-        const dt = now - articlesPagerLastT;
-        if (dt > 0 && dt < 100) {
-            /* clientX зростає при свайпі вправо → scrollLeft зменшується → vel негативний для «назад» */
-            const vx = (x - articlesPagerLastX) / dt;
-            articlesPagerVelX = articlesPagerVelX * 0.6 + vx * 0.4;
-        }
-        articlesPagerLastX = x;
-        articlesPagerLastT = now;
+        articlesPagerTouching = true;
     }, { passive: true });
     const pagerTouchEnd = () => {
         articlesPagerTouching = false;
-        if (Date.now() < articlesPagerLockUntil) return;
-        if (!articlesPager.classList.contains('has-prev')) return;
-        const w = articlesPager.clientWidth || 1;
-        const x = articlesPager.scrollLeft;
-        /* Швидкість пальця вправо (назад) або вже протягнуто ≥30% */
-        const flingBack = articlesPagerVelX > 0.35;
-        const pastThreshold = x < w * 0.7;
-        if (flingBack || pastThreshold) {
-            articlesPagerPendingBack = true;
-            /* НЕ викликаємо scrollTo — браузер сам доїде з інерцією пальця + snap */
-            clearTimeout(articlesPagerTimer);
-            articlesPagerTimer = setTimeout(settleArticlesPager, 380);
-        } else {
-            articlesPagerPendingBack = false;
-            /* Слабкий жест — повертаємось на поточний рівень */
-            cancelArticlesBack();
-        }
+        clearTimeout(articlesPagerTimer);
+        articlesPagerTimer = setTimeout(articlesPagerCommit, 120);
     };
     articlesPager.addEventListener('touchend', pagerTouchEnd, { passive: true });
     articlesPager.addEventListener('touchcancel', pagerTouchEnd, { passive: true });
     articlesPager.addEventListener('scroll', () => {
-        if (articlesPagerTouching) return;
         clearTimeout(articlesPagerTimer);
-        articlesPagerTimer = setTimeout(settleArticlesPager, 90);
+        articlesPagerTimer = setTimeout(articlesPagerCommit, 90);
     }, { passive: true });
     if ('onscrollend' in window) {
         articlesPager.addEventListener('scrollend', () => {
-            if (articlesPagerTouching) return;
             clearTimeout(articlesPagerTimer);
-            settleArticlesPager();
+            articlesPagerCommit();
         }, { passive: true });
     }
     window.addEventListener('resize', () => {
-        if (articlesPager.classList.contains('has-prev') && Date.now() >= articlesPagerLockUntil && !articlesPagerPendingBack) {
-            articlesPager.scrollTo({ left: articlesPager.clientWidth, behavior: 'instant' });
+        if (articlesPager.classList.contains('has-prev')) {
+            articlesPager.scrollTo({ left: (articlesPageStack.length - 1) * articlesPager.clientWidth, behavior: 'instant' });
         }
     });
 }
@@ -7838,6 +7769,9 @@ function applyNativeSwipe() {
 /* Сторінка змінилась рідним скролом — виконуємо те саме, що після свайпу */
 function nativePageSettled() {
     if (!pagesViewport) return;
+    /* Якщо пейджер рівнів стоїть на попередньому рівні — закріплюємо його до будь-яких перерендерів */
+    articlesPagerTouching = false;
+    articlesPagerCommit();
     const w = pagesViewport.clientWidth || 1;
     let target = Math.round(pagesViewport.scrollLeft / w);
     target = Math.max(0, Math.min(TOTAL_PAGES - 1, target));
