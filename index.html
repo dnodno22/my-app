@@ -1595,7 +1595,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 209;
+const CODE_VERSION = 210;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -7757,7 +7757,7 @@ if (articlesPager) {
         }
         if (articlesPagerPendingBack) {
             const w = articlesPager.clientWidth || 1;
-            if (articlesPager.scrollLeft < w * 0.5) {
+            if (articlesPager.scrollLeft < w * 0.3) {
                 finishArticlesBackCommit();
             } else {
                 articlesPagerPendingBack = false;
