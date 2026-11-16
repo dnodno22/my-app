@@ -1581,7 +1581,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 212;
+const CODE_VERSION = 213;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -7722,11 +7722,13 @@ if (articlesPager) {
             const x = articlesPager.scrollLeft;
             const idx = Math.round(x / w);
             const off = x - idx * w;
-            if (idx < articlesPageStack.length - 1 && Math.abs(off) > 2 && Math.abs(off) < w * 0.5) {
+            if (idx < articlesPageStack.length - 1 && Math.abs(off) < w * 0.5) {
                 popArticlesPageLevel(idx + 1);
                 const sc = articlesPager.querySelector('.scroll-area:not(.articles-prev-pane)');
                 if (sc) {
                     sc.scrollTop = 0;
+                }
+                if (sc && Math.abs(off) > 2) {
                     sc.style.transition = 'none';
                     sc.style.transform = 'translateX(' + (-off) + 'px)';
                     void sc.offsetWidth;
