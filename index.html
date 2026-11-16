@@ -1595,7 +1595,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 210;
+const CODE_VERSION = 211;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -7716,9 +7716,24 @@ function finishArticlesBackCommit() {
     articlesPagerPendingBack = false;
     if (!articlesPager || articlesPageStack.length <= 1) return;
     if (!articlesPager.classList.contains('has-prev')) return;
-    const sc = document.querySelector('#page-articles .scroll-area');
-    if (sc) sc.scrollTop = 0;
+    /* Де зараз візуально панель — щоб після перемикання рівня не було стрибка */
+    const fromX = articlesPager.scrollLeft;
     popArticlesPageLevel();
+    const sc = document.querySelector('#page-articles .scroll-area');
+    if (sc) {
+        sc.scrollTop = 0;
+        if (fromX > 2) {
+            sc.style.transition = 'none';
+            sc.style.transform = 'translateX(' + (-fromX) + 'px)';
+            void sc.offsetWidth;
+            sc.style.transition = 'transform 110ms ease-out';
+            sc.style.transform = 'translateX(0)';
+            setTimeout(() => {
+                sc.style.transition = '';
+                sc.style.transform = '';
+            }, 140);
+        }
+    }
 }
 function cancelArticlesBack() {
     articlesPagerPendingBack = false;
@@ -7757,11 +7772,9 @@ if (articlesPager) {
         }
         if (articlesPagerPendingBack) {
             const w = articlesPager.clientWidth || 1;
-            if (articlesPager.scrollLeft < w * 0.3) {
-                finishArticlesBackCommit();
-            } else {
-                articlesPagerPendingBack = false;
-            }
+            /* Жест «назад» уже вирішено — завершуємо рівень одразу з плавним доїздом без стрибка,
+               щоб цей дотик відразу працював на перемикач сторінок */
+            finishArticlesBackCommit();
         }
     }, { passive: true });
     articlesPager.addEventListener('touchmove', e => {
