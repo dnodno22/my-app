@@ -117,7 +117,13 @@ body.native-swipe #pages-viewport:not(.native-lock) #page-articles .premontage-t
     width: 100%;
     min-width: 0;
     scroll-snap-align: start;
+    /* always — один свайп = рівно один рівень, без проскакування */
     scroll-snap-stop: always;
+}
+#articles-pager.pager-committing {
+    /* Під час коміту вимикаємо snap, щоб не було «пів екрана» */
+    scroll-snap-type: none !important;
+    overflow-x: hidden !important;
 }
 #articles-pager > .articles-prev-pane {
     order: -1;
@@ -172,39 +178,6 @@ input#input {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     touch-action: pan-y;
-}
-/* ==================== КРАПОЧКИ ГЛИБИНИ АРТИКУЛІВ ==================== */
-.articles-dots {
-    position: fixed;
-    bottom: calc(8px + env(safe-area-inset-bottom));
-    left: 0;
-    right: 0;
-    height: 18px;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    z-index: 30;
-    pointer-events: none;
-    /* окремий шар: перебудова крапочок не торкається сторінок */
-    contain: layout paint style;
-    will-change: transform;
-    transform: translateZ(0);
-}
-.articles-dots .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #d1d5db;
-    transition: background-color 0.2s ease, width 0.2s ease, height 0.2s ease;
-}
-.articles-dots .dot.past {
-    background: #9ca3af;
-}
-.articles-dots .dot.active {
-    width: 9px;
-    height: 9px;
-    background: #111827;
 }
 /* ==================== СВАЙП ВНУТРІШНІХ РІВНІВ ==================== */
 .articles-drag-wrapper {
@@ -1222,8 +1195,7 @@ mark.hl {
     background: #fff;
     border-top: 1px solid #e5e7eb;
     padding: 12px;
-    /* Extra space below 0-key for depth dots */
-    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 .kb-grid {
     display: grid;
@@ -1235,7 +1207,7 @@ mark.hl {
     left: 12px;
     right: 12px;
     top: 12px;
-    bottom: calc(28px + env(safe-area-inset-bottom));
+    bottom: calc(12px + env(safe-area-inset-bottom));
     z-index: 45;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1396,8 +1368,7 @@ body.mode-public #result .pm-qty-badge,
 body.mode-public #filter-menu [data-interface-expand],
 body.mode-public #filter-menu .interface-choice,
 body.mode-public #qty-bar,
-body.mode-public #pm-qty-panel,
-body.mode-public .articles-dots {
+body.mode-public #pm-qty-panel {
     display: none !important;
 }
 body.mode-public .mat-pick {
@@ -1571,8 +1542,6 @@ body.mode-public #result .art-r.art-r-fav {
     </div>
 </div>
 </div>
-<!-- КРАПОЧКИ ГЛИБИНИ (глобально: пошук + артикули) -->
-<div class="articles-dots" id="articles-dots"></div>
 <!-- ПАРОЛЬ АДМІНІСТРАТОРА (довге натискання кнопки версії) -->
 <div id="pw-dialog" class="pw-dialog hidden" role="dialog" aria-modal="true" aria-label="Пароль адміністратора">
     <div class="pw-box">
@@ -1626,7 +1595,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 210;
+const CODE_VERSION = 209;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -1706,8 +1675,6 @@ const pagesEl = document.getElementById('pages');
 const pagesViewport = document.getElementById('pages-viewport');
 const articlesPageContent =
     document.getElementById('articles-page-content');
-const articlesDots =
-    document.getElementById('articles-dots');
 const CACHE_KEY_SEARCH = "searchDataCSV";
 const CACHE_KEY_SEARCH_TIME = "searchDataCSVTime";
 const CACHE_KEY_SEARCH_FILTERS = "searchActiveFilters";
@@ -1810,77 +1777,6 @@ function saveSearchFilters() {
     }
 }
 selectedSearchFilters = loadSearchFilters();
-/* ==================== КРАПОЧКИ ГЛИБИНИ ==================== */
-function renderArticlesDots(overridePage, overrideDepth) {
-    if (!articlesDots) return;
-    /*
-        overridePage / overrideDepth дозволяють показати крапочки
-        "наперед" — просто щоб ПІД ЧАС самого свайпу (ще до того, як
-        currentPage чи articlesPageStack реально зміняться) крапочки
-        вже відображали стан, в який ми прямуємо. Так вони йдуть
-        синхронно з переходом, а не з запізненням після нього.
-    */
-    const page =
-        overridePage !== undefined
-            ? overridePage
-            : currentPage;
-    /*
-        Крапочки показуємо на сторінках "Пошук" і "Артикули".
-        На "Обрані матеріали" їх немає.
-    */
-    if (
-        page !== ARTICLES_PAGE_INDEX &&
-        page !== SEARCH_PAGE_INDEX
-    ) {
-        articlesDots.style.display = 'none';
-        articlesDots.innerHTML = '';
-        return;
-    }
-    /*
-        Пошук завжди 1-а крапочка (перша сторінка).
-        Панель артикулів = 2-а крапочка, кожен рівень углиб додає ще одну.
-        Тому на сторінці артикулів: глибина стеку + 1.
-    */
-    let depth;
-    if (page === SEARCH_PAGE_INDEX) {
-        depth = 1;
-    } else {
-        depth =
-            (
-                overrideDepth !== undefined
-                    ? overrideDepth
-                    : articlesPageStack.length
-            ) + 1;
-    }
-    if (depth <= 0) {
-        articlesDots.style.display = 'none';
-        articlesDots.innerHTML = '';
-        return;
-    }
-    /* Не перебудовуємо крапки на кожен рух пальця, якщо нічого не змінилось */
-    if (
-        articlesDots.style.display === 'flex' &&
-        articlesDots.dataset.depth === String(depth)
-    ) {
-        return;
-    }
-    articlesDots.dataset.depth = String(depth);
-    articlesDots.style.display = 'flex';
-    let html = '';
-    for (let i = 0; i < depth; i++) {
-        let className = 'dot';
-        /*
-            Остання крапочка = поточний рівень.
-        */
-        if (i === depth - 1) {
-            className += ' active';
-        } else {
-            className += ' past';
-        }
-        html += `<span class="${className}"></span>`;
-    }
-    articlesDots.innerHTML = html;
-}
 /* ==================== РОЗМІР СТОРІНОК ==================== */
 const kbVersionEl = document.getElementById('kb-version');
 const filterMenu = document.getElementById('filter-menu');
@@ -5014,15 +4910,18 @@ function getAvailableActionsForArticle(
     return result;
 }
 /* ==================== НАЗАД ==================== */
+let articlesPagerLockUntil = 0;
 function popArticlesPageLevel() {
+    if (articlesPageStack.length <= 1) return;
+    if (articlesPager) articlesPager.classList.add('pager-committing');
+    articlesPagerLockUntil = Date.now() + 140;
     exitPmQtyMode(false);
-    if (
-        articlesPageStack.length > 1
-    ) {
-        articlesPageStack.pop();
-        articlesLazyFull = true;
-        renderArticlesPage();
-    }
+    articlesPageStack.pop();
+    articlesLazyFull = true;
+    renderArticlesPage();
+    requestAnimationFrame(() => {
+        if (articlesPager) articlesPager.classList.remove('pager-committing');
+    });
 }
 /* Після повернення на великий список спершу малюємо верх (швидко), повний список — коли браузер вільний */
 let articlesLazyFull = false;
@@ -6278,13 +6177,6 @@ function plainActionName(key) {
 function renderArticlesPage(
     forceRebuild
 ) {
-    /*
-        ВАЖЛИВО:
-        Крапочки оновлюємо ПЕРЕД рендером контенту.
-        Тому при переході на наступний рівень
-        вони одразу змінюють кількість.
-    */
-    renderArticlesDots();
     const container =
         document.getElementById(
             'articles-page-content'
@@ -7805,53 +7697,123 @@ function renderArticlesPrevPane() {
         } catch (e) {}
         articlesPrevContent.innerHTML = html;
         articlesPager.classList.add('has-prev');
-        articlesPager.scrollLeft = articlesPager.clientWidth;
+        /* Миттєво ставимо на поточний рівень — без smooth, щоб не було «пів екрана» */
+        articlesPager.scrollTo({ left: articlesPager.clientWidth, behavior: 'instant' });
     } else {
         clearTimeout(articlesPagerTimer);
         articlesPager.classList.remove('has-prev');
         articlesPrevContent.innerHTML = '';
-        articlesPager.scrollLeft = 0;
+        articlesPager.scrollTo({ left: 0, behavior: 'instant' });
     }
 }
 let articlesPagerTimer = 0;
 let articlesPagerTouching = false;
-function articlesPagerSettled(limit) {
-    if (!articlesPager || !articlesPager.classList.contains('has-prev')) return;
-    if (articlesPageStack.length <= 1) return;
-    if (articlesPager.scrollLeft > (limit === undefined ? 2 : limit)) return;
-    /* Доїхали до попереднього рівня — повертаємось на нього по-справжньому */
+let articlesPagerPendingBack = false;
+let articlesPagerVelX = 0;   /* px/ms, <0 = свайп назад (scrollLeft зменшується) */
+let articlesPagerLastX = 0;
+let articlesPagerLastT = 0;
+function finishArticlesBackCommit() {
+    articlesPagerPendingBack = false;
+    if (!articlesPager || articlesPageStack.length <= 1) return;
+    if (!articlesPager.classList.contains('has-prev')) return;
     const sc = document.querySelector('#page-articles .scroll-area');
     if (sc) sc.scrollTop = 0;
     popArticlesPageLevel();
 }
+function cancelArticlesBack() {
+    articlesPagerPendingBack = false;
+    if (!articlesPager || !articlesPager.classList.contains('has-prev')) return;
+    const w = articlesPager.clientWidth || 1;
+    if (Math.abs(articlesPager.scrollLeft - w) < 2) return;
+    articlesPager.scrollTo({ left: w, behavior: 'smooth' });
+}
+function settleArticlesPager() {
+    if (articlesPagerTouching || Date.now() < articlesPagerLockUntil) return;
+    if (!articlesPager || !articlesPager.classList.contains('has-prev')) return;
+    if (articlesPageStack.length <= 1) return;
+    const w = articlesPager.clientWidth || 1;
+    const x = articlesPager.scrollLeft;
+    if (x < 8) {
+        /* Доїхали до попереднього рівня (нативний momentum) — комітимо */
+        finishArticlesBackCommit();
+    } else if (x > w - 8) {
+        articlesPagerPendingBack = false;
+    } else if (articlesPagerPendingBack || x < w * 0.7) {
+        /* Зависли між — дотягуємо в бік наміру */
+        articlesPagerPendingBack = true;
+        articlesPager.scrollTo({ left: 0, behavior: 'smooth' });
+    } else {
+        cancelArticlesBack();
+    }
+}
 if (articlesPager) {
-    articlesPager.addEventListener('touchstart', () => {
-        /* Новий дотик під час доїзду анімації назад: рівень вважаємо вже поверненим,
-           щоб цей свайп одразу пішов на головний перемикач сторінок */
-        articlesPagerSettled(articlesPager.clientWidth * 0.5);
+    articlesPager.addEventListener('touchstart', e => {
         articlesPagerTouching = true;
+        clearTimeout(articlesPagerTimer);
+        articlesPagerVelX = 0;
+        if (e.touches && e.touches[0]) {
+            articlesPagerLastX = e.touches[0].clientX;
+            articlesPagerLastT = performance.now();
+        }
+        if (articlesPagerPendingBack) {
+            const w = articlesPager.clientWidth || 1;
+            if (articlesPager.scrollLeft < w * 0.5) {
+                finishArticlesBackCommit();
+            } else {
+                articlesPagerPendingBack = false;
+            }
+        }
+    }, { passive: true });
+    articlesPager.addEventListener('touchmove', e => {
+        if (!e.touches || !e.touches[0]) return;
+        const now = performance.now();
+        const x = e.touches[0].clientX;
+        const dt = now - articlesPagerLastT;
+        if (dt > 0 && dt < 100) {
+            /* clientX зростає при свайпі вправо → scrollLeft зменшується → vel негативний для «назад» */
+            const vx = (x - articlesPagerLastX) / dt;
+            articlesPagerVelX = articlesPagerVelX * 0.6 + vx * 0.4;
+        }
+        articlesPagerLastX = x;
+        articlesPagerLastT = now;
     }, { passive: true });
     const pagerTouchEnd = () => {
         articlesPagerTouching = false;
-        /* Палець відпущено і вже ближче до попереднього рівня — не чекаємо кінця анімації */
-        articlesPagerSettled(articlesPager.clientWidth * 0.4);
+        if (Date.now() < articlesPagerLockUntil) return;
+        if (!articlesPager.classList.contains('has-prev')) return;
+        const w = articlesPager.clientWidth || 1;
+        const x = articlesPager.scrollLeft;
+        /* Швидкість пальця вправо (назад) або вже протягнуто ≥30% */
+        const flingBack = articlesPagerVelX > 0.35;
+        const pastThreshold = x < w * 0.7;
+        if (flingBack || pastThreshold) {
+            articlesPagerPendingBack = true;
+            /* НЕ викликаємо scrollTo — браузер сам доїде з інерцією пальця + snap */
+            clearTimeout(articlesPagerTimer);
+            articlesPagerTimer = setTimeout(settleArticlesPager, 380);
+        } else {
+            articlesPagerPendingBack = false;
+            /* Слабкий жест — повертаємось на поточний рівень */
+            cancelArticlesBack();
+        }
     };
     articlesPager.addEventListener('touchend', pagerTouchEnd, { passive: true });
     articlesPager.addEventListener('touchcancel', pagerTouchEnd, { passive: true });
     articlesPager.addEventListener('scroll', () => {
-        if (!articlesPagerTouching) articlesPagerSettled(articlesPager.clientWidth * 0.4);
+        if (articlesPagerTouching) return;
         clearTimeout(articlesPagerTimer);
-        articlesPagerTimer = setTimeout(articlesPagerSettled, 90);
+        articlesPagerTimer = setTimeout(settleArticlesPager, 90);
     }, { passive: true });
     if ('onscrollend' in window) {
         articlesPager.addEventListener('scrollend', () => {
+            if (articlesPagerTouching) return;
             clearTimeout(articlesPagerTimer);
-            articlesPagerSettled();
+            settleArticlesPager();
         }, { passive: true });
     }
     window.addEventListener('resize', () => {
-        if (articlesPager.classList.contains('has-prev')) {
-            articlesPager.scrollLeft = articlesPager.clientWidth;
+        if (articlesPager.classList.contains('has-prev') && Date.now() >= articlesPagerLockUntil && !articlesPagerPendingBack) {
+            articlesPager.scrollTo({ left: articlesPager.clientWidth, behavior: 'instant' });
         }
     });
 }
@@ -7875,7 +7837,6 @@ function nativePageSettled() {
     exitPmQtyMode(false);
     setWaitlistLogOpen(false);
     currentPage = target;
-    renderArticlesDots();
     if (target === SEARCH_PAGE_INDEX) {
         kbWrapper.classList.remove('hidden');
         if (input.value) search();
@@ -7927,12 +7888,6 @@ function goToPage(n) {
         `translateX(-${n * pageWidthPercent}%)`;
     nativeScrollToPage(n, true);
     syncNativeLock();
-    /*
-        Оновлюємо крапочки тут також.
-        Це гарантує, що коли залишаємо сторінку
-        "Артикули", вони одразу зникають.
-    */
-    renderArticlesDots();
     if (
         n === SEARCH_PAGE_INDEX
     ) {
@@ -7962,26 +7917,14 @@ let pageMoved = false;
 let pageDragPxWidth = 0;
 let pageSwipeCandidate = false;
 let suppressNextClick = false;
-let dragDotsTimer = 0;
 let innerDragRaf = 0;
 let innerDragX = 0;
-/* Крапочки оновлюються окремо від тягнення: у власному шарі, після кадру. */
-function dragDots(fn) {
-    clearTimeout(dragDotsTimer);
-    /* після кадру (не в обробнику руху) і не частіше ніж раз на 50 мс */
-    dragDotsTimer = setTimeout(() => {
-        requestAnimationFrame(() => {
-            if (pageDragging && pageMoved) fn();
-        });
-    }, 50);
-}
 /*
     ЗБІЛЬШЕНО з 14 до 24: дрейф пальця при звичайному натисканні
     більше не сприймається як початок свайпу.
 */
 const PAGE_SWIPE_START_PX = 24;
 function finishPageDrag(dx) {
-    clearTimeout(dragDotsTimer);
     if (innerDragRaf) {
         cancelAnimationFrame(innerDragRaf);
         innerDragRaf = 0;
@@ -8034,20 +7977,8 @@ function finishPageDrag(dx) {
         };
         wrapper.style.transition =
             `transform ${moveDur}s ${moveEase}`;
-        /*
-            Крапочки оновлюємо ВІДРАЗУ, в момент прийняття рішення —
-            ще до того, як почалась/завершилась сама анімація зсуву.
-            Інакше вони чекали б на transitionend (чи й цілих 400мс
-            запасного таймауту) і помітно відставали б від переходу.
-        */
         const willGoBack =
             dx >= SWIPE_THRESHOLD;
-        renderArticlesDots(
-            ARTICLES_PAGE_INDEX,
-            willGoBack
-                ? articlesPageStack.length - 1
-                : articlesPageStack.length
-        );
         if (
             willGoBack
         ) {
@@ -8126,10 +8057,6 @@ function finishPageDrag(dx) {
     currentPage = target;
     pagesEl.style.transform =
         `translateX(-${target * pageWidthPercent}%)`;
-    /*
-        Оновлення крапочок після завершення свайпу.
-    */
-    renderArticlesDots();
     if (
         target === SEARCH_PAGE_INDEX
     ) {
@@ -8397,21 +8324,6 @@ document.addEventListener(
                     }
                 });
             }
-            /*
-                Крапочки "йдуть за пальцем" ще під час самого свайпу —
-                так зміна помітна ще швидше, ніж сам перехід.
-            */
-            const liveThreshold =
-                Math.max(
-                    55,
-                    pageDragPxWidth * 0.20
-                );
-            dragDots(() => renderArticlesDots(
-                ARTICLES_PAGE_INDEX,
-                visualDx >= liveThreshold
-                    ? articlesPageStack.length - 1
-                    : articlesPageStack.length
-            ));
             return;
         }
     },
@@ -8672,7 +8584,6 @@ document.addEventListener(
         pagesEl.style.transition = 'none';
         pagesEl.style.transform =
             `translateX(-${livePos * pageWidthPercent}%)`;
-        renderArticlesDots(Math.round(livePos));
     },
     { passive: false }
 );
@@ -9046,7 +8957,6 @@ function applyAccessMode() {
             goToPage(SEARCH_PAGE_INDEX);
         }
     }
-    renderArticlesDots();
 }
 function setAccessMode(admin) {
     adminMode = !!admin;
@@ -9162,7 +9072,6 @@ if (kbVersionEl) {
 /* Початковий режим: відновлюємо збережений (інакше — публічний) */
 applyAccessMode();
 /* ==================== ПЕРВИННИЙ СТАН КРАПОЧОК ==================== */
-renderArticlesDots();
 applyNativeSwipe();
 /* ==================== SERVICE WORKER (швидкий старт з кешу) ==================== */
 if ('serviceWorker' in navigator) {
