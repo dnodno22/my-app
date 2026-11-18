@@ -1522,7 +1522,6 @@ html.theme-dark .pm-qty-badge{border-left:2px solid #3a3f48;color:#a5b4fc}
 html.theme-dark .pm-qty-panel{background:#1a1c21;border-top:1px solid #2f333b}
 html.theme-dark .pm-qty-display{background:#262a4a;color:#e8eaed}
 html.theme-dark .pm-qty-display:empty::before{color:#7d8594}
-html.theme-dark mark.hl{color:#e8eaed}
 html.theme-dark .kb-container{background:#121316;border-top:1px solid #2f333b}
 html.theme-dark .filter-option{border:1px solid #5b6270;background:#1a1c21;color:#e8eaed}
 html.theme-dark .filter-option.active{background:#2c3038;color:#e8eaed}
@@ -1563,6 +1562,8 @@ html.theme-dark [style*="background:#ffffff"] { background:#1c1e23 !important; }
 html.theme-dark [style*="border-top:2px solid #e5e7eb"], html.theme-dark [style*="border:1px solid #c7d2fe"] { border-color:#3a3f48 !important; }
 html.theme-dark [style*="#b6c0cf"] { border-color:#4a505c !important; }
 html.theme-dark .wl-history, html.theme-dark .filter-menu { box-shadow:0 8px 28px rgba(0,0,0,0.6); }
+html.theme-dark mark.hl { background:#fde047; color:#111; }
+html.theme-dark .art-r.art-r-fav, html.theme-dark .pm-group-article-frame.art-r-fav { border-left:4px solid #93c5fd; }
 </style>
 </head>
 <body class="mode-public">
@@ -1711,7 +1712,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 214;
+const CODE_VERSION = 215;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
