@@ -1712,7 +1712,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 216;
+const CODE_VERSION = 217;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -3948,7 +3948,8 @@ function buildPmGroupHtml(article, items) {
         firstSection = false;
     };
     /* Сортування: вибране піднімаємо вгору (станції теж), решту опускаємо нижче; нічого не ховаємо (крім «Проводи передмонтажів») */
-    const isPmRel = x => !!x.isGroup || x.li.order === 3;
+    /* «Передмонтаж» піднімає лише передмонтажі за назвою (рядок з назвою, без матеріалу всередині) */
+    const isPmRel = x => !!x.isGroup || (x.li.order === 3 && !x.li.kind);
     const isWire = x => !x.isGroup && x.li.order === 0;
     const matcher =
         wlSortMode === 'pm' ? isPmRel
@@ -3978,13 +3979,8 @@ function buildPmGroupHtml(article, items) {
     if (!matcher) {
         sections.push(boxesFor(() => true));
     } else {
-        /* Вибране — один блок, решта — один список; усередині постанційно, без заголовків */
-        const one = pred => {
-            const rows = boxesFor(pred).flat();
-            return rows.length ? [rows] : [];
-        };
-        sections.push(one(matcher));
-        sections.push(one(x => !matcher(x)));
+        sections.push(boxesFor(matcher));
+        sections.push(boxesFor(x => !matcher(x)));
     }
     let anyRows = false;
     sections.forEach(boxes => {
