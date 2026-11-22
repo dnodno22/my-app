@@ -120,8 +120,9 @@ body.native-swipe #pages-viewport:not(.native-lock) #page-articles .premontage-t
     /* always — один свайп = рівно один рівень, без проскакування */
     scroll-snap-stop: always;
 }
+/* Попередні рівні — не pointer-events:none: дотик по них має потрапляти на кнопку, а не на сам пейджер */
 #articles-pager > .articles-prev-pane {
-    pointer-events: none;
+    overflow-y: hidden;
 }
 #page-articles .scroll-area,
 #page-waitlist .scroll-area {
@@ -1751,7 +1752,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 222;
+const CODE_VERSION = 223;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
