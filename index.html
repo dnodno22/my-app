@@ -1457,6 +1457,23 @@ body.mode-public #result .art-r.art-r-fav {
     transform: scale(1.25);
 }
 body.mode-public #ready-dot { display: none; }
+/* ==================== ДІАГНОСТИКА ДОТИКІВ ==================== */
+#diag-box {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 22px);
+    left: 6px;
+    right: 6px;
+    z-index: 9999;
+    pointer-events: none;
+    font: 11px/1.25 ui-monospace, Menlo, monospace;
+    color: #fff;
+    background: rgba(0,0,0,0.72);
+    border-radius: 8px;
+    padding: 6px 8px;
+    white-space: pre;
+    overflow: hidden;
+}
+#diag-box.hidden { display: none; }
 /* ==================== ТЕМНА ТЕМА (генеровано) ==================== */
 html.theme-dark,html.theme-dark body{background:#1a1c21}
 html.theme-dark input#input{border:1px solid #2f333b;background:#1c1e23;color:#e8eaed}
@@ -1662,6 +1679,7 @@ html.theme-dark .art-r.art-r-fav, html.theme-dark .pm-group-article-frame.art-r-
                 <button type="button" class="filter-option interface-choice" data-interface-mode="readable">Читабельний · v73</button>
                 <button type="button" class="filter-option interface-choice" data-clean-toggle aria-pressed="false">Чистий</button>
                 <button type="button" class="filter-option interface-choice" data-theme-toggle aria-pressed="false">Темна тема</button>
+                <button type="button" class="filter-option interface-choice" data-diag-toggle aria-pressed="false">Діагностика</button>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
@@ -1733,7 +1751,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 221;
+const CODE_VERSION = 222;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2134,6 +2152,68 @@ function setDarkTheme(on) {
     applyDarkTheme();
 }
 applyDarkTheme();
+/* ---------- Діагностика дотиків: які події реально приходять (особливо під час анімації) ---------- */
+const DIAG_KEY = 'diagMode';
+let diagOn = false;
+try { diagOn = localStorage.getItem(DIAG_KEY) === '1'; } catch (e) {}
+const diagBox = document.getElementById('diag-box');
+const diagCount = {};
+const diagLog = [];
+let diagT0 = performance.now();
+let diagScrollBusy = false;
+function diagRender() {
+    if (!diagBox || !diagOn) return;
+    const c = k => diagCount[k] || 0;
+    diagBox.textContent =
+        'TS ' + c('touchstart') + '  TE ' + c('touchend') + '  TC ' + c('touchcancel') +
+        '  PD ' + c('pointerdown') + '  PU ' + c('pointerup') + '  PC ' + c('pointercancel') +
+        '  CL ' + c('click') + '  SCR ' + c('scroll') + '\n' + diagLog.slice(-9).join('\n');
+}
+function diagNote(type, e) {
+    if (!diagOn) return;
+    diagCount[type] = (diagCount[type] || 0) + 1;
+    if (type === 'scroll') {
+        if (diagScrollBusy) { diagRender(); return; }
+        diagScrollBusy = true;
+        setTimeout(() => { diagScrollBusy = false; }, 200);
+    }
+    const busy = readyDotBusy() ? 'АНІМ' : 'спокій';
+    let tgt = '';
+    try {
+        const t = e && e.target;
+        if (t && t.tagName) {
+            tgt = t.tagName.toLowerCase() +
+                (t.dataset && (t.dataset.anav || t.dataset.pmEdit) ? '[' + (t.dataset.anav || t.dataset.pmEdit) + ']' : '') +
+                ' ' + String(t.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 12);
+        }
+    } catch (_) {}
+    const trusted = e && e.isTrusted === false ? ' (наш)' : '';
+    diagLog.push(String(Math.round(performance.now() - diagT0)).padStart(6) + ' ' + type + trusted + ' ' + busy + ' ' + tgt);
+    if (diagLog.length > 40) diagLog.shift();
+    diagRender();
+}
+function readyDotBusy() {
+    const d = document.getElementById('ready-dot');
+    return !!(d && d.classList.contains('busy'));
+}
+['touchstart', 'touchend', 'touchcancel', 'pointerdown', 'pointerup', 'pointercancel', 'click'].forEach(ev => {
+    document.addEventListener(ev, e => diagNote(ev, e), { capture: true, passive: true });
+});
+document.addEventListener('scroll', e => diagNote('scroll', e), { capture: true, passive: true });
+function applyDiag() {
+    if (diagBox) diagBox.classList.toggle('hidden', !diagOn);
+    document.querySelectorAll('[data-diag-toggle]').forEach(b => {
+        b.classList.toggle('active', diagOn);
+        b.setAttribute('aria-pressed', String(diagOn));
+    });
+    if (diagOn) { diagT0 = performance.now(); diagLog.length = 0; Object.keys(diagCount).forEach(k => delete diagCount[k]); diagRender(); }
+}
+function setDiag(on) {
+    diagOn = !!on;
+    try { localStorage.setItem(DIAG_KEY, diagOn ? '1' : '0'); } catch (e) {}
+    applyDiag();
+}
+applyDiag();
 document.querySelectorAll('.page').forEach(p => {
     p.style.width = pageWidthPercent + '%';
 });
@@ -2398,8 +2478,15 @@ document
             (expandInterfaceButton ||
                 e.target.closest('[data-clean-toggle]') ||
                 e.target.closest('[data-theme-toggle]') ||
+                e.target.closest('[data-diag-toggle]') ||
                 e.target.closest('[data-interface-mode]'))
         ) {
+            return;
+        }
+        if (e.target.closest('[data-diag-toggle]')) {
+            e.preventDefault();
+            e.stopPropagation();
+            setDiag(!diagOn);
             return;
         }
         if (e.target.closest('[data-theme-toggle]')) {
@@ -9316,5 +9403,6 @@ if (instantStart) instantStart.remove();
 } , 0));
 </script>
 <div id="ready-dot" aria-hidden="true"></div>
+<div id="diag-box" class="hidden" aria-hidden="true"></div>
 </body>
 </html>
