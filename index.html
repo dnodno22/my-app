@@ -1436,6 +1436,27 @@ body.mode-public #result .art-r.art-r-fav {
 }
 
 
+/* ==================== ІНДИКАТОР ГОТОВНОСТІ ==================== */
+#ready-dot {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 8px);
+    left: 50%;
+    width: 9px;
+    height: 9px;
+    margin-left: -4.5px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 2px rgba(34,197,94,0.25);
+    pointer-events: none;
+    z-index: 9998;
+    transition: background-color .12s ease, box-shadow .12s ease, transform .12s ease;
+}
+#ready-dot.busy {
+    background: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245,158,11,0.3);
+    transform: scale(1.25);
+}
+body.mode-public #ready-dot { display: none; }
 /* ==================== ТЕМНА ТЕМА (генеровано) ==================== */
 html.theme-dark,html.theme-dark body{background:#1a1c21}
 html.theme-dark input#input{border:1px solid #2f333b;background:#1c1e23;color:#e8eaed}
@@ -1712,7 +1733,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 220;
+const CODE_VERSION = 221;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -8003,6 +8024,17 @@ function nativePageSettled() {
     }
     syncNativeLock();
 }
+/* Крапка зверху: зелена — можна тапати, бурштинова — триває анімація/прокрутка (тап усе одно спрацює) */
+const readyDot = document.getElementById('ready-dot');
+let readyDotTimer = 0;
+function markBusy() {
+    if (!readyDot) return;
+    readyDot.classList.add('busy');
+    clearTimeout(readyDotTimer);
+    readyDotTimer = setTimeout(() => readyDot.classList.remove('busy'), 140);
+}
+if (pagesViewport) pagesViewport.addEventListener('scroll', markBusy, { passive: true });
+if (typeof articlesPager !== 'undefined' && articlesPager) articlesPager.addEventListener('scroll', markBusy, { passive: true });
 if (pagesViewport) {
     let nativeTimer = 0;
     pagesViewport.addEventListener('scroll', () => {
@@ -9283,5 +9315,6 @@ const instantStart = document.getElementById('instant-start');
 if (instantStart) instantStart.remove();
 } , 0));
 </script>
+<div id="ready-dot" aria-hidden="true"></div>
 </body>
 </html>
