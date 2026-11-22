@@ -1712,7 +1712,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 218;
+const CODE_VERSION = 220;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -7906,6 +7906,12 @@ if (articlesPager) {
                     }
                 } catch (_) {}
                 popArticlesPageLevel(idx + 1);
+                /* Старий елемент під пальцем уже відʼєднано від сторінки — події його touchend не доходять до документа,
+                   тому слухаємо кінець дотику прямо на ньому */
+                if (e.target && e.target.addEventListener) {
+                    ['touchend', 'touchcancel'].forEach(ev =>
+                        e.target.addEventListener(ev, pagerTouchEnd, { once: true, passive: true }));
+                }
                 const sc = articlesPager.querySelector('.scroll-area:not(.articles-prev-pane)');
                 if (sc) {
                     sc.scrollTop = 0;
@@ -8777,6 +8783,39 @@ document.addEventListener(
         }, 400);
     }
 );
+/* ==================== ТАП ПІД ЧАС АНІМАЦІЇ ==================== */
+/*
+    Коли палець торкається екрана під час доїзду прокрутки/анімації, браузер вважає це «зупинкою прокрутки»
+    і не видає click. Якщо це був короткий тап без руху, а click не прийшов — натискаємо кнопку самі.
+*/
+let tapFbLastClick = 0;
+document.addEventListener('click', () => { tapFbLastClick = performance.now(); }, true);
+let tapFb = null;
+document.addEventListener('touchstart', e => {
+    if (!e.touches || e.touches.length !== 1) { tapFb = null; return; }
+    const t = e.touches[0];
+    tapFb = { x: t.clientX, y: t.clientY, t: performance.now(), target: e.target, moved: false };
+}, { capture: true, passive: true });
+document.addEventListener('touchmove', e => {
+    if (!tapFb || !e.touches || !e.touches[0]) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - tapFb.x) > 12 || Math.abs(t.clientY - tapFb.y) > 12) tapFb.moved = true;
+}, { capture: true, passive: true });
+document.addEventListener('touchend', e => {
+    const f = tapFb;
+    tapFb = null;
+    if (!f || f.moved || performance.now() - f.t > 280) return;
+    if (e.touches && e.touches.length) return;
+    const t0 = performance.now();
+    setTimeout(() => {
+        if (tapFbLastClick >= t0 - 5) return;
+        const el = f.target && f.target.closest && f.target.closest('button, [data-anav]');
+        if (!el || !el.isConnected || el.disabled) return;
+        el.click();
+        suppressNextClick = true;
+        setTimeout(() => { suppressNextClick = false; }, 400);
+    }, 40);
+}, { capture: true, passive: true });
 /* ==================== БЛОКУВАННЯ CLICK ПІСЛЯ SWIPE ==================== */
 document.addEventListener(
     'click',
