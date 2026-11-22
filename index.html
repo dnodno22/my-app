@@ -1712,7 +1712,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 217;
+const CODE_VERSION = 218;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -7872,8 +7872,12 @@ function articlesPagerCommit() {
     popArticlesPageLevel(idx + 1);
 }
 if (articlesPager) {
-    articlesPager.addEventListener('touchstart', () => {
+    /* Тап, що почався на попередньому рівні під час доїзду: після закріплення рівня DOM замінюється,
+       тому запам'ятовуємо, яка кнопка була під пальцем, і натискаємо її на touchend */
+    let pagerTapRescue = null;
+    articlesPager.addEventListener('touchstart', e => {
         clearTimeout(articlesPagerTimer);
+        pagerTapRescue = null;
         /* Новий дотик, поки пейджер ще доїжджає до попереднього рівня: закріплюємо рівень одразу
            (з коротким плавним доїздом замість стрибка), щоб цей свайп пішов далі на головний перемикач */
         if (articlesPager.classList.contains('has-prev') && articlesPageStack.length > 1) {
@@ -7882,6 +7886,25 @@ if (articlesPager) {
             const idx = Math.round(x / w);
             const off = x - idx * w;
             if (idx < articlesPageStack.length - 1 && Math.abs(off) < w * 0.5) {
+                try {
+                    const t0 = e.touches && e.touches[0];
+                    const depthNow = articlesPageStack.length;
+                    if (t0) {
+                        const pane = [...articlesPager.querySelectorAll('.articles-prev-pane')]
+                            .find(pn => parseInt(pn.style.order, 10) === idx - (depthNow - 1));
+                        if (pane) {
+                            const btns = [...pane.querySelectorAll('button, [data-anav]')];
+                            const n = btns.findIndex(b => {
+                                const r = b.getBoundingClientRect();
+                                return t0.clientX >= r.left && t0.clientX <= r.right &&
+                                    t0.clientY >= r.top && t0.clientY <= r.bottom;
+                            });
+                            if (n >= 0) {
+                                pagerTapRescue = { n, x: t0.clientX, y: t0.clientY, t: performance.now() };
+                            }
+                        }
+                    }
+                } catch (_) {}
                 popArticlesPageLevel(idx + 1);
                 const sc = articlesPager.querySelector('.scroll-area:not(.articles-prev-pane)');
                 if (sc) {
@@ -7899,8 +7922,24 @@ if (articlesPager) {
         }
         articlesPagerTouching = true;
     }, { passive: true });
-    const pagerTouchEnd = () => {
+    const pagerTouchEnd = e => {
         articlesPagerTouching = false;
+        if (pagerTapRescue) {
+            const r = pagerTapRescue;
+            pagerTapRescue = null;
+            const ct = e && e.changedTouches && e.changedTouches[0];
+            if (ct && e.type === 'touchend' &&
+                Math.abs(ct.clientX - r.x) < 12 && Math.abs(ct.clientY - r.y) < 12 &&
+                performance.now() - r.t < 600) {
+                const container = document.getElementById('articles-page-content');
+                const target = container && container.querySelectorAll('button, [data-anav]')[r.n];
+                if (target) {
+                    target.click();
+                    suppressNextClick = true;
+                    setTimeout(() => { suppressNextClick = false; }, 400);
+                }
+            }
+        }
         clearTimeout(articlesPagerTimer);
         articlesPagerTimer = setTimeout(articlesPagerCommit, 120);
     };
