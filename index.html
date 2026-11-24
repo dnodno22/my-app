@@ -1973,7 +1973,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 228;
+const CODE_VERSION = 229;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2378,20 +2378,29 @@ if (normaOverlay) {
     });
     const nc = document.getElementById('norma-close');
     if (nc) nc.addEventListener('click', closeNorma);
-    /* Курсор (блимаюча риска) — у кінці тексту при вході в поле: можна одразу стирати або дописувати */
-    let nJustFocused = false;
+    /* Курсор (блимаюча риска) — у кінці тексту при вході в поле: можна одразу стирати або дописувати.
+       На iOS/Android браузер ставить курсор у місце дотику вже ПІСЛЯ focus (на touchend/click),
+       тому в короткому вікні після входу в поле повертаємо його в кінець при кожній зміні виділення. */
+    let nFocusEl = null, nFocusUntil = 0;
+    const nToEnd = () => {
+        const t = nFocusEl;
+        if (!t || performance.now() > nFocusUntil || document.activeElement !== t) return;
+        try {
+            const n = t.value.length;
+            if (t.selectionStart !== n || t.selectionEnd !== n) t.setSelectionRange(n, n);
+        } catch (_) {}
+    };
     normaOverlay.addEventListener('focusin', e => {
         const t = e.target;
         if (!(t && t.matches && t.matches('input:not([type=time])'))) return;
-        nJustFocused = true;
-        const toEnd = () => {
-            if (!nJustFocused || document.activeElement !== t) return;
-            try { const n = t.value.length; t.setSelectionRange(n, n); } catch (_) {}
-        };
-        toEnd();
-        [0, 60, 160].forEach(d => setTimeout(toEnd, d));
-        setTimeout(() => { nJustFocused = false; }, 300);
+        nFocusEl = t;
+        nFocusUntil = performance.now() + 700;
+        nToEnd();
+        [0, 50, 120, 250, 400, 600].forEach(d => setTimeout(nToEnd, d));
     });
+    document.addEventListener('selectionchange', nToEnd);
+    ['touchend', 'pointerup', 'mouseup', 'click'].forEach(ev =>
+        normaOverlay.addEventListener(ev, () => { setTimeout(nToEnd, 0); setTimeout(nToEnd, 40); }, true));
 }
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && normaOverlay && normaOverlay.classList.contains('open')) closeNorma();
