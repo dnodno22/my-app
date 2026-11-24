@@ -1281,243 +1281,6 @@ mark.hl {
     user-select: none;
     cursor: pointer;
 }
-
-/* Усі стилі обмежені блоком #norma — не зачеплять решту вашого сайту */
-  #norma{--bg:#fff;--card:#f6f7f9;--text:#1c2024;--muted:#6b7280;--line:#d9dde3;--accent:#2563eb;--good:#15803d;--bad:#b91c1c;
-    font:15px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--text);background:var(--bg);max-width:560px;margin:0 auto;padding:6px 6px 90px;box-sizing:border-box}
-  #norma *{box-sizing:border-box}
-  #norma h2{margin:4px 0 8px;font-size:1.1rem}
-  #norma .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}
-  #norma .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-  #norma label{display:block;font-size:.7rem;color:var(--muted);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #norma input{width:100%;min-width:0;padding:8px 6px;min-height:40px;font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px}
-  #norma input:focus{outline:2px solid var(--accent);outline-offset:-1px}
-  #norma table,#norma tbody{display:block;width:100%}
-  #norma thead{display:none}
-  #norma button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);padding:6px 10px;min-height:38px}
-  #norma button:hover{border-color:var(--accent)}
-  #norma button.x{padding:0;width:32px;min-height:40px;color:var(--muted);font-size:1rem}
-  /* рядок роботи: артикул | назва | норма | к-сть | ✕ — в один ряд */
-  #norma tr.item{display:grid;grid-template-columns:78px minmax(0,1fr) 58px 56px 32px;gap:4px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:5px;margin-bottom:5px}
-  #norma tr.item td{display:block;padding:0;min-width:0}
-  #norma tr.item td.art{grid-column:2;grid-row:1}
-  #norma tr.item td.name{grid-column:1;grid-row:1}
-  #norma tr.item td.f1{grid-column:3;grid-row:1}
-  #norma tr.item td.f2{grid-column:4;grid-row:1}
-  #norma tr.item td.del{grid-column:5;grid-row:1}
-  #norma tr.item td.sg{grid-column:1 / 6;grid-row:2}
-  #norma tr.item td.calc{grid-column:1 / 6;grid-row:3;font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums}
-  #norma tr.item td.calc:has(.calc-line:empty),#norma tr.item td.sg:has(.sugg:empty){display:none}
-  #norma .calc-line{display:flex;gap:12px}
-  /* непродуктивний час: поле + ✕ в один ряд */
-  #norma tr.dn{grid-template-columns:minmax(0,1fr) 32px}
-  #norma tr.dn td.f1{grid-column:1}
-  #norma tr.dn td.del{grid-column:2}
-  #norma .dgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
-  #norma #n-down{display:contents}
-  #norma .dhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
-  #norma .dhead label{margin:0}
-  #norma .dhead button{min-height:30px;width:40px;padding:0}
-  #norma .sugg{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;max-height:96px;overflow-y:auto}
-  #norma .sugg .cap{flex-basis:100%;font-size:.7rem;color:var(--muted)}
-  #norma .chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;border:1px solid var(--accent);color:var(--accent);background:var(--bg);border-radius:999px;padding:4px 4px 4px 10px;font-size:.85rem;cursor:pointer;user-select:none}
-  #norma .chip .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #norma .chip .d{color:var(--muted);padding:0 6px}
-  #norma .row-actions{display:flex;gap:6px;margin-top:4px}
-  #norma .row-actions button{flex:1}
-  #norma .result{display:grid;grid-template-columns:1fr;gap:6px}
-  #norma .stat{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
-  #norma .stat .v{font-size:1.3rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
-  #norma .stat .l{font-size:.7rem;color:var(--muted)}
-  #norma .good{color:var(--good)} #norma .bad{color:var(--bad)}
-  #norma .hint{font-size:.72rem;color:var(--muted);margin:6px 0 0}
-  #norma .sticky{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  #norma .sticky .stat{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
-  #norma .sticky .stat .v{font-size:1.25rem;order:2}
-  #norma .sticky .stat .l{order:1}
-
-
-#productivity-overlay{position:fixed;inset:0;z-index:1000;background:#fff;color:#1c2024;overflow-y:auto;display:none;overscroll-behavior:contain;color-scheme:light}
-#productivity-overlay.open{display:block}
-#productivity-overlay .productivity-top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:#fff;border-bottom:1px solid #d9dde3}
-#productivity-overlay .productivity-top strong{font-size:17px}
-#productivity-overlay .productivity-close{border:1px solid #d9dde3;border-radius:9px;background:#f6f7f9;padding:8px 14px;font:inherit;color:#1c2024}
-#productivity-overlay #norma{padding-top:12px;padding-bottom:170px}
-#productivity-overlay #norma .sticky{position:fixed;left:0;right:0;bottom:0;z-index:30}
-#productivity-overlay #norma .card:last-child{margin-bottom:10px}
-#productivity-overlay #norma input{touch-action:manipulation;color-scheme:light}
-
-/* Продуктивність — візуальний стиль сторінки пошуку */
-#productivity-overlay {
-  background:#fff !important;
-  color:#111 !important;
-  color-scheme:light !important;
-}
-#productivity-overlay .productivity-top {
-  padding:calc(30px + env(safe-area-inset-top)) 16px 8px;
-  background:#fff;
-  border:0;
-  gap:10px;
-}
-#productivity-overlay .productivity-top strong {
-  flex:1;
-  min-width:0;
-  min-height:60px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:12px 18px;
-  border:1px solid #e5e7eb;
-  border-radius:14px;
-  background:#f9fafb;
-  color:#111;
-  font-size:22px;
-  font-weight:600;
-  text-align:center;
-}
-#productivity-overlay .productivity-close {
-  min-height:60px;
-  padding:0 13px;
-  border:1px solid #222;
-  border-radius:8px;
-  background:#f1f5f9;
-  color:#111;
-  font-size:14px;
-  font-weight:600;
-}
-#productivity-overlay #norma {
-  --bg:#fff;
-  --card:#fff;
-  --text:#111;
-  --muted:#6b7280;
-  --line:#e5e7eb;
-  --accent:#222;
-  --good:#15803d;
-  --bad:#b91c1c;
-  width:100%;
-  max-width:none;
-  margin:0;
-  padding:8px 16px 180px;
-  background:#fff;
-  color:#111;
-  font-family:-apple-system,Arial,sans-serif;
-  font-size:15px;
-}
-#productivity-overlay #norma h2 {
-  margin:0 0 12px;
-  padding:0;
-  color:#111;
-  font-size:15px;
-  font-weight:500;
-  text-align:center;
-}
-#productivity-overlay #norma .card {
-  padding:14px;
-  margin:0 0 12px;
-  border:0;
-  border-radius:22px;
-  background:#fff;
-  box-shadow:0 2px 14px rgba(0,0,0,.08);
-}
-#productivity-overlay #norma .grid {gap:8px}
-#productivity-overlay #norma label {
-  color:#6b7280;
-  font-size:12px;
-  font-weight:500;
-}
-#productivity-overlay #norma input {
-  min-height:48px;
-  padding:10px 8px;
-  border:1px solid #e5e7eb;
-  border-radius:12px;
-  background:#f9fafb;
-  color:#111;
-  font-size:16px;
-  text-align:center;
-  color-scheme:light;
-}
-#productivity-overlay #norma input:focus {
-  outline:2px solid #9ca3af;
-  outline-offset:0;
-  background:#fff;
-}
-#productivity-overlay #norma tr.item {
-  grid-template-columns: minmax(0,1fr) 78px 58px 56px 32px;
-  gap:5px;
-  padding:8px 0;
-  margin:0 0 7px;
-  border:0;
-  border-bottom:1px solid #e5e7eb;
-  border-radius:0;
-  background:#fff;
-}
-#productivity-overlay #norma tr.item td.name {grid-column:1;grid-row:1}
-#productivity-overlay #norma tr.item td.art {grid-column:2;grid-row:1}
-#productivity-overlay #norma tr.item td.f1 {grid-column:3;grid-row:1}
-#productivity-overlay #norma tr.item td.f2 {grid-column:4;grid-row:1}
-#productivity-overlay #norma tr.item td.del {grid-column:5;grid-row:1}
-#productivity-overlay #norma tr.item td.sg,
-#productivity-overlay #norma tr.item td.calc {grid-column:1 / 6}
-#productivity-overlay #norma button {
-  min-height:44px;
-  border:1px solid #222;
-  border-radius:8px;
-  background:#fff;
-  color:#111;
-  font-size:14px;
-  font-weight:600;
-}
-#productivity-overlay #norma button:active {
-  background:#f1f5f9;
-  transform:scale(.97);
-}
-#productivity-overlay #norma button.x {
-  width:32px;
-  min-height:44px;
-  padding:0;
-  border-color:#e5e7eb;
-  background:#f1f5f9;
-}
-#productivity-overlay #norma .chip {
-  border:1px solid #222;
-  background:#fff;
-  color:#111;
-}
-#productivity-overlay #norma .dgrid {gap:6px}
-#productivity-overlay #norma .dgrid input {min-width:0}
-#productivity-overlay #norma .row-actions {gap:8px;margin-top:10px}
-#productivity-overlay #norma .row-actions button {flex:1}
-#productivity-overlay #norma .stat {
-  border:1px solid #e5e7eb;
-  border-radius:14px;
-  background:#f9fafb;
-}
-#productivity-overlay #norma .stat .v {color:#111}
-#productivity-overlay #norma .good {color:#15803d !important}
-#productivity-overlay #norma .bad {color:#b91c1c !important}
-#productivity-overlay #norma .sticky {
-  z-index:30;
-  padding:8px 12px calc(8px + env(safe-area-inset-bottom));
-  border-top:1px solid #e5e7eb;
-  background:#fff;
-  box-shadow:0 -4px 14px rgba(0,0,0,.04);
-}
-#productivity-overlay #norma .sticky .stat {
-  min-height:52px;
-  padding:7px 10px;
-  border-radius:14px;
-  background:#f9fafb;
-}
-#productivity-overlay #norma .sticky .stat .v {font-size:20px}
-@media (max-width:390px) {
-  #productivity-overlay #norma {padding-left:12px;padding-right:12px}
-  #productivity-overlay #norma tr.item {
-    grid-template-columns:minmax(0,1fr) 70px 52px 50px 30px;
-    gap:3px;
-  }
-  #productivity-overlay #norma input {padding-left:4px;padding-right:4px}
-}
-
 /* ==================== TABLE PAGES ==================== */
 .table-page {
     background: #fff;
@@ -1712,6 +1475,213 @@ body.mode-public #ready-dot { display: none; }
     overflow: hidden;
 }
 #diag-box.hidden { display: none; }
+
+  /* Усі стилі обмежені блоком #norma — не зачеплять решту вашого сайту */
+  #norma{--bg:#fff;--card:#f6f7f9;--text:#1c2024;--muted:#6b7280;--line:#d9dde3;--accent:#2563eb;--good:#15803d;--bad:#b91c1c;
+    font:15px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--text);background:var(--bg);max-width:560px;margin:0 auto;padding:6px 6px 90px;box-sizing:border-box}
+  #norma *{box-sizing:border-box}
+  #norma h2{margin:4px 0 8px;font-size:1.1rem}
+  #norma .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}
+  #norma .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  #norma label{display:block;font-size:.7rem;color:var(--muted);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #norma input{width:100%;min-width:0;padding:8px 6px;min-height:40px;font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+  #norma input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  #norma table,#norma tbody{display:block;width:100%}
+  #norma thead{display:none}
+  #norma button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);padding:6px 10px;min-height:38px}
+  #norma button:hover{border-color:var(--accent)}
+  #norma button.x{padding:0;width:32px;min-height:40px;color:var(--muted);font-size:1rem}
+  /* рядок роботи: артикул | назва | норма | к-сть | ✕ — в один ряд */
+  #norma tr.item{display:grid;grid-template-columns:78px minmax(0,1fr) 58px 56px 32px;gap:4px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:5px;margin-bottom:5px}
+  #norma tr.item td{display:block;padding:0;min-width:0}
+  #norma tr.item td.art{grid-column:2;grid-row:1}
+  #norma tr.item td.name{grid-column:1;grid-row:1}
+  #norma tr.item td.f1{grid-column:3;grid-row:1}
+  #norma tr.item td.f2{grid-column:4;grid-row:1}
+  #norma tr.item td.del{grid-column:5;grid-row:1}
+  #norma tr.item td.sg{grid-column:1 / 6;grid-row:2}
+  #norma tr.item td.calc{grid-column:1 / 6;grid-row:3;font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums}
+  #norma tr.item td.calc:has(.calc-line:empty),#norma tr.item td.sg:has(.sugg:empty){display:none}
+  #norma .calc-line{display:flex;gap:12px}
+  /* непродуктивний час: поле + ✕ в один ряд */
+  #norma tr.dn{grid-template-columns:minmax(0,1fr) 32px}
+  #norma tr.dn td.f1{grid-column:1}
+  #norma tr.dn td.del{grid-column:2}
+  #norma .dgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+  #norma #n-down{display:contents}
+  #norma .dhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+  #norma .dhead label{margin:0}
+  #norma .dhead button{min-height:30px;width:40px;padding:0}
+  #norma .sugg{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;max-height:96px;overflow-y:auto}
+  #norma .sugg .cap{flex-basis:100%;font-size:.7rem;color:var(--muted)}
+  #norma .chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;border:1px solid var(--accent);color:var(--accent);background:var(--bg);border-radius:999px;padding:4px 4px 4px 10px;font-size:.85rem;cursor:pointer;user-select:none}
+  #norma .chip .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #norma .chip .d{color:var(--muted);padding:0 6px}
+  #norma .row-actions{display:flex;gap:6px;margin-top:4px}
+  #norma .row-actions button{flex:1}
+  #norma .result{display:grid;grid-template-columns:1fr;gap:6px}
+  #norma .stat{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+  #norma .stat .v{font-size:1.3rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+  #norma .stat .l{font-size:.7rem;color:var(--muted)}
+  #norma .good{color:var(--good)} #norma .bad{color:var(--bad)}
+  #norma .hint{font-size:.72rem;color:var(--muted);margin:6px 0 0}
+  #norma .sticky{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #norma .sticky .stat{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+  #norma .sticky .stat .v{font-size:1.25rem;order:2}
+  #norma .sticky .stat .l{order:1}
+
+/* Білий інтерфейс у стилі основної сторінки пошуку */
+#norma {
+  --bg:#fff; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+  --accent:#222; --good:#15803d; --bad:#b91c1c;
+  width:100%; max-width:560px; margin:0 auto; padding:8px 12px 180px;
+  background:#fff; color:#111; color-scheme:light;
+  font-family:-apple-system,Arial,sans-serif; font-size:15px;
+}
+#norma h2 { margin:0 0 12px; padding:0; color:#111; font-size:18px; font-weight:600; text-align:center; }
+#norma .card { padding:14px; margin:0 0 12px; border:0; border-radius:22px; background:#fff; box-shadow:0 2px 14px rgba(0,0,0,.08); }
+#norma .grid { gap:8px; }
+#norma label { color:#6b7280; font-size:12px; font-weight:500; }
+#norma input { min-height:48px; padding:10px 8px; border:1px solid #e5e7eb; border-radius:12px; background:#f9fafb; color:#111; font-size:16px; text-align:center; color-scheme:light; }
+#norma input:focus { outline:2px solid #9ca3af; outline-offset:0; background:#fff; }
+#norma tr.item { grid-template-columns:minmax(0,1fr) 78px 58px 56px 32px; gap:5px; padding:8px 0; margin:0 0 7px; border:0; border-bottom:1px solid #e5e7eb; border-radius:0; background:#fff; }
+#norma tr.item td.name { grid-column:1; grid-row:1; }
+#norma tr.item td.art { grid-column:2; grid-row:1; }
+#norma tr.item td.f1 { grid-column:3; grid-row:1; }
+#norma tr.item td.f2 { grid-column:4; grid-row:1; }
+#norma tr.item td.del { grid-column:5; grid-row:1; }
+#norma tr.item td.sg, #norma tr.item td.calc { grid-column:1 / 6; }
+#norma button { min-height:44px; border:1px solid #222; border-radius:8px; background:#fff; color:#111; font-size:14px; font-weight:600; }
+#norma button:active { background:#f1f5f9; transform:scale(.97); }
+#norma button.x { width:32px; min-height:44px; padding:0; border-color:#e5e7eb; background:#f1f5f9; }
+#norma .chip { border:1px solid #222; background:#fff; color:#111; }
+#norma .dgrid { gap:6px; }
+#norma .dgrid input { min-width:0; }
+#norma .row-actions { gap:8px; margin-top:10px; }
+#norma .row-actions button { flex:1; }
+#norma .stat { border:1px solid #e5e7eb; border-radius:14px; background:#f9fafb; }
+#norma .stat .v { color:#111; }
+#norma .good { color:#15803d !important; }
+#norma .bad { color:#b91c1c !important; }
+#norma .sticky { z-index:30; padding:8px 12px calc(8px + env(safe-area-inset-bottom)); border-top:1px solid #e5e7eb; background:#fff; box-shadow:0 -4px 14px rgba(0,0,0,.04); }
+#norma .sticky .stat { min-height:52px; padding:7px 10px; border-radius:14px; background:#f9fafb; }
+#norma .sticky .stat .v { font-size:20px; }
+@media (max-width:390px) {
+  #norma { padding-left:12px; padding-right:12px; }
+  #norma tr.item { grid-template-columns:minmax(0,1fr) 70px 52px 50px 30px; gap:3px; }
+  #norma input { padding-left:4px; padding-right:4px; }
+}
+
+#norma .chip.on { background:#222; color:#fff; }
+
+/* нижня панель: 4 показники в один ряд */
+#norma .sticky { grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; padding:6px 8px calc(6px + env(safe-area-inset-bottom)); }
+#norma .sticky .stat { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; min-height:50px; padding:5px 2px; text-align:center; }
+#norma .sticky .stat .l { order:1; font-size:10px; line-height:1.1; }
+#norma .sticky .stat .v { order:2; font-size:17px; line-height:1.15; }
+
+
+/* без обрізання: назва у верхньому рядку, під нею артикул / норма / кількість */
+#norma label { white-space:normal; overflow:visible; text-overflow:clip; line-height:1.2; }
+#norma input[type=time] { min-width:0; -webkit-appearance:none; appearance:none; }
+#norma tr.item { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+#norma tr.item td.name { grid-column:1 / 3; grid-row:1; }
+#norma tr.item td.del { grid-column:3; grid-row:1; justify-self:end; }
+#norma tr.item td.art { grid-column:1; grid-row:2; }
+#norma tr.item td.f1 { grid-column:2; grid-row:2; }
+#norma tr.item td.f2 { grid-column:3; grid-row:2; }
+#norma tr.item td.sg { grid-column:1 / 4; grid-row:3; }
+#norma tr.item td.calc { grid-column:1 / 4; grid-row:4; }
+#norma tr.item td[data-lab]::before { content:attr(data-lab); display:block; margin-bottom:2px; font-size:11px; line-height:1.2; color:#6b7280; }
+#norma tr.item input { padding-left:6px; padding-right:6px; }
+#norma .dgrid input { padding-left:2px; padding-right:2px; }
+#norma .chip .t { white-space:normal; overflow:visible; text-overflow:clip; word-break:break-word; }
+#norma .sticky .stat .l { white-space:normal; overflow:visible; word-break:break-word; }
+
+/* один рядок на телефонах від ~6.4": назва | артикул | норма | шт | ✕ (ширина екрана ≈ 390–412 px) */
+#norma { padding-left:6px; padding-right:6px; }
+#norma .card { padding:10px 8px; }
+#norma tr.item, #norma .rowhead { grid-template-columns:minmax(0,1fr) 86px 60px 48px 30px; gap:4px; }
+#norma tr.item { padding:6px 0; margin-bottom:0; }
+#norma tr.item td.name { grid-column:1; grid-row:1; }
+#norma tr.item td.art { grid-column:2; grid-row:1; }
+#norma tr.item td.f1 { grid-column:3; grid-row:1; }
+#norma tr.item td.f2 { grid-column:4; grid-row:1; }
+#norma tr.item td.del { grid-column:5; grid-row:1; justify-self:stretch; }
+#norma tr.item td.sg { grid-column:1 / 6; grid-row:2; }
+#norma tr.item td.calc { grid-column:1 / 6; grid-row:3; }
+#norma tr.item td[data-lab]::before { display:none; }
+#norma tr.item input { padding-left:3px; padding-right:3px; }
+#norma tr.item td.name input { text-align:left; padding-left:8px; }
+#norma button.x { width:30px; }
+#norma .rowhead { display:grid; margin-bottom:2px; font-size:11px; line-height:1.2; color:#6b7280; text-align:center; }
+#norma .rowhead span:first-child { text-align:left; padding-left:8px; }
+#norma input.inv { border-color:#b91c1c; background:#fef2f2; }
+
+/* прибрано зайві розділові лінії */
+#norma tr.item { border:0; padding:3px 0; margin:0; }
+#norma .stat, #norma .sticky .stat { border:0; }
+#norma .sticky { border-top:0; }
+#norma tr.item td.f2 input { background:transparent; border:1px solid #9ca3af; }
+
+/* налаштування зміни — згорнуті й малопомітні; непродуктивний час і очищення — унизу */
+#norma { padding-bottom:230px; }
+#norma .cfg { margin:0 0 8px; }
+#norma .cfg summary { list-style:none; cursor:pointer; text-align:center; font-size:12px; color:#9ca3af; padding:2px 0; }
+#norma .cfg summary::-webkit-details-marker { display:none; }
+#norma .cfg[open] summary { margin-bottom:6px; }
+#norma .cfg input { min-height:38px; background:#fff; }
+#norma .sticky { display:flex; flex-direction:column; gap:4px; }
+#norma .sticky .stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; }
+#norma .sticky .stat { min-height:44px; padding:3px 2px; }
+#norma .dcap { font-size:10px; line-height:1; color:#6b7280; }
+#norma .sticky .dgrid input { min-height:38px; padding:4px 2px; }
+#norma .sticky .row-actions { margin-top:0; gap:6px; }
+#norma .sticky .row-actions button { min-height:36px; font-size:13px; }
+
+/* кнопки-вкладки «Зміна» і «Простої» + розкривні панелі */
+#norma { padding-bottom:130px; }
+#norma .tabs { display:grid; grid-template-columns:1.6fr 1fr; gap:8px; margin:0 0 8px; }
+#norma .tab { display:flex; flex-direction:column; align-items:flex-start; gap:1px; min-height:46px; padding:6px 10px; border:1px solid #222; border-radius:12px; background:#fff; color:#111; text-align:left; }
+#norma .tab .tn { font-size:14px; font-weight:700; }
+#norma .tab .tv { font-size:12px; font-weight:500; color:#6b7280; white-space:normal; }
+#norma .tab.on { background:#222; color:#fff; }
+#norma .tab.on .tv { color:#d1d5db; }
+#norma .panel { margin:0 0 8px; padding:8px; border-radius:12px; background:#f3f4f6; }
+#norma .panel input { min-height:42px; background:#fff; }
+
+/* «Зміна» — помітна кнопка-рядок; «Простої» — клітинки зверху */
+#norma .cfg { margin:0 0 8px; }
+#norma .cfg summary { list-style:none; cursor:pointer; text-align:center; font-size:13px; font-weight:600; color:#1e3a8a; background:#eef2ff; border:1px solid #c7d2fe; border-radius:12px; padding:10px 8px; }
+#norma .cfg summary::-webkit-details-marker { display:none; }
+#norma .cfg summary:active { background:#e0e7ff; }
+#norma .cfg[open] summary { margin-bottom:8px; }
+#norma .cfg input { min-height:42px; background:#fff; }
+#norma .down { margin:0 0 10px; }
+#norma .down label { margin-bottom:3px; }
+#norma .down .dgrid input { min-height:42px; padding:4px 2px; }
+#norma .down { margin:0 0 14px; padding-bottom:14px; border-bottom:1px solid #eceef1; }
+#norma [hidden] { display:none !important; }
+
+/* «Зміна»: у згорнутому вигляді — просто текст зі стрілкою; у розгорнутому — один підсвічений блок */
+#norma .cfg { margin:0 0 8px; border-radius:14px; }
+#norma .cfg summary { background:none; border:0; border-radius:0; padding:4px 8px; font-size:13px; font-weight:500; color:#6b7280; }
+#norma .cfg summary:active { background:none; }
+#norma .cfg[open] { background:#eef2ff; padding:6px 8px 8px; }
+#norma .cfg[open] summary { margin-bottom:6px; color:#1e3a8a; font-weight:600; }
+
+/* ==================== ПРОДУКТИВНІСТЬ (калькулятор норми) ==================== */
+#norma-overlay { position:fixed; inset:0; z-index:9000; display:none; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; background:#fff; color:#111; }
+#norma-overlay.open { display:block; }
+#norma-overlay, #norma-overlay * { -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; }
+#norma-overlay button, #norma-overlay summary, #norma-overlay .chip { -webkit-user-select:none; user-select:none; }
+#norma-overlay .nrm-bar { position:sticky; top:0; z-index:40; background:#fff; padding:calc(8px + env(safe-area-inset-top)) 12px 4px; }
+#norma-overlay .nrm-bar button { min-height:40px; padding:6px 14px; border:1px solid #222; border-radius:10px; background:#fff; color:#111; font-size:14px; font-weight:600; }
+#norma-overlay .nrm-bar button:active { background:#f1f5f9; }
+/* таблиці застосунку мають власні рамки на td — у калькуляторі їх не повинно бути (давали «квадратні поля» навколо круглих) */
+#norma table, #norma tbody, #norma tr, #norma td, #norma th { border:0 !important; background:transparent; box-shadow:none; outline:0; }
+
+
 /* ==================== ТЕМНА ТЕМА (генеровано) ==================== */
 html.theme-dark,html.theme-dark body{background:#1a1c21}
 html.theme-dark input#input{border:1px solid #2f333b;background:#1c1e23;color:#e8eaed}
@@ -1840,6 +1810,58 @@ html.theme-dark [style*="#b6c0cf"] { border-color:#4a505c !important; }
 html.theme-dark .wl-history, html.theme-dark .filter-menu { box-shadow:0 8px 28px rgba(0,0,0,0.6); }
 html.theme-dark mark.hl { background:#fde047; color:#111; }
 html.theme-dark .art-r.art-r-fav, html.theme-dark .pm-group-article-frame.art-r-fav { border-left:4px solid #93c5fd; }
+
+/* темна тема калькулятора */
+html.theme-dark #norma{background:#1a1c21;color:#e8eaed}
+html.theme-dark #norma h2{color:#e8eaed}
+html.theme-dark #norma .card{background:#1a1c21}
+html.theme-dark #norma label{color:#9aa3b2}
+html.theme-dark #norma input{border:1px solid #2f333b;background:#1c1e23;color:#e8eaed}
+html.theme-dark #norma input:focus{outline:2px solid #5b6270;background:#1a1c21}
+html.theme-dark #norma tr.item{border-bottom:1px solid #2f333b;background:#1a1c21}
+html.theme-dark #norma button{border:1px solid #5b6270;background:#1a1c21;color:#e8eaed}
+html.theme-dark #norma button:active{background:#24272d}
+html.theme-dark #norma button.x{border-color:#2f333b;background:#24272d}
+html.theme-dark #norma .chip{border:1px solid #5b6270;background:#1a1c21;color:#e8eaed}
+html.theme-dark #norma .stat{border:1px solid #2f333b;background:#1c1e23}
+html.theme-dark #norma .stat .v{color:#e8eaed}
+html.theme-dark #norma .good{color:#4ade80 !important}
+html.theme-dark #norma .bad{color:#f87171 !important}
+html.theme-dark #norma .sticky{border-top:1px solid #2f333b;background:#1a1c21}
+html.theme-dark #norma .sticky .stat{background:#1c1e23}
+html.theme-dark #norma .chip.on{background:#e8eaed;color:#111}
+html.theme-dark #norma tr.item td[data-lab]::before{color:#9aa3b2}
+html.theme-dark #norma .rowhead{color:#9aa3b2}
+html.theme-dark #norma input.inv{border-color:#f87171;background:#3a1a1a}
+html.theme-dark #norma tr.item td.f2 input{border:1px solid #5b6270}
+html.theme-dark #norma .cfg summary{color:#7d8594}
+html.theme-dark #norma .cfg input{background:#1a1c21}
+html.theme-dark #norma .dcap{color:#9aa3b2}
+html.theme-dark #norma .tab{border:1px solid #5b6270;background:#1a1c21;color:#e8eaed}
+html.theme-dark #norma .tab .tv{color:#9aa3b2}
+html.theme-dark #norma .tab.on{background:#e8eaed;color:#111}
+html.theme-dark #norma .tab.on .tv{color:#9aa3b2}
+html.theme-dark #norma .panel{background:#24272d}
+html.theme-dark #norma .panel input{background:#1a1c21}
+html.theme-dark #norma .cfg summary{color:#a5b4fc;background:#262a4a;border:1px solid #4b5287}
+html.theme-dark #norma .cfg summary:active{background:#30366a}
+html.theme-dark #norma .cfg input{background:#1a1c21}
+html.theme-dark #norma .down{border-bottom:1px solid #2c3038}
+html.theme-dark #norma .cfg summary{color:#9aa3b2}
+html.theme-dark #norma .cfg[open]{background:#262a4a}
+html.theme-dark #norma .cfg[open] summary{color:#a5b4fc}
+html.theme-dark #norma-overlay { background:#121316; color:#e8eaed; }
+html.theme-dark #norma-overlay .nrm-bar { background:#121316; }
+html.theme-dark #norma-overlay .nrm-bar button { background:#1a1c21; color:#e8eaed; border-color:#5b6270; }
+html.theme-dark #norma { background:#121316; color:#e8eaed; color-scheme:dark; }
+html.theme-dark #norma input { color-scheme:dark; }
+html.theme-dark #norma .card { box-shadow:0 2px 14px rgba(0,0,0,.5); }
+html.theme-dark #norma .sticky { box-shadow:0 -4px 14px rgba(0,0,0,.4); }
+html.theme-dark #norma .cfg summary { background:none; border:0; color:#7d8594; }
+html.theme-dark #norma .cfg summary:active { background:none; }
+html.theme-dark #norma .cfg[open] { background:#262a4a; }
+html.theme-dark #norma .cfg[open] summary { color:#a5b4fc; }
+
 </style>
 </head>
 <body class="mode-public">
@@ -1907,7 +1929,7 @@ html.theme-dark .art-r.art-r-fav, html.theme-dark .pm-group-article-frame.art-r-
             <div id="filter-menu" class="filter-menu hidden" role="group" aria-label="Параметри пошуку">
                 <button type="button" class="filter-option filter-menu-heading" data-filter-expand aria-expanded="false">Фільтр</button>
                 <button type="button" class="filter-option filter-menu-heading" data-interface-expand aria-expanded="false">Інтерфейс</button>
-                <button type="button" class="filter-option" data-productivity-open>Продуктивність</button>
+                <button type="button" class="filter-option filter-menu-heading" data-productivity-open>Продуктивність</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="all">Усі дані</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="audi">Audi</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="bmw">BMW</button>
@@ -1983,48 +2005,6 @@ html.theme-dark .art-r.art-r-fav, html.theme-dark .pm-group-article-frame.art-r-
         <button class="btn btn-special" data-pm="clear">⌫</button>
     </div>
 </div>
-<div id="productivity-overlay" aria-hidden="true">
-  <div class="productivity-top">
-    <strong>Продуктивність</strong>
-    <button type="button" class="productivity-close" id="productivity-close">Закрити ✕</button>
-  </div>
-
-
-<div id="norma">
-  <h2>Калькулятор виконання норми</h2>
-
-  <div class="card">
-    <div class="grid">
-      <div><label for="n-shift">Зміна, хв</label><input id="n-shift" type="number" min="0" step="1" value="450"></div>
-      <div><label for="n-start">Початок</label><input id="n-start" type="time" value="07:00"></div>
-      <div><label for="n-lunch">Обід, хв</label><input id="n-lunch" type="number" min="0" step="1" value="30"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <table><tbody id="n-rows"></tbody></table>
-    <div class="row-actions"><button id="n-add" type="button">+ Додати рядок</button></div>
-  </div>
-
-  <div class="card">
-    <div class="dhead"><label>Непродуктивний час, хв</label></div>
-    <div class="dgrid"><span id="n-down"></span></div>
-  </div>
-
-  <div class="sticky">
-    <div class="stat"><div class="l">За всю зміну</div><div class="v" id="r-pct">0%</div></div>
-    <div class="stat"><div class="l">На зараз</div><div class="v" id="r-live">—</div></div>
-  </div>
-
-  <div class="card">
-    <div class="result">
-      <div class="stat"><div class="v" id="r-prod">0</div><div class="l">Продуктивний час, хв</div></div>
-    </div>
-    <div class="row-actions"><button id="n-clear-qty" type="button">Очистити кількість</button><button id="n-reset" type="button">Очистити все</button></div>
-  </div>
-
-
-</div>
 <script>
 /* Запобіжник: якщо основна ініціалізація помилиться, не залишаємо стартовий екран назавжди. */
 setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
@@ -2032,7 +2012,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 223;
+const CODE_VERSION = 225;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2413,6 +2393,35 @@ function setCleanMode(on) {
     applyCleanMode();
 }
 applyCleanMode();
+
+/* ==================== ПРОДУКТИВНІСТЬ: відкриття/закриття ==================== */
+const normaOverlay = document.getElementById('norma-overlay');
+function openNorma() {
+    if (!normaOverlay) return;
+    normaOverlay.classList.add('open');
+    normaOverlay.setAttribute('aria-hidden', 'false');
+    normaOverlay.scrollTop = 0;
+    try { if (window.normaRefresh) window.normaRefresh(); } catch (_) {}
+}
+function closeNorma() {
+    if (!normaOverlay) return;
+    normaOverlay.classList.remove('open');
+    normaOverlay.setAttribute('aria-hidden', 'true');
+    const ae = document.activeElement;
+    if (ae && normaOverlay.contains(ae) && ae.blur) ae.blur();
+}
+if (normaOverlay) {
+    /* Дотики всередині калькулятора не мають доходити до обробників застосунку (свайпи, клавіатура пошуку) */
+    ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(ev => {
+        normaOverlay.addEventListener(ev, e => e.stopPropagation(), { passive: true });
+    });
+    const nc = document.getElementById('norma-close');
+    if (nc) nc.addEventListener('click', closeNorma);
+}
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && normaOverlay && normaOverlay.classList.contains('open')) closeNorma();
+});
+
 /* ---------- Темна тема ---------- */
 const THEME_KEY = 'darkTheme';
 let darkTheme = document.documentElement.classList.contains('theme-dark');
@@ -2735,16 +2744,6 @@ document
     .addEventListener('click', (e) => {
         const qtyBtn =
             e.target.closest('[data-qty]');
-        const productivityButton = e.target.closest('[data-productivity-open]');
-        if (productivityButton) {
-            e.preventDefault();
-            e.stopPropagation();
-            setFilterPanelOpen(false);
-            document.getElementById('productivity-overlay').classList.add('open');
-            document.getElementById('productivity-overlay').setAttribute('aria-hidden', 'false');
-            return;
-        }
-
         if (qtyBtn) {
             e.preventDefault();
             e.stopPropagation();
@@ -2778,6 +2777,13 @@ document
             e.preventDefault();
             e.stopPropagation();
             setDiag(!diagOn);
+            return;
+        }
+        if (e.target.closest('[data-productivity-open]')) {
+            e.preventDefault();
+            e.stopPropagation();
+            setFilterPanelOpen(false);
+            openNorma();
             return;
         }
         if (e.target.closest('[data-theme-toggle]')) {
@@ -6780,13 +6786,13 @@ function renderArticlesPage(
 }
 /* Системне контекстне меню (копіювати) вимкнено скрізь, крім текстових полів */
 document.addEventListener('contextmenu', e => {
-    if (e.target.closest && e.target.closest('textarea, #pw-input')) {
+    if (e.target.closest && e.target.closest('textarea, #pw-input, #norma-overlay input')) {
         return;
     }
     e.preventDefault();
 });
 document.addEventListener('selectstart', e => {
-    if (e.target && e.target.closest && e.target.closest('textarea, #pw-input')) {
+    if (e.target && e.target.closest && e.target.closest('textarea, #pw-input, #norma-overlay input')) {
         return;
     }
     e.preventDefault();
@@ -9693,32 +9699,66 @@ const instantStart = document.getElementById('instant-start');
 if (instantStart) instantStart.remove();
 } , 0));
 </script>
+<div id="ready-dot" aria-hidden="true"></div>
+<div id="diag-box" class="hidden" aria-hidden="true"></div>
+<div id="norma-overlay" aria-hidden="true">
+<div class="nrm-bar"><button id="norma-close" type="button">‹ Назад</button></div>
+<div id="norma">
+
+  <details class="cfg" id="n-cfg">
+    <summary id="n-cfg-sum">⚙ Зміна ▾</summary>
+    <div class="grid">
+      <div><label for="n-shift">Зміна, хв</label><input id="n-shift" type="number" min="0" step="1" placeholder="480"></div>
+      <div><label for="n-start">Початок</label><input id="n-start" type="time" value="07:00"></div>
+      <div><label for="n-lunch">Обід о</label><input id="n-lunch" type="time" value="11:00"></div>
+    </div>
+    <div class="sugg" id="n-presets" style="max-height:none"></div>
+  </details>
+
+  <div class="down">
+    <label>Простої (непродуктивний час), хв</label>
+    <div class="dgrid"><span id="n-down"></span></div>
+  </div>
+
+  <div class="card">
+    <div class="rowhead"><span>Назва</span><span>Артикул</span><span>Норма</span><span>Шт</span><span></span></div>
+    <table><tbody id="n-rows"></tbody></table>
+    <div class="row-actions"><button id="n-add" type="button">+ Додати рядок</button><button id="n-saved" type="button">Збережені ▾</button></div>
+    <div class="sugg" id="n-saved-list" hidden style="max-height:220px;margin-top:8px"></div>
+  </div>
+
+  <div class="sticky">
+    <div class="stats">
+      <div class="stat"><div class="l">За всю зміну</div><div class="v" id="r-pct">0%</div></div>
+      <div class="stat"><div class="l">На зараз</div><div class="v" id="r-live">—</div></div>
+      <div class="stat"><div class="l">Продукт., хв</div><div class="v" id="r-prod">0</div></div>
+      <div class="stat"><div class="l">Непродукт., хв</div><div class="v" id="r-down">0</div></div>
+    </div>
+    <div class="row-actions"><button id="n-clear-qty" type="button">Очистити кількість</button><button id="n-reset" type="button">Очистити все</button></div>
+  </div>
+</div>
+</div>
 <script>
-/* ==================== КАЛЬКУЛЯТОР ПРОДУКТИВНОСТІ ==================== */
-(function () {
-  var overlay = document.getElementById('productivity-overlay');
-  var closeBtn = document.getElementById('productivity-close');
-  function closeProductivity() {
-    overlay.classList.remove('open');
-    overlay.setAttribute('aria-hidden', 'true');
-  }
-  closeBtn.addEventListener('click', closeProductivity);
-  overlay.addEventListener('click', function (e) {
-    if (e.target === overlay) closeProductivity();
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && overlay.classList.contains('open')) closeProductivity();
-  });
 
 (function () {
   var KEY = 'norma-calc-v1';
   var $ = function (id) { return document.getElementById(id); };
-  var num = function (v) { var n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : 0; };
-  var state = load() || { shift: 450, start: '07:00', lunch: 30,
+  // число з будь-яким роздільником цілих і сотих: 534,9  534.9  534٫9  534-9  534/9  534 9 тощо.
+  // Останній нецифровий символ між цифрами — десяткова крапка, усі попередні (тисячі) ігноруються.
+  var num = function (v) {
+    var t = String(v === undefined || v === null ? '' : v).trim();
+    var m = t.match(/^(.*\d)\D+(\d+)$/), n;
+    if (m) n = parseFloat(m[1].replace(/\D/g, '') + '.' + m[2]);
+    else if (/^\D+\d+$/.test(t)) n = parseFloat('0.' + t.replace(/\D/g, ''));   // «,5» → 0,5
+    else n = parseFloat(t.replace(/\D/g, ''));
+    return isFinite(n) ? n : 0;
+  };
+  var state = load() || { shift: '', start: '06:30', lunchAt: '11:00',
     rows: [{ name: '', art: '', norm: '', qty: '' }], down: [{ name: '', min: '' }] };
 
   function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } }
-  state.rows.forEach(function (r) { if (r.art === undefined) r.art = ''; });
+  if (!state.lunchAt) state.lunchAt = '11:00';
+  state.rows.forEach(function (r) { if (r.art === undefined) r.art = ''; r.qty = String(r.qty || '').replace(/\D/g, '').slice(0, 4); });
   var LIBKEY = 'norma-lib-v1';
   function loadLib() { try { return JSON.parse(localStorage.getItem(LIBKEY)) || {}; } catch (e) { return {}; } }
   var LIBMAX = 50;
@@ -9735,14 +9775,21 @@ if (instantStart) instantStart.remove();
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
   function fmt(n, d) { return n.toLocaleString('uk-UA', { maximumFractionDigits: d === undefined ? 1 : d }); }
 
+  var LUNCH = 20, BREAK = 5;    // обід 20 хв, дві перерви по 5 хв
+  function toMin(t, d) { var p = (t || d).split(':'); return (+p[0]) * 60 + (+p[1] || 0); }
+  // відпрацьовані хвилини від початку зміни: без обіду (о вибраній годині) і двох перерв
+  // (через 2 год після початку та за 2 год до кінця; кінець = робочі хв + обід + перерви)
   function elapsedMinutes() {
-    var p = (state.start || '07:00').split(':');
-    var startMin = (+p[0]) * 60 + (+p[1] || 0);
-    var now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
-    var diff = nowMin - startMin;
-    if (diff < 0) diff += 1440;            // зміна через північ
-    diff -= num(state.lunch);
-    return Math.max(0, Math.min(diff, num(state.shift)));
+    var startMin = toMin(state.start, '06:30');
+    var now = new Date(), raw = now.getHours() * 60 + now.getMinutes() - startMin;
+    if (raw < 0) raw += 1440;              // зміна через північ
+    var shift = num(state.shift), total = shift + LUNCH + 2 * BREAK;
+    var lo = toMin(state.lunchAt, '11:00') - startMin; if (lo < 0) lo += 1440;
+    var worked = raw;
+    [[120, BREAK], [total - 120, BREAK], [lo, LUNCH]].forEach(function (x) {
+      worked -= Math.max(0, Math.min(raw, x[0] + x[1]) - x[0]);
+    });
+    return Math.max(0, Math.min(worked, shift));
   }
 
   function renderRows() {
@@ -9751,16 +9798,19 @@ if (instantStart) instantStart.remove();
       var tr = document.createElement('tr'); tr.className = 'item';
       tr.innerHTML =
         '<td class="name"><input data-k="name" placeholder="Назва" autocomplete="off"></td>' +
-        '<td class="art"><input data-k="art" inputmode="numeric" maxlength="7" pattern="[0-9]*" placeholder="Артикул" autocomplete="off"></td>' +
-        '<td class="f1"><input data-k="norm" inputmode="decimal" placeholder="Норма"></td>' +
-        '<td class="f2"><input data-k="qty" inputmode="decimal" placeholder="Шт"></td>' +
+        '<td class="art" data-lab="Артикул"><input data-k="art" inputmode="numeric" maxlength="7" pattern="[0-9]*" placeholder="Артикул" autocomplete="off"></td>' +
+        '<td class="f1" data-lab="Норма, хв/100 шт"><input data-k="norm" inputmode="decimal" placeholder="Норма"></td>' +
+        '<td class="f2" data-lab="Кількість, шт"><input data-k="qty" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="Шт"></td>' +
         '<td class="del"><button class="x" type="button" aria-label="Видалити рядок">✕</button></td>' +
         '<td class="sg"><div class="sugg"></div></td>' +
         '<td class="calc"><span class="calc-line"><span data-c="ph"></span></span></td>';
       var sugg = tr.querySelector('.sugg');
-      function showSugg() {
+      function showSugg(src) {
         sugg.innerHTML = '';
-        var keys = Object.keys(lib).filter(function (k) { return k.indexOf(r.art) === 0; }).sort(function (a, b) { return (lib[b].t || 0) - (lib[a].t || 0); }).slice(0, LIBMAX);
+        var keys = Object.keys(lib).filter(function (k) {
+          if (src === 'name') { var q = String(r.name || '').toLowerCase().trim(); return !q || String(lib[k].name || '').toLowerCase().indexOf(q) >= 0; }
+          return k.indexOf(r.art) === 0;
+        }).sort(function (a, b) { return (lib[b].t || 0) - (lib[a].t || 0); }).slice(0, LIBMAX);
         if (!keys.length) return;
         var cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = 'Додати зі збереженого:';
         sugg.appendChild(cap);
@@ -9773,7 +9823,7 @@ if (instantStart) instantStart.remove();
           chip.addEventListener('pointerdown', function (e) {
             e.preventDefault();
             if (e.target === d) {
-              if (confirm('Видалити ' + k + ' зі збереженого?')) { delete lib[k]; saveLib(); showSugg(); }
+              if (confirm('Видалити ' + k + ' зі збереженого?')) { delete lib[k]; saveLib(); showSugg(src); }
               return;
             }
             r.art = k; r.name = it.name || ''; r.norm = it.norm || '';
@@ -9788,15 +9838,28 @@ if (instantStart) instantStart.remove();
       ['name', 'art', 'norm', 'qty'].forEach(function (k) {
         var inp = tr.querySelector('[data-k="' + k + '"]');
         inp.value = r[k];
+        var mark = function () { if (k === 'art') inp.classList.toggle('inv', inp.value.length > 0 && inp.value.length !== 7); };
+        mark();
         inp.addEventListener('input', function () {
-          if (k === 'art') inp.value = inp.value.replace(/\D/g, '').slice(0, 7);
-          r[k] = inp.value; upsertLib(r); update();
-          if (k === 'art') showSugg();
+          if (k === 'art') inp.value = inp.value.replace(/\D/g, '').slice(0, 7);   // артикул — рівно 7 цифр
+          if (k === 'qty') inp.value = inp.value.replace(/\D/g, '').slice(0, 4);   // кількість — не більше 4 цифр
+          mark();
+          r[k] = inp.value;
+          if (k === 'art' && inp.value.length === 7 && lib[inp.value]) {   // повний артикул з архіву — заповнити порожні поля рядка
+            var it = lib[inp.value];
+            if (!r.name) { r.name = it.name || ''; tr.querySelector('[data-k="name"]').value = r.name; }
+            if (!r.norm) { r.norm = it.norm || ''; tr.querySelector('[data-k="norm"]').value = r.norm; }
+          }
+          upsertLib(r); update();
+          if (k === 'art' || k === 'name') showSugg(k);
         });
       });
-      var artInp = tr.querySelector('[data-k="art"]');
-      artInp.addEventListener('focus', showSugg);
-      artInp.addEventListener('blur', function () { setTimeout(function () { sugg.innerHTML = ''; }, 150); });
+      var hideT = null;
+      ['art', 'name'].forEach(function (k) {
+        var el = tr.querySelector('[data-k="' + k + '"]');
+        el.addEventListener('focus', function () { clearTimeout(hideT); showSugg(k); });
+        el.addEventListener('blur', function () { hideT = setTimeout(function () { sugg.innerHTML = ''; }, 150); });
+      });
       tr.querySelector('.x').addEventListener('click', function () {
         state.rows.splice(i, 1); if (!state.rows.length) state.rows.push({ name: '', art: '', norm: '', qty: '' });
         renderRows(); update();
@@ -9837,17 +9900,96 @@ if (instantStart) instantStart.remove();
     function paint(el, v) { el.textContent = v === null ? '—' : fmt(v) + '%'; el.className = 'v ' + (v === null ? '' : v >= 100 ? 'good' : 'bad'); }
     paint($('r-pct'), pct); paint($('r-live'), live);
     $('r-prod').textContent = fmt(prod, 0);
+    $('r-down').textContent = fmt(downtime, 0);
+    $('n-cfg-sum').textContent = (num(state.shift) > 0 ? 'Зміна: ' + state.shift + ' хв · ' + state.start + ' · обід ' + state.lunchAt : 'Налаштувати зміну') + (($('n-cfg').open) ? ' ▴' : ' ▾');
     save();
   }
 
-  [['n-shift', 'shift'], ['n-start', 'start'], ['n-lunch', 'lunch']].forEach(function (p) {
+  // дві останні зміни (весь ряд: тривалість, початок, обід). Перша в списку — активна: усі правки полів
+  // змінюють саме її. Нова зміна створюється лише кнопкою «+ нова зміна».
+  var SHKEY = 'norma-shifts-v1', presets = [], presetsOpen = false;
+  try { presets = JSON.parse(localStorage.getItem(SHKEY)) || []; } catch (e) { presets = []; }
+  var cur = function () { return { shift: state.shift, start: state.start, lunchAt: state.lunchAt }; };
+  var valid = function (c) { return num(c.shift) > 0 && c.start && c.lunchAt; };
+  function savePresets() {
+    presets = presets.slice(0, 2);
+    try { localStorage.setItem(SHKEY, JSON.stringify(presets)); } catch (e) {}
+  }
+  function applyPreset(pr) {
+    state.shift = pr.shift; state.start = pr.start; state.lunchAt = pr.lunchAt;
+    $('n-shift').value = pr.shift; $('n-start').value = pr.start; $('n-lunch').value = pr.lunchAt;
+  }
+  function renderPresets() {
+    var box = $('n-presets'); box.innerHTML = '';
+    if (!presetsOpen || !presets.length) return;
+    var cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = 'Зміни (редагується виділена):'; box.appendChild(cap);
+    presets.forEach(function (pr, i) {
+      var chip = document.createElement('div'); chip.className = 'chip' + (i === 0 ? ' on' : '');
+      chip.innerHTML = '<span class="t"></span>';
+      chip.firstChild.textContent = pr.shift + ' хв · ' + pr.start + ' · обід ' + pr.lunchAt;
+      chip.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        presets = [pr].concat(presets.filter(function (q) { return q !== pr; }));
+        applyPreset(pr); savePresets(); presetsOpen = false; $('n-shift').blur(); renderPresets(); update();
+      });
+      box.appendChild(chip);
+    });
+    if (presets.length) {
+      var add = document.createElement('div'); add.className = 'chip'; add.innerHTML = '<span class="t">+ нова зміна</span>';
+      add.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        presets.unshift(cur()); savePresets(); renderPresets();   // копія поточної стає активною; далі правте її поля
+      });
+      box.appendChild(add);
+    }
+  }
+  function onSettingsEdit() {
+    if (!valid(cur())) return;
+    if (!presets.length) presets.unshift(cur()); else presets[0] = cur();
+    savePresets(); renderPresets();
+  }
+  if (!presets.length && valid(cur())) { presets = [cur()]; savePresets(); }
+
+  [['n-shift', 'shift'], ['n-start', 'start'], ['n-lunch', 'lunchAt']].forEach(function (p) {
     var el = $(p[0]); el.value = state[p[1]];
-    el.addEventListener('input', function () { state[p[1]] = el.value; update(); });
+    el.addEventListener('input', function () { state[p[1]] = el.value; update(); onSettingsEdit(); });
+  });
+  $('n-shift').addEventListener('focus', function () { presetsOpen = true; renderPresets(); });
+  $('n-shift').addEventListener('blur', function () { setTimeout(function () { presetsOpen = false; renderPresets(); }, 150); });
+  renderPresets();
+  // випадний список збережених артикулів: натискання додає артикул у перший порожній рядок (або в новий)
+  var savedBox = $('n-saved-list');
+  function renderSaved() {
+    savedBox.innerHTML = '';
+    var keys = Object.keys(lib).sort(function (a, b) { return (lib[b].t || 0) - (lib[a].t || 0); });
+    if (!keys.length) { var e = document.createElement('div'); e.className = 'cap'; e.textContent = 'Збережених артикулів поки немає'; savedBox.appendChild(e); return; }
+    keys.forEach(function (k) {
+      var it = lib[k], chip = document.createElement('div'); chip.className = 'chip';
+      chip.innerHTML = '<span class="t"></span>';
+      chip.firstChild.textContent = k + (it.name ? ' · ' + it.name : '') + (it.norm ? ' · ' + it.norm : '');
+      chip.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        var row = null;
+        state.rows.some(function (r) { if (!r.art && !r.name && !r.norm) { row = r; return true; } });
+        if (!row) { row = { name: '', art: '', norm: '', qty: '' }; state.rows.push(row); }
+        row.art = k; row.name = it.name || ''; row.norm = it.norm || '';
+        lib[k].t = Date.now(); saveLib();
+        renderRows(); update();
+      });
+      savedBox.appendChild(chip);
+    });
+  }
+  $('n-saved').addEventListener('click', function () {
+    var show = savedBox.hidden;
+    savedBox.hidden = !show;
+    $('n-saved').textContent = show ? 'Збережені ▴' : 'Збережені ▾';
+    if (show) renderSaved();
   });
   $('n-add').addEventListener('click', function () { state.rows.push({ name: '', art: '', norm: '', qty: '' }); renderRows(); update(); });
   $('n-clear-qty').addEventListener('click', function () {
     state.rows.forEach(function (r) { r.qty = ''; });
-    renderRows(); update();
+    state.down.forEach(function (d) { d.min = ''; });
+    renderRows(); renderDown(); update();
   });
   var resetBtn = $('n-reset'), resetTimer = null;
   resetBtn.addEventListener('click', function () {
@@ -9862,12 +10004,20 @@ if (instantStart) instantStart.remove();
   });
 
   renderRows(); renderDown(); update();
-  setInterval(update, 60000);   // оновлювати «на зараз» щохвилини
+  $('n-cfg').open = !(num(state.shift) > 0);
+  $('n-cfg').addEventListener('toggle', update);   // розгорнуто, лише поки тривалість не задана
+  // тап поза блоком (навіть по порожньому місцю) закриває відкриті «Зміна» і «Збережені»
+  document.addEventListener('pointerdown', function (e) {
+    var cfg = $('n-cfg');
+    if (cfg.open && !cfg.contains(e.target)) cfg.open = false;
+    if (!savedBox.hidden && !savedBox.contains(e.target) && e.target !== $('n-saved')) {
+      savedBox.hidden = true; $('n-saved').textContent = 'Збережені ▾';
+    }
+  });
+  setInterval(update, 60000);
+  window.normaRefresh = function () { $('n-cfg').open = !(num(state.shift) > 0); update(); };   // оновлювати «на зараз» щохвилини
 })();
 
-})();
 </script>
-<div id="ready-dot" aria-hidden="true"></div>
-<div id="diag-box" class="hidden" aria-hidden="true"></div>
 </body>
 </html>
