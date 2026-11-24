@@ -1637,6 +1637,10 @@ body.mode-public #result .art-r.art-r-fav {
 #norma-overlay.open { display:block; }
 #norma-overlay, #norma-overlay * { -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; }
 #norma-overlay button, #norma-overlay summary, #norma-overlay .chip { -webkit-user-select:none; user-select:none; }
+/* списки підказок: кожен рядок окремо, у стовпчик */
+#norma .sugg { flex-direction:column; flex-wrap:nowrap; align-items:stretch; gap:4px; max-height:220px; }
+#norma .sugg .chip { width:100%; justify-content:space-between; border-radius:12px; padding:9px 6px 9px 12px; font-size:15px; }
+#norma .sugg .chip .t { white-space:normal; }
 #norma-overlay .nrm-bar { position:sticky; top:0; z-index:40; background:#fff; padding:calc(8px + env(safe-area-inset-top)) 12px 4px; }
 #norma-overlay .nrm-bar button { min-height:40px; padding:6px 14px; border:1px solid #222; border-radius:10px; background:#fff; color:#111; font-size:14px; font-weight:600; }
 #norma-overlay .nrm-bar button:active { background:#f1f5f9; }
@@ -1973,7 +1977,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 229;
+const CODE_VERSION = 230;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -9664,6 +9668,8 @@ if (instantStart) instantStart.remove();
   var LIBKEY = 'norma-lib-v1';
   function loadLib() { try { return JSON.parse(localStorage.getItem(LIBKEY)) || {}; } catch (e) { return {}; } }
   var LIBMAX = 50;
+  // підпис збереженого артикула: назва · артикул · норма
+  function libLabel(k, it) { return [it.name, k, it.norm].filter(Boolean).join(' · '); }
   var lib = loadLib();
   function saveLib() { try { localStorage.setItem(LIBKEY, JSON.stringify(lib)); } catch (e) {} }
   function upsertLib(r) {
@@ -9719,7 +9725,7 @@ if (instantStart) instantStart.remove();
         keys.forEach(function (k) {
           var it = lib[k], chip = document.createElement('div'); chip.className = 'chip';
           var t = document.createElement('span'); t.className = 't';
-          t.textContent = k + (it.name ? ' · ' + it.name : '') + (it.norm ? ' · ' + it.norm : '');
+          t.textContent = libLabel(k, it);
           var d = document.createElement('span'); d.className = 'd'; d.textContent = '✕'; d.title = 'Видалити зі збереженого';
           chip.appendChild(t); chip.appendChild(d); sugg.appendChild(chip);
           chip.addEventListener('pointerdown', function (e) {
@@ -9868,7 +9874,7 @@ if (instantStart) instantStart.remove();
     keys.forEach(function (k) {
       var it = lib[k], chip = document.createElement('div'); chip.className = 'chip';
       chip.innerHTML = '<span class="t"></span>';
-      chip.firstChild.textContent = k + (it.name ? ' · ' + it.name : '') + (it.norm ? ' · ' + it.norm : '');
+      chip.firstChild.textContent = libLabel(k, it);
       chip.addEventListener('pointerdown', function (e) {
         e.preventDefault();
         var row = null;
