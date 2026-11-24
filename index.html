@@ -1437,44 +1437,6 @@ body.mode-public #result .art-r.art-r-fav {
 }
 
 
-/* ==================== ІНДИКАТОР ГОТОВНОСТІ ==================== */
-#ready-dot {
-    position: fixed;
-    top: calc(env(safe-area-inset-top) + 8px);
-    left: 50%;
-    width: 9px;
-    height: 9px;
-    margin-left: -4.5px;
-    border-radius: 50%;
-    background: #22c55e;
-    box-shadow: 0 0 0 2px rgba(34,197,94,0.25);
-    pointer-events: none;
-    z-index: 9998;
-    transition: background-color .12s ease, box-shadow .12s ease, transform .12s ease;
-}
-#ready-dot.busy {
-    background: #f59e0b;
-    box-shadow: 0 0 0 2px rgba(245,158,11,0.3);
-    transform: scale(1.25);
-}
-body.mode-public #ready-dot { display: none; }
-/* ==================== ДІАГНОСТИКА ДОТИКІВ ==================== */
-#diag-box {
-    position: fixed;
-    top: calc(env(safe-area-inset-top) + 22px);
-    left: 6px;
-    right: 6px;
-    z-index: 9999;
-    pointer-events: none;
-    font: 11px/1.25 ui-monospace, Menlo, monospace;
-    color: #fff;
-    background: rgba(0,0,0,0.72);
-    border-radius: 8px;
-    padding: 6px 8px;
-    white-space: pre;
-    overflow: hidden;
-}
-#diag-box.hidden { display: none; }
 
   /* Усі стилі обмежені блоком #norma — не зачеплять решту вашого сайту */
   #norma{--bg:#fff;--card:#f6f7f9;--text:#1c2024;--muted:#6b7280;--line:#d9dde3;--accent:#2563eb;--good:#15803d;--bad:#b91c1c;
@@ -1940,7 +1902,6 @@ html.theme-dark #norma .cfg[open] summary { color:#a5b4fc; }
                 <button type="button" class="filter-option interface-choice" data-interface-mode="readable">Читабельний · v73</button>
                 <button type="button" class="filter-option interface-choice" data-clean-toggle aria-pressed="false">Чистий</button>
                 <button type="button" class="filter-option interface-choice" data-theme-toggle aria-pressed="false">Темна тема</button>
-                <button type="button" class="filter-option interface-choice" data-diag-toggle aria-pressed="false">Діагностика</button>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
                 <div class="filter-empty" aria-hidden="true"></div>
@@ -2012,7 +1973,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 225;
+const CODE_VERSION = 228;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2417,6 +2378,20 @@ if (normaOverlay) {
     });
     const nc = document.getElementById('norma-close');
     if (nc) nc.addEventListener('click', closeNorma);
+    /* Курсор (блимаюча риска) — у кінці тексту при вході в поле: можна одразу стирати або дописувати */
+    let nJustFocused = false;
+    normaOverlay.addEventListener('focusin', e => {
+        const t = e.target;
+        if (!(t && t.matches && t.matches('input:not([type=time])'))) return;
+        nJustFocused = true;
+        const toEnd = () => {
+            if (!nJustFocused || document.activeElement !== t) return;
+            try { const n = t.value.length; t.setSelectionRange(n, n); } catch (_) {}
+        };
+        toEnd();
+        [0, 60, 160].forEach(d => setTimeout(toEnd, d));
+        setTimeout(() => { nJustFocused = false; }, 300);
+    });
 }
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && normaOverlay && normaOverlay.classList.contains('open')) closeNorma();
@@ -2442,68 +2417,6 @@ function setDarkTheme(on) {
     applyDarkTheme();
 }
 applyDarkTheme();
-/* ---------- Діагностика дотиків: які події реально приходять (особливо під час анімації) ---------- */
-const DIAG_KEY = 'diagMode';
-let diagOn = false;
-try { diagOn = localStorage.getItem(DIAG_KEY) === '1'; } catch (e) {}
-const diagBox = document.getElementById('diag-box');
-const diagCount = {};
-const diagLog = [];
-let diagT0 = performance.now();
-let diagScrollBusy = false;
-function diagRender() {
-    if (!diagBox || !diagOn) return;
-    const c = k => diagCount[k] || 0;
-    diagBox.textContent =
-        'TS ' + c('touchstart') + '  TE ' + c('touchend') + '  TC ' + c('touchcancel') +
-        '  PD ' + c('pointerdown') + '  PU ' + c('pointerup') + '  PC ' + c('pointercancel') +
-        '  CL ' + c('click') + '  SCR ' + c('scroll') + '\n' + diagLog.slice(-9).join('\n');
-}
-function diagNote(type, e) {
-    if (!diagOn) return;
-    diagCount[type] = (diagCount[type] || 0) + 1;
-    if (type === 'scroll') {
-        if (diagScrollBusy) { diagRender(); return; }
-        diagScrollBusy = true;
-        setTimeout(() => { diagScrollBusy = false; }, 200);
-    }
-    const busy = readyDotBusy() ? 'АНІМ' : 'спокій';
-    let tgt = '';
-    try {
-        const t = e && e.target;
-        if (t && t.tagName) {
-            tgt = t.tagName.toLowerCase() +
-                (t.dataset && (t.dataset.anav || t.dataset.pmEdit) ? '[' + (t.dataset.anav || t.dataset.pmEdit) + ']' : '') +
-                ' ' + String(t.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 12);
-        }
-    } catch (_) {}
-    const trusted = e && e.isTrusted === false ? ' (наш)' : '';
-    diagLog.push(String(Math.round(performance.now() - diagT0)).padStart(6) + ' ' + type + trusted + ' ' + busy + ' ' + tgt);
-    if (diagLog.length > 40) diagLog.shift();
-    diagRender();
-}
-function readyDotBusy() {
-    const d = document.getElementById('ready-dot');
-    return !!(d && d.classList.contains('busy'));
-}
-['touchstart', 'touchend', 'touchcancel', 'pointerdown', 'pointerup', 'pointercancel', 'click'].forEach(ev => {
-    document.addEventListener(ev, e => diagNote(ev, e), { capture: true, passive: true });
-});
-document.addEventListener('scroll', e => diagNote('scroll', e), { capture: true, passive: true });
-function applyDiag() {
-    if (diagBox) diagBox.classList.toggle('hidden', !diagOn);
-    document.querySelectorAll('[data-diag-toggle]').forEach(b => {
-        b.classList.toggle('active', diagOn);
-        b.setAttribute('aria-pressed', String(diagOn));
-    });
-    if (diagOn) { diagT0 = performance.now(); diagLog.length = 0; Object.keys(diagCount).forEach(k => delete diagCount[k]); diagRender(); }
-}
-function setDiag(on) {
-    diagOn = !!on;
-    try { localStorage.setItem(DIAG_KEY, diagOn ? '1' : '0'); } catch (e) {}
-    applyDiag();
-}
-applyDiag();
 document.querySelectorAll('.page').forEach(p => {
     p.style.width = pageWidthPercent + '%';
 });
@@ -2768,15 +2681,8 @@ document
             (expandInterfaceButton ||
                 e.target.closest('[data-clean-toggle]') ||
                 e.target.closest('[data-theme-toggle]') ||
-                e.target.closest('[data-diag-toggle]') ||
                 e.target.closest('[data-interface-mode]'))
         ) {
-            return;
-        }
-        if (e.target.closest('[data-diag-toggle]')) {
-            e.preventDefault();
-            e.stopPropagation();
-            setDiag(!diagOn);
             return;
         }
         if (e.target.closest('[data-productivity-open]')) {
@@ -8408,17 +8314,6 @@ function nativePageSettled() {
     }
     syncNativeLock();
 }
-/* Крапка зверху: зелена — можна тапати, бурштинова — триває анімація/прокрутка (тап усе одно спрацює) */
-const readyDot = document.getElementById('ready-dot');
-let readyDotTimer = 0;
-function markBusy() {
-    if (!readyDot) return;
-    readyDot.classList.add('busy');
-    clearTimeout(readyDotTimer);
-    readyDotTimer = setTimeout(() => readyDot.classList.remove('busy'), 140);
-}
-if (pagesViewport) pagesViewport.addEventListener('scroll', markBusy, { passive: true });
-if (typeof articlesPager !== 'undefined' && articlesPager) articlesPager.addEventListener('scroll', markBusy, { passive: true });
 if (pagesViewport) {
     let nativeTimer = 0;
     pagesViewport.addEventListener('scroll', () => {
@@ -9699,8 +9594,6 @@ const instantStart = document.getElementById('instant-start');
 if (instantStart) instantStart.remove();
 } , 0));
 </script>
-<div id="ready-dot" aria-hidden="true"></div>
-<div id="diag-box" class="hidden" aria-hidden="true"></div>
 <div id="norma-overlay" aria-hidden="true">
 <div class="nrm-bar"><button id="norma-close" type="button">‹ Назад</button></div>
 <div id="norma">
@@ -9708,7 +9601,7 @@ if (instantStart) instantStart.remove();
   <details class="cfg" id="n-cfg">
     <summary id="n-cfg-sum">⚙ Зміна ▾</summary>
     <div class="grid">
-      <div><label for="n-shift">Зміна, хв</label><input id="n-shift" type="number" min="0" step="1" placeholder="480"></div>
+      <div><label for="n-shift">Зміна, хв</label><input id="n-shift" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="480"></div>
       <div><label for="n-start">Початок</label><input id="n-start" type="time" value="07:00"></div>
       <div><label for="n-lunch">Обід о</label><input id="n-lunch" type="time" value="11:00"></div>
     </div>
