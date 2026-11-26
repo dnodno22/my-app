@@ -1093,7 +1093,7 @@ input#input.qty-mode {
     font-weight: 700;
     color: #6b7280;
 }
-.pm-btn-st { display:inline-block; margin-left:6px; vertical-align:middle; text-align:left; }
+.pm-btn-st { display:inline-block; margin-right:6px; vertical-align:middle; text-align:left; }
 .pm-btn-st .station-list-readable { display:inline-flex; }
 body.interface-classic .pm-btn-st .station-list-classic { display:inline; }
 .pm-group-chips {
@@ -1980,7 +1980,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 232;
+const CODE_VERSION = 233;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -6148,11 +6148,11 @@ function buildArticlesLevelHtml(
                         class="premontage-item-btn${wl ? ' favorite' : ''}"
                         data-anav="category"
                         data-category="${escapeHtml(c)}"
-                        data-label="${escapeHtml(label)}">${escapeHtml(label)}${
+                        data-label="${escapeHtml(label)}">${
                             pmStationCache[String(state.article).trim() + '|' + c] != null
-                                ? ' <span class="article-stations pm-btn-st">' + buildStationsHtml([escapeHtml(pmStationCache[String(state.article).trim() + '|' + c])]) + '</span>'
+                                ? '<span class="article-stations pm-btn-st">' + buildStationsHtml([escapeHtml(pmStationCache[String(state.article).trim() + '|' + c])]) + '</span>'
                                 : ''
-                        }${
+                        }${escapeHtml(label)}${
                             wl && wl.qty
                                 ? `<span class="pm-qty-badge">${escapeHtml(wl.qty)}</span>`
                                 : ''
