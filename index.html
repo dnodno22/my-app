@@ -1636,6 +1636,44 @@ body.mode-public #result .art-r.art-r-fav {
 #norma .cfg[open] summary { margin-bottom:6px; color:#1e3a8a; font-weight:600; }
 
 /* ==================== ПРОДУКТИВНІСТЬ (калькулятор норми) ==================== */
+/* ==================== ТЕСТУВАННЯ ==================== */
+#tests-overlay { position:fixed; inset:0; z-index:9000; display:none; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; background:#fff; color:#111; }
+#tests-overlay.open { display:block; }
+#tests-overlay .ts-bar { position:sticky; top:0; z-index:40; background:#fff; padding:calc(8px + env(safe-area-inset-top)) 12px 8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+#tests-overlay .ts-bar button { min-height:40px; padding:6px 14px; border:1px solid #222; border-radius:10px; background:#fff; color:#111; font-size:14px; font-weight:600; }
+#tests-overlay .ts-bar button:active { background:#f1f5f9; }
+#tests-overlay .ts-bar button.on { background:#111; color:#fff; }
+#tests-overlay .ts-bar .ts-sp { flex:1; }
+#tests-body { padding:4px 12px calc(40px + env(safe-area-inset-bottom)); max-width:720px; margin:0 auto; }
+#tests-overlay .tq { border:1px solid #e5e7eb; border-radius:14px; padding:12px; margin-bottom:12px; background:#fafafa; }
+#tests-overlay .tq-sec { font-size:12px; color:#6b7280; margin-bottom:4px; }
+#tests-overlay .tq-q { font-size:17px; font-weight:700; line-height:1.3; margin-bottom:10px; }
+#tests-overlay .tq-a { display:block; width:100%; text-align:left; margin:0 0 8px; padding:11px 12px; border:1px solid #d1d5db; border-radius:12px; background:#fff; color:#111; font-size:16px; line-height:1.3; white-space:normal; word-break:break-word; }
+#tests-overlay .tq-a:active { background:#eef2ff; }
+#tests-overlay .tq-a.ok { background:#dcfce7; border-color:#16a34a; }
+#tests-overlay .tq-a.bad { background:#fee2e2; border-color:#dc2626; }
+#tests-overlay .tq-a small { display:block; margin-top:3px; font-size:13px; font-weight:600; color:#166534; }
+#tests-overlay .tq-fb { font-size:15px; font-weight:700; line-height:1.35; padding:2px 2px 0; }
+#tests-overlay .tq-fb.ok { color:#166534; }
+#tests-overlay .tq-fb.bad { color:#b91c1c; }
+#tests-overlay .tq-fb.none { color:#92400e; }
+#tests-overlay .ts-nav { display:flex; align-items:center; gap:8px; margin:6px 0 12px; }
+#tests-overlay .ts-nav button { flex:1; min-height:44px; border:1px solid #222; border-radius:10px; background:#fff; color:#111; font-size:16px; font-weight:700; }
+#tests-overlay .ts-nav span { min-width:70px; text-align:center; font-weight:700; }
+#tests-overlay .ts-msg { text-align:center; padding:40px 10px; color:#9ca3af; }
+html.theme-dark #tests-overlay { background:#121316; color:#e8eaed; }
+html.theme-dark #tests-overlay .ts-bar { background:#121316; }
+html.theme-dark #tests-overlay .ts-bar button, html.theme-dark #tests-overlay .ts-nav button { background:#1a1c21; color:#e8eaed; border-color:#5b6270; }
+html.theme-dark #tests-overlay .ts-bar button.on { background:#e8eaed; color:#121316; }
+html.theme-dark #tests-overlay .tq { background:#1a1c21; border-color:#2f333b; }
+html.theme-dark #tests-overlay .tq-sec { color:#9aa3b2; }
+html.theme-dark #tests-overlay .tq-a { background:#22252b; color:#e8eaed; border-color:#3a3f48; }
+html.theme-dark #tests-overlay .tq-a.ok { background:#14391f; border-color:#22c55e; }
+html.theme-dark #tests-overlay .tq-a.bad { background:#4a1d1d; border-color:#ef4444; }
+html.theme-dark #tests-overlay .tq-a small { color:#86efac; }
+html.theme-dark #tests-overlay .tq-fb.ok { color:#86efac; }
+html.theme-dark #tests-overlay .tq-fb.bad { color:#fca5a5; }
+html.theme-dark #tests-overlay .tq-fb.none { color:#fcd34d; }
 #norma-overlay { position:fixed; inset:0; z-index:9000; display:none; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; background:#fff; color:#111; }
 #norma-overlay.open { display:block; }
 #norma-overlay, #norma-overlay * { -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; }
@@ -1899,6 +1937,7 @@ html.theme-dark #norma .cfg[open] summary { color:#a5b4fc; }
                 <button type="button" class="filter-option filter-menu-heading" data-filter-expand aria-expanded="false">Фільтр</button>
                 <button type="button" class="filter-option filter-menu-heading" data-interface-expand aria-expanded="false">Інтерфейс</button>
                 <button type="button" class="filter-option filter-menu-heading" data-productivity-open>Продуктивність</button>
+                <button type="button" class="filter-option filter-menu-heading" data-tests-open>Тестування</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="all">Усі дані</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="audi">Audi</button>
                 <button type="button" class="filter-option filter-choice" data-search-filter="bmw">BMW</button>
@@ -1980,7 +2019,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 234;
+const CODE_VERSION = 236;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2364,6 +2403,175 @@ function setCleanMode(on) {
 }
 applyCleanMode();
 
+/* ==================== ТЕСТУВАННЯ ==================== */
+const TESTS_GID = "1209507632";
+const TESTS_CACHE_KEY = 'tests-csv-v1';
+const testsOverlay = document.getElementById('tests-overlay');
+const testsBody = document.getElementById('tests-body');
+let testsData = [];
+let testsAnswered = {};
+let testsMode = 'one';
+let testsPos = 0;
+try { if (localStorage.getItem('tests-mode') === 'list') testsMode = 'list'; } catch (_) {}
+function parseTests(text) {
+    const rows = parseCsvRows(text).map(r => [
+        String(r[0] || '').trim(), String(r[1] || '').trim(), String(r[2] || '').trim()
+    ]);
+    const out = [];
+    let i = 0;
+    while (i < rows.length) {
+        const [a, b, c] = rows[i];
+        if (a && !b && !c && /^тест/i.test(a) && i + 1 < rows.length) {
+            const sec = a;
+            const q = rows[i + 1][0];
+            let j = i + 2;
+            const answers = [];
+            while (j < rows.length && !(rows[j][0] && !rows[j][1] && !rows[j][2] && /^тест/i.test(rows[j][0]))) {
+                const [t, ok, how] = rows[j];
+                if (t) {
+                    const h = how.toLowerCase();
+                    answers.push({
+                        t,
+                        ok: /правильн/i.test(ok),
+                        how: /фото/.test(h) ? 'photo' : (/тест/.test(h) ? 'test' : '')
+                    });
+                }
+                j++;
+            }
+            if (q && answers.length) out.push({ sec, q, answers });
+            i = j;
+        } else {
+            i++;
+        }
+    }
+    return out;
+}
+function testsHow(how) {
+    return how === 'photo' ? 'обведена' : (how === 'test' ? 'позначена тестом' : '');
+}
+function testsQHtml(i) {
+    const t = testsData[i];
+    const chosen = testsAnswered[t.q];
+    const done = chosen !== undefined;
+    const oks = t.answers.filter(a => a.ok);
+    let h = `<div class="tq" data-q="${i}"><div class="tq-sec">${escapeHtml(t.sec)}</div><div class="tq-q">${escapeHtml(t.q)}</div>`;
+    t.answers.forEach((a, k) => {
+        let cls = '';
+        if (done) cls = a.ok ? ' ok' : (k === chosen ? ' bad' : '');
+        const tag = done && a.ok && testsHow(a.how) ? `<small>✔ ${testsHow(a.how)}</small>` : '';
+        h += `<button type="button" class="tq-a${cls}" data-a="${k}">${escapeHtml(a.t)}${tag}</button>`;
+    });
+    if (done) {
+        if (!oks.length) {
+            h += `<div class="tq-fb none">Тут правильної відповіді не було</div>`;
+        } else if (t.answers[chosen] && t.answers[chosen].ok) {
+            const w = testsHow(t.answers[chosen].how);
+            h += `<div class="tq-fb ok">✔ Правильно${w ? ' — ця відповідь ' + w : ''}</div>`;
+        } else {
+            h += `<div class="tq-fb bad">✘ Неправильно. Правильна: ${oks.map(a => escapeHtml(a.t) + (testsHow(a.how) ? ' (' + testsHow(a.how) + ')' : '')).join('; ')}</div>`;
+        }
+    }
+    return h + '</div>';
+}
+function renderTests() {
+    if (!testsBody) return;
+    testsOverlay.querySelectorAll('[data-tmode]').forEach(b =>
+        b.classList.toggle('on', b.dataset.tmode === testsMode));
+    if (!testsData.length) {
+        testsBody.innerHTML = '<div class="ts-msg">Завантаження тестів…</div>';
+        return;
+    }
+    if (testsMode === 'list') {
+        let h = '';
+        for (let i = 0; i < testsData.length; i++) h += testsQHtml(i);
+        testsBody.innerHTML = h;
+    } else {
+        testsPos = Math.max(0, Math.min(testsData.length - 1, testsPos));
+        testsBody.innerHTML =
+            `<div class="ts-nav"><button type="button" data-tnav="-1">‹</button><span>${testsPos + 1} / ${testsData.length}</span><button type="button" data-tnav="1">›</button></div>` +
+            testsQHtml(testsPos);
+    }
+}
+function loadTestsFromCache() {
+    try {
+        const t = localStorage.getItem(TESTS_CACHE_KEY);
+        if (t) testsData = parseTests(t);
+    } catch (_) {}
+}
+function fetchTests() {
+    fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${TESTS_GID}&t=` + Date.now())
+        .then(r => r.ok ? r.text() : null)
+        .then(t => {
+            if (!t || !t.trim() || /^\s*</.test(t)) throw 0;
+            let old = '';
+            try { old = localStorage.getItem(TESTS_CACHE_KEY) || ''; } catch (_) {}
+            if (old === t && testsData.length) return;
+            try { localStorage.setItem(TESTS_CACHE_KEY, t); } catch (_) {}
+            testsData = parseTests(t);
+            if (testsOverlay.classList.contains('open')) renderTests();
+        })
+        .catch(() => {
+            if (!testsData.length && testsBody) testsBody.innerHTML = '<div class="ts-msg">Не вдалося завантажити тести</div>';
+        });
+}
+function openTests() {
+    if (!testsOverlay) return;
+    testsOverlay.classList.add('open');
+    testsOverlay.setAttribute('aria-hidden', 'false');
+    testsOverlay.scrollTop = 0;
+    if (!testsData.length) loadTestsFromCache();
+    renderTests();
+    fetchTests();
+}
+function closeTests() {
+    if (!testsOverlay) return;
+    testsOverlay.classList.remove('open');
+    testsOverlay.setAttribute('aria-hidden', 'true');
+}
+if (testsOverlay) {
+    ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(ev => {
+        testsOverlay.addEventListener(ev, e => e.stopPropagation(), { passive: true });
+    });
+    testsOverlay.addEventListener('click', e => {
+        const tg = e.target;
+        if (tg.closest('#tests-close')) { closeTests(); return; }
+        const m = tg.closest('[data-tmode]');
+        if (m) {
+            testsMode = m.dataset.tmode;
+            try { localStorage.setItem('tests-mode', testsMode); } catch (_) {}
+            renderTests();
+            testsOverlay.scrollTop = 0;
+            return;
+        }
+        if (tg.closest('#tests-reset')) {
+            testsAnswered = {};
+            testsPos = 0;
+            renderTests();
+            testsOverlay.scrollTop = 0;
+            return;
+        }
+        const nv = tg.closest('[data-tnav]');
+        if (nv) {
+            testsPos += parseInt(nv.dataset.tnav, 10) || 0;
+            renderTests();
+            testsOverlay.scrollTop = 0;
+            return;
+        }
+        const a = tg.closest('.tq-a');
+        if (a) {
+            const card = a.closest('.tq');
+            const t = testsData[parseInt(card.dataset.q, 10)];
+            if (!t || testsAnswered[t.q] !== undefined) return;
+            testsAnswered[t.q] = parseInt(a.dataset.a, 10);
+            const keep = testsOverlay.scrollTop;
+            renderTests();
+            testsOverlay.scrollTop = keep;
+        }
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && testsOverlay.classList.contains('open')) closeTests();
+    });
+}
 /* ==================== ПРОДУКТИВНІСТЬ: відкриття/закриття ==================== */
 const normaOverlay = document.getElementById('norma-overlay');
 function openNorma() {
@@ -2701,6 +2909,13 @@ document
                 e.target.closest('[data-theme-toggle]') ||
                 e.target.closest('[data-interface-mode]'))
         ) {
+            return;
+        }
+        if (e.target.closest('[data-tests-open]')) {
+            e.preventDefault();
+            e.stopPropagation();
+            setFilterPanelOpen(false);
+            openTests();
             return;
         }
         if (e.target.closest('[data-productivity-open]')) {
@@ -5548,8 +5763,18 @@ function buildArticlesLevelHtml(
                 Кількість = у скількох станціях матеріал
                 зустрічається на цьому артикулі.
             */
-            const qtySets = {};
+            const stationMats = new Set();
             rows.forEach(r => {
+                if (!isPremontageName(r.station)) {
+                    stationMats.add(String(r.material || "").trim());
+                }
+            });
+            const plcClean = r =>
+                !isIsotapeAddress(r.address) &&
+                !(isPremontageName(r.station) &&
+                  !stationMats.has(String(r.material || "").trim()));
+            const qtySets = {};
+            (state.sortQty || state.sharedAll ? rows.filter(plcClean) : rows).forEach(r => {
                 const m =
                     String(r.material || "").trim();
                 if (!qtySets[m]) {
@@ -5571,16 +5796,6 @@ function buildArticlesLevelHtml(
                 «Кількість» / «Спільні матеріали» / «Спільні з…»: без матеріалів
                 на А5 і без тих, що йдуть на передмонтаж, але не стоять на станції.
             */
-            const stationMats = new Set();
-            rows.forEach(r => {
-                if (!isPremontageName(r.station)) {
-                    stationMats.add(String(r.material || "").trim());
-                }
-            });
-            const plcClean = r =>
-                !isIsotapeAddress(r.address) &&
-                !(isPremontageName(r.station) &&
-                  !stationMats.has(String(r.material || "").trim()));
             if (state.sortQty || state.sharedAll) {
                 placementRows = placementRows.filter(plcClean);
             }
@@ -9663,6 +9878,16 @@ const instantStart = document.getElementById('instant-start');
 if (instantStart) instantStart.remove();
 } , 0));
 </script>
+<div id="tests-overlay" aria-hidden="true">
+<div class="ts-bar">
+<button id="tests-close" type="button">‹ Назад</button>
+<button type="button" data-tmode="one">По одному</button>
+<button type="button" data-tmode="list">Списком</button>
+<span class="ts-sp"></span>
+<button type="button" id="tests-reset" title="Почати спочатку">↺</button>
+</div>
+<div id="tests-body"></div>
+</div>
 <div id="norma-overlay" aria-hidden="true">
 <div class="nrm-bar"><button id="norma-close" type="button">‹ Назад</button></div>
 <div id="norma">
