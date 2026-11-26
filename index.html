@@ -2019,7 +2019,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 236;
+const CODE_VERSION = 237;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2421,12 +2421,12 @@ function parseTests(text) {
     let i = 0;
     while (i < rows.length) {
         const [a, b, c] = rows[i];
-        if (a && !b && !c && /^тест/i.test(a) && i + 1 < rows.length) {
+        if (a && !b && !c && /^(тест|назва тесту)/i.test(a) && i + 1 < rows.length) {
             const sec = a;
             const q = rows[i + 1][0];
             let j = i + 2;
             const answers = [];
-            while (j < rows.length && !(rows[j][0] && !rows[j][1] && !rows[j][2] && /^тест/i.test(rows[j][0]))) {
+            while (j < rows.length && !(rows[j][0] && !rows[j][1] && !rows[j][2] && /^(тест|назва тесту)/i.test(rows[j][0]))) {
                 const [t, ok, how] = rows[j];
                 if (t) {
                     const h = how.toLowerCase();
@@ -2454,7 +2454,7 @@ function testsQHtml(i) {
     const chosen = testsAnswered[t.q];
     const done = chosen !== undefined;
     const oks = t.answers.filter(a => a.ok);
-    let h = `<div class="tq" data-q="${i}"><div class="tq-sec">${escapeHtml(t.sec)}</div><div class="tq-q">${escapeHtml(t.q)}</div>`;
+    let h = `<div class="tq" data-q="${i}">${/^назва тесту/i.test(t.sec) ? '' : `<div class="tq-sec">${escapeHtml(t.sec)}</div>`}<div class="tq-q">${escapeHtml(t.q)}</div>`;
     t.answers.forEach((a, k) => {
         let cls = '';
         if (done) cls = a.ok ? ' ok' : (k === chosen ? ' bad' : '');
