@@ -1980,7 +1980,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 233;
+const CODE_VERSION = 234;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2049,7 +2049,9 @@ const ACTION_LABELS = {
     "список": '<span class="ico">📋 </span>Список'
 };
 function actionLabel(key) {
-    return ACTION_LABELS[key] || escapeHtml(key);
+    if (ACTION_LABELS[key]) return ACTION_LABELS[key];
+    const k = String(key || "");
+    return '<span class="ico">🏷 </span>' + escapeHtml(k.charAt(0).toUpperCase() + k.slice(1));
 }
 /* ==================== ELEMENTS ==================== */
 const input = document.getElementById('input');
@@ -5369,6 +5371,30 @@ function articleHasAction(
         action
     ).length > 0;
 }
+/*
+    Кнопки з приміток: перше слово примітки (до цифр) → кнопка в меню артикулу.
+    Слова, для яких кнопки вже є, і службові ("Роз'єм") пропускаємо.
+*/
+const NOTE_WORD_SKIP = new Set([
+    'sp', 'ts', 'стр', 'мм', 'передмонтаж', 'розміщення', 'проводи',
+    'список', 'ізострічка', "роз'єм", 'роз’єм', 'розєм', 'разъем'
+]);
+function getNoteWordsForArticle(article) {
+    const art = String(article).trim();
+    const words = new Set();
+    searchData.forEach(row => {
+        const note = String(row.colD || "").trim().toLowerCase();
+        if (!note) return;
+        if (!expandArticleValue(row.article).includes(art)) return;
+        const m = note.match(/^[\p{L}'’ʼ`]+/u);
+        if (!m) return;
+        const w = m[0];
+        if (w.length < 3 || NOTE_WORD_SKIP.has(w)) return;
+        if (/^(стр|передмонтаж)/.test(w)) return;
+        words.add(w);
+    });
+    return [...words].sort((a, b) => a.localeCompare(b, 'uk'));
+}
 function getAvailableActionsForArticle(
     article
 ) {
@@ -5382,7 +5408,7 @@ function getAvailableActionsForArticle(
                 article,
                 k
             )
-        );
+        ).concat(getNoteWordsForArticle(article));
     _actionsCache[cacheKey] = result;
     return result;
 }
@@ -5541,6 +5567,23 @@ function buildArticlesLevelHtml(
                 return set ? set.size : 0;
             };
             let placementRows = [...rows];
+            /*
+                «Кількість» / «Спільні матеріали» / «Спільні з…»: без матеріалів
+                на А5 і без тих, що йдуть на передмонтаж, але не стоять на станції.
+            */
+            const stationMats = new Set();
+            rows.forEach(r => {
+                if (!isPremontageName(r.station)) {
+                    stationMats.add(String(r.material || "").trim());
+                }
+            });
+            const plcClean = r =>
+                !isIsotapeAddress(r.address) &&
+                !(isPremontageName(r.station) &&
+                  !stationMats.has(String(r.material || "").trim()));
+            if (state.sortQty || state.sharedAll) {
+                placementRows = placementRows.filter(plcClean);
+            }
             const shMode = state.shMode || '';
             const sharedOn = !!(state.shared || state.sharedAll);
             if (sharedOn) {
@@ -5689,6 +5732,7 @@ function buildArticlesLevelHtml(
                     const map = new Map();
                     getAllMaterialsForArticle(art).forEach(r => {
                         if (isPremontageName(r.station)) return;
+                        if (isIsotapeAddress(r.address)) return;
                         const m = String(r.material || '').trim();
                         if (!m) return;
                         if (!map.has(m)) map.set(m, new Set());
