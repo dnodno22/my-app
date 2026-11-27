@@ -10352,8 +10352,9 @@ if (instantStart) instantStart.remove();
       var chip = document.createElement('div'); chip.className = 'chip' + (i === 0 ? ' on' : '');
       chip.innerHTML = '<span class="t"></span>';
       chip.firstChild.textContent = pr.shift + ' хв · ' + pr.start + ' · обід ' + pr.lunchAt;
-      chip.addEventListener('pointerdown', function (e) {
-        e.preventDefault();
+      chip.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); });
+      chip.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
         presets = [pr].concat(presets.filter(function (q) { return q !== pr; }));
         applyPreset(pr); savePresets(); presetsOpen = false; $('n-shift').blur(); renderPresets(); update();
       });
@@ -10361,8 +10362,9 @@ if (instantStart) instantStart.remove();
     });
     if (presets.length) {
       var add = document.createElement('div'); add.className = 'chip'; add.innerHTML = '<span class="t">+ нова зміна</span>';
-      add.addEventListener('pointerdown', function (e) {
-        e.preventDefault();
+      add.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); });
+      add.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
         presets.unshift(cur()); savePresets(); renderPresets();   // копія поточної стає активною; далі правте її поля
       });
       box.appendChild(add);
@@ -10380,7 +10382,9 @@ if (instantStart) instantStart.remove();
     el.addEventListener('input', function () { state[p[1]] = el.value; update(); onSettingsEdit(); });
   });
   $('n-shift').addEventListener('focus', function () { presetsOpen = true; renderPresets(); });
-  $('n-shift').addEventListener('blur', function () { setTimeout(function () { presetsOpen = false; renderPresets(); }, 150); });
+  $('n-shift').addEventListener('blur', function () { setTimeout(function () { if (document.activeElement === $('n-shift')) return; if (!presetsOpen) return; presetsOpen = false; renderPresets(); }, 350); });
+  $('n-presets').addEventListener('touchstart', function (e) { e.stopPropagation(); }, { passive: true });
+  $('n-presets').addEventListener('touchend', function (e) { e.stopPropagation(); }, { passive: true });
   renderPresets();
   // випадний список збережених артикулів: натискання додає артикул у перший порожній рядок (або в новий)
   var savedBox = $('n-saved-list');
