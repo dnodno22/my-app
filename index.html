@@ -1638,7 +1638,13 @@ body.mode-public #result .art-r.art-r-fav {
 /* ==================== ПРОДУКТИВНІСТЬ (калькулятор норми) ==================== */
 /* ==================== ТЕСТУВАННЯ ==================== */
 #tests-overlay { position:fixed; inset:0; z-index:9000; display:none; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; background:#fff; color:#111; }
-#tests-overlay.open { display:block; }
+#tests-overlay.open { display:flex; flex-direction:column; overflow:hidden; }
+#tests-overlay .ts-bar { flex-shrink:0; }
+#tests-overlay #tests-body { flex:1; min-height:0; width:100%; overflow-y:auto; touch-action:pan-y; padding-bottom:12px; }
+#tests-footer { flex-shrink:0; }
+#tests-status { display:flex; gap:8px; padding:8px 12px; }
+#tests-status[hidden] { display:none; }
+#tests-status button { flex:1; }
 #tests-overlay .ts-bar { position:sticky; top:0; z-index:40; background:#fff; padding:calc(8px + env(safe-area-inset-top)) 12px 8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
 #tests-overlay .ts-bar button { min-height:40px; padding:6px 8px; border:1px solid #222; border-radius:10px; background:#fff; color:#111; font-size:13px; font-weight:600; }
 #tests-overlay .ts-bar button:active { background:#f1f5f9; }
@@ -2421,6 +2427,19 @@ const TESTS_CACHE_KEY = 'tests-csv-v1';
 const testsOverlay = document.getElementById('tests-overlay');
 const testsBody = document.getElementById('tests-body');
 let testsData = [];
+let testsRandomOrder = [], testsOptionOrders = new Map();
+function testsShuffle(items) {
+    const a = items.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+function testsRandomize() {
+    testsRandomOrder = testsShuffle(testsData.map((_, i) => i));
+    testsOptionOrders = new Map(testsData.map((t, i) => [i, testsShuffle(t.answers.map((_, k) => k))]));
+}
 let testsAnswered = {};
 try { testsAnswered = JSON.parse(localStorage.getItem('tests-answers-v1') || '{}') || {}; } catch (_) { testsAnswered = {}; }
 function testsSave() { try { localStorage.setItem('tests-answers-v1', JSON.stringify(testsAnswered)); } catch (_) {} }
@@ -2475,7 +2494,8 @@ function testsQHtml(i) {
     const done = chosen !== undefined;
     const oks = t.answers.filter(a => a.ok);
     let h = `<div class="tq" data-q="${i}">${/^назва тесту/i.test(t.sec) ? '' : `<div class="tq-sec">${escapeHtml(t.sec)}</div>`}<div class="tq-q">${escapeHtml(t.q)}</div>`;
-    t.answers.forEach((a, k) => {
+    (testsOptionOrders.get(i) || t.answers.map((_, k) => k)).forEach(k => {
+        const a = t.answers[k];
         let cls = '';
         if (done) cls = a.ok ? ' ok' : (k === chosen ? ' bad' : '');
         const tag = done && a.ok && testsHow(a.how) ? `<small>✔ ${testsHow(a.how)}</small>` : '';
@@ -2539,7 +2559,9 @@ function testsIdx() {
         if (testsStatus && testsMode !== 'key' && testsState(t) !== testsStatus) return;
         out.push(i);
     });
-    return out;
+    if (testsMode === 'key') return out;
+    const allowed = new Set(out);
+    return testsRandomOrder.filter(i => allowed.has(i));
 }
 function testsFiltersHtml() {
     const cnt = new Map();
@@ -2549,12 +2571,6 @@ function testsFiltersHtml() {
     keys.forEach(k => {
         h += `<button type="button" class="ts-chip${testsFilter === k ? ' on' : ''}" data-tfilter="${escapeHtml(k)}">${escapeHtml(testsThemeLabel(k))} · ${cnt.get(k)}</button>`;
     });
-    if (testsMode !== 'key') {
-        const g = testsData.filter(t => testsState(t) === 'good').length;
-        const bd = testsData.filter(t => testsState(t) === 'bad').length;
-        h += `<button type="button" class="ts-chip${testsStatus === 'bad' ? ' on' : ''}" data-tstatus="bad">✘ Невірно · ${bd}</button>`;
-        h += `<button type="button" class="ts-chip${testsStatus === 'good' ? ' on' : ''}" data-tstatus="good">✔ Вірно · ${g}</button>`;
-    }
     if (testsMode === 'key') {
         const n = testsData.filter(t => !t.answers.some(a => a.ok)).length;
         h += `<button type="button" class="ts-chip${testsNoAns ? ' on' : ''}" data-tnoans="1">Без відповіді · ${n}</button>`;
@@ -2572,6 +2588,9 @@ function renderTestsStat() {
         if (st === 'good') g++; else if (st === 'bad') b++;
     });
     el.style.display = testsData.length ? '' : 'none';
+    const status = document.getElementById('tests-status');
+    status.hidden = testsMode === 'key' || !testsData.length;
+    status.innerHTML = `<button type="button" class="ts-chip${testsStatus === 'bad' ? ' on' : ''}" data-tstatus="bad">✘ Невірно</button><button type="button" class="ts-chip${testsStatus === 'good' ? ' on' : ''}" data-tstatus="good">✔ Вірно</button>`;
     el.innerHTML = `<span>Відповіли: ${a} / ${testsData.length}</span><span class="g">✔ ${g}</span><span class="b">✘ ${b}</span>`;
 }
 function renderTests() {
@@ -2612,12 +2631,12 @@ function renderTests() {
 function testsStep(d) {
     if (testsMode === 'key') testsKeyPos += d; else testsPos += d;
     renderTests();
-    testsOverlay.scrollTop = 0;
+    testsBody.scrollTop = 0;
 }
 function loadTestsFromCache() {
     try {
         const t = localStorage.getItem(TESTS_CACHE_KEY);
-        if (t) testsData = parseTests(t);
+        if (t) { testsData = parseTests(t); testsRandomize(); }
     } catch (_) {}
 }
 function fetchTests() {
@@ -2630,6 +2649,7 @@ function fetchTests() {
             if (old === t && testsData.length) return;
             try { localStorage.setItem(TESTS_CACHE_KEY, t); } catch (_) {}
             testsData = parseTests(t);
+            testsRandomize();
             if (testsOverlay.classList.contains('open')) renderTests();
         })
         .catch(() => {
@@ -2640,7 +2660,7 @@ function openTests() {
     if (!testsOverlay) return;
     testsOverlay.classList.add('open');
     testsOverlay.setAttribute('aria-hidden', 'false');
-    testsOverlay.scrollTop = 0;
+    testsBody.scrollTop = 0;
     if (!testsData.length) loadTestsFromCache();
     renderTests();
     fetchTests();
@@ -2715,16 +2735,17 @@ if (testsOverlay) {
             testsMode = m.dataset.tmode;
             try { localStorage.setItem('tests-mode', testsMode); } catch (_) {}
             renderTests();
-            testsOverlay.scrollTop = 0;
+            testsBody.scrollTop = 0;
             return;
         }
         if (tg.closest('#tests-reset')) {
             testsAnswered = {};
+            testsRandomize();
             testsSave();
             testsStatus = '';
             testsPos = 0;
             renderTests();
-            testsOverlay.scrollTop = 0;
+            testsBody.scrollTop = 0;
             return;
         }
         const st = tg.closest('[data-tstatus]');
@@ -2732,7 +2753,7 @@ if (testsOverlay) {
             testsStatus = testsStatus === st.dataset.tstatus ? '' : st.dataset.tstatus;
             testsPos = 0;
             renderTests();
-            testsOverlay.scrollTop = 0;
+            testsBody.scrollTop = 0;
             return;
         }
         const fl = tg.closest('[data-tfilter]');
@@ -2740,20 +2761,20 @@ if (testsOverlay) {
             testsFilter = fl.dataset.tfilter;
             testsPos = 0; testsKeyPos = 0;
             renderTests();
-            testsOverlay.scrollTop = 0;
+            testsBody.scrollTop = 0;
             return;
         }
         if (tg.closest('[data-tnoans]')) {
             testsNoAns = !testsNoAns;
             testsKeyPos = 0;
             renderTests();
-            testsOverlay.scrollTop = 0;
+            testsBody.scrollTop = 0;
             return;
         }
         const nv = tg.closest('[data-tnav]');
         if (nv) {
             testsStep(parseInt(nv.dataset.tnav, 10) || 0);
-            testsOverlay.scrollTop = 0;
+            testsBody.scrollTop = 0;
             return;
         }
         const a = tg.closest('.tq-a');
@@ -2763,9 +2784,9 @@ if (testsOverlay) {
             if (!t || testsAnswered[t.q] !== undefined) return;
             testsAnswered[t.q] = parseInt(a.dataset.a, 10);
             testsSave();
-            const keep = testsOverlay.scrollTop;
+            const keep = testsBody.scrollTop;
             renderTests();
-            testsOverlay.scrollTop = keep;
+            testsBody.scrollTop = keep;
         }
     });
     document.addEventListener('keydown', e => {
@@ -10087,7 +10108,7 @@ if (instantStart) instantStart.remove();
 <button type="button" id="tests-reset" title="Почати спочатку">↺</button>
 </div>
 <div id="tests-body"></div>
-<div id="tests-stat"></div>
+<div id="tests-footer"><div id="tests-status" hidden></div><div id="tests-stat"></div></div>
 </div>
 <div id="norma-overlay" aria-hidden="true">
 <div class="nrm-bar"><button id="norma-close" type="button">‹ Назад</button></div>
