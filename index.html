@@ -1635,6 +1635,14 @@ body.mode-public #result .art-r.art-r-fav {
 #norma .cfg[open] { background:#eef2ff; padding:6px 8px 8px; }
 #norma .cfg[open] summary { margin-bottom:6px; color:#1e3a8a; font-weight:600; }
 
+/* Рекомендації: рядки як у таблиці, заливка як у налаштуваннях зміни */
+#norma tr.item .sugg:not(:empty) { display:flex; flex-direction:column; flex-wrap:nowrap; gap:4px; max-height:220px; padding:6px; background:#eef2ff; border-radius:12px; }
+#norma tr.item .sugg .chip { display:grid; grid-template-columns:minmax(0,1fr) 86px 60px 30px; gap:4px; width:100%; min-height:38px; padding:4px 0; border:0; border-radius:8px; background:#eef2ff; color:#111; font-size:14px; }
+#norma tr.item .sugg .chip .t { min-width:0; padding-left:8px; overflow-wrap:anywhere; }
+#norma tr.item .sugg .chip .sa, #norma tr.item .sugg .chip .sn { text-align:center; font-variant-numeric:tabular-nums; }
+#norma tr.item .sugg .chip .d { text-align:center; padding:6px 0; }
+#norma tr.item .sugg .chip:active { background:#e0e7ff; }
+
 /* ==================== ПРОДУКТИВНІСТЬ (калькулятор норми) ==================== */
 /* ==================== ТЕСТУВАННЯ ==================== */
 #tests-overlay { position:fixed; inset:0; z-index:9000; display:none; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; background:#fff; color:#111; }
@@ -2552,10 +2560,13 @@ function testsThemeLabel(k) {
     const m = k.match(/«(.+)»/);
     return m ? m[1] : k;
 }
+function testsIsStandard(t) {
+    return /[A-Za-z]/.test(t.q);
+}
 function testsIdx() {
     const out = [];
     testsData.forEach((t, i) => {
-        if (testsFilter && testsTheme(t) !== testsFilter) return;
+        if (testsFilter === "__standards" ? !testsIsStandard(t) : testsFilter && testsTheme(t) !== testsFilter) return;
         if (testsStatus && testsMode !== 'key' && testsState(t) !== testsStatus) return;
         out.push(i);
     });
@@ -2568,6 +2579,7 @@ function testsFiltersHtml() {
     testsData.forEach(t => cnt.set(testsTheme(t), (cnt.get(testsTheme(t)) || 0) + 1));
     const keys = [...cnt.keys()].sort((x, y) => (x === '__none') - (y === '__none'));
     let h = `<button type="button" class="ts-chip${testsFilter ? '' : ' on'}" data-tfilter="">Усі · ${testsData.length}</button>`;
+    h += `<button type="button" class="ts-chip${testsFilter === '__standards' ? ' on' : ''}" data-tfilter="__standards">Стандарти · ${testsData.filter(testsIsStandard).length}</button>`;
     keys.forEach(k => {
         h += `<button type="button" class="ts-chip${testsFilter === k ? ' on' : ''}" data-tfilter="${escapeHtml(k)}">${escapeHtml(testsThemeLabel(k))} · ${cnt.get(k)}</button>`;
     });
@@ -10219,7 +10231,7 @@ if (instantStart) instantStart.remove();
       function showSugg(src) {
         sugg.innerHTML = '';
         var keys = Object.keys(lib).filter(function (k) {
-          if (src === 'name') { var q = String(r.name || '').toLowerCase().trim(); return !q || String(lib[k].name || '').toLowerCase().indexOf(q) >= 0; }
+          if (src === 'name') { var q = String(r.name || '').toLowerCase().trim(); return !q || String(lib[k].name || '').trim().toLowerCase().startsWith(q); }
           return k.indexOf(r.art) === 0;
         }).sort(function (a, b) { return (lib[b].t || 0) - (lib[a].t || 0); }).slice(0, LIBMAX);
         if (!keys.length) return;
@@ -10228,9 +10240,11 @@ if (instantStart) instantStart.remove();
         keys.forEach(function (k) {
           var it = lib[k], chip = document.createElement('div'); chip.className = 'chip';
           var t = document.createElement('span'); t.className = 't';
-          t.textContent = libLabel(k, it);
+          t.textContent = it.name || '';
+          var a = document.createElement('span'); a.className = 'sa'; a.textContent = k;
+          var n = document.createElement('span'); n.className = 'sn'; n.textContent = it.norm || '';
           var d = document.createElement('span'); d.className = 'd'; d.textContent = '✕'; d.title = 'Видалити зі збереженого';
-          chip.appendChild(t); chip.appendChild(d); sugg.appendChild(chip);
+          chip.appendChild(t); chip.appendChild(a); chip.appendChild(n); chip.appendChild(d); sugg.appendChild(chip);
           chip.addEventListener('pointerdown', function (e) {
             e.preventDefault();
             if (e.target === d) {
@@ -10300,7 +10314,7 @@ if (instantStart) instantStart.remove();
       var norm = num(r.norm), qty = num(r.qty);
       var nm = norm * qty / 100;                 // нормо-хвилини рядка
       normMin += nm;
-      trs[i].querySelector('[data-c="ph"]').textContent = norm ? 'шт/год: ' + fmt(6000 / norm) : '';
+      trs[i].querySelector('[data-c="ph"]').textContent = norm > 0 ? 'шт/год: ' + fmt(6000 / norm) + ' · 1 шт: ' + fmt(norm / 100, 3) + ' хв' : '';
     });
 
     var prod = Math.max(0, shift - downtime);
