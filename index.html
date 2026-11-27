@@ -2019,7 +2019,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 237;
+const CODE_VERSION = 238;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2437,6 +2437,11 @@ function parseTests(text) {
                     });
                 }
                 j++;
+            }
+            /* Немає позначки, але є варіант «Обидві/всі відповіді правильні» — він і є правильним */
+            if (!answers.some(x => x.ok)) {
+                const all = answers.find(x => /^(обидві|обидва|всі|усі)\s.*(вірн|правильн)/i.test(x.t));
+                if (all) all.ok = true;
             }
             if (q && answers.length) out.push({ sec, q, answers });
             i = j;
