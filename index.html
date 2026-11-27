@@ -1645,6 +1645,12 @@ body.mode-public #result .art-r.art-r-fav {
 #tests-overlay .ts-bar button.on { background:#111; color:#fff; }
 #tests-overlay .ts-bar .ts-sp { flex:1; }
 #tests-overlay { overflow-x:hidden; }
+#tests-stat { position:sticky; bottom:0; z-index:40; display:flex; justify-content:center; gap:16px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#fff; border-top:1px solid #e5e7eb; font-size:15px; font-weight:700; }
+#tests-stat .g { color:#166534; }
+#tests-stat .b { color:#b91c1c; }
+html.theme-dark #tests-stat { background:#121316; border-top-color:#2f333b; }
+html.theme-dark #tests-stat .g { color:#86efac; }
+html.theme-dark #tests-stat .b { color:#fca5a5; }
 #tests-body { padding:4px 12px calc(40px + env(safe-area-inset-bottom)); max-width:720px; margin:0 auto; }
 #tests-overlay .ts-chips { display:flex; gap:6px; overflow-x:auto; padding:2px 0 10px; -webkit-overflow-scrolling:touch; touch-action:pan-x; }
 #tests-overlay .ts-chip { flex:0 0 auto; min-height:36px; padding:4px 12px; border:1px solid #cbd5e1; border-radius:18px; background:#fff; color:#111; font-size:13px; font-weight:600; white-space:nowrap; }
@@ -2025,7 +2031,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 242;
+const CODE_VERSION = 244;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2416,6 +2422,8 @@ const testsOverlay = document.getElementById('tests-overlay');
 const testsBody = document.getElementById('tests-body');
 let testsData = [];
 let testsAnswered = {};
+try { testsAnswered = JSON.parse(localStorage.getItem('tests-answers-v1') || '{}') || {}; } catch (_) { testsAnswered = {}; }
+function testsSave() { try { localStorage.setItem('tests-answers-v1', JSON.stringify(testsAnswered)); } catch (_) {} }
 let testsMode = 'one';
 let testsPos = 0;
 let testsKeyPos = 0;
@@ -2509,6 +2517,12 @@ function testsKeyHtml(i) {
 /* Фільтр за темою тесту */
 let testsFilter = '';
 let testsNoAns = false;
+let testsStatus = '';
+function testsState(t) {
+    const c = testsAnswered[t.q];
+    if (c === undefined || !t.answers.some(a => a.ok)) return '';
+    return t.answers[c] && t.answers[c].ok ? 'good' : 'bad';
+}
 let testsCurPos = 0, testsCurN = 0;
 function testsTheme(t) {
     return /^назва тесту/i.test(t.sec) ? '__none' : t.sec;
@@ -2520,7 +2534,11 @@ function testsThemeLabel(k) {
 }
 function testsIdx() {
     const out = [];
-    testsData.forEach((t, i) => { if (!testsFilter || testsTheme(t) === testsFilter) out.push(i); });
+    testsData.forEach((t, i) => {
+        if (testsFilter && testsTheme(t) !== testsFilter) return;
+        if (testsStatus && testsMode !== 'key' && testsState(t) !== testsStatus) return;
+        out.push(i);
+    });
     return out;
 }
 function testsFiltersHtml() {
@@ -2531,14 +2549,34 @@ function testsFiltersHtml() {
     keys.forEach(k => {
         h += `<button type="button" class="ts-chip${testsFilter === k ? ' on' : ''}" data-tfilter="${escapeHtml(k)}">${escapeHtml(testsThemeLabel(k))} · ${cnt.get(k)}</button>`;
     });
+    if (testsMode !== 'key') {
+        const g = testsData.filter(t => testsState(t) === 'good').length;
+        const bd = testsData.filter(t => testsState(t) === 'bad').length;
+        h += `<button type="button" class="ts-chip${testsStatus === 'bad' ? ' on' : ''}" data-tstatus="bad">✘ Невірно · ${bd}</button>`;
+        h += `<button type="button" class="ts-chip${testsStatus === 'good' ? ' on' : ''}" data-tstatus="good">✔ Вірно · ${g}</button>`;
+    }
     if (testsMode === 'key') {
         const n = testsData.filter(t => !t.answers.some(a => a.ok)).length;
         h += `<button type="button" class="ts-chip${testsNoAns ? ' on' : ''}" data-tnoans="1">Без відповіді · ${n}</button>`;
     }
     return `<div class="ts-chips">${h}</div>`;
 }
+function renderTestsStat() {
+    const el = document.getElementById('tests-stat');
+    if (!el) return;
+    let a = 0, g = 0, b = 0;
+    testsData.forEach(t => {
+        if (testsAnswered[t.q] === undefined) return;
+        a++;
+        const st = testsState(t);
+        if (st === 'good') g++; else if (st === 'bad') b++;
+    });
+    el.style.display = testsData.length ? '' : 'none';
+    el.innerHTML = `<span>Відповіли: ${a} / ${testsData.length}</span><span class="g">✔ ${g}</span><span class="b">✘ ${b}</span>`;
+}
 function renderTests() {
     if (!testsBody) return;
+    renderTestsStat();
     testsOverlay.querySelectorAll('[data-tmode]').forEach(b =>
         b.classList.toggle('on', b.dataset.tmode === testsMode));
     if (!testsData.length) {
@@ -2682,6 +2720,16 @@ if (testsOverlay) {
         }
         if (tg.closest('#tests-reset')) {
             testsAnswered = {};
+            testsSave();
+            testsStatus = '';
+            testsPos = 0;
+            renderTests();
+            testsOverlay.scrollTop = 0;
+            return;
+        }
+        const st = tg.closest('[data-tstatus]');
+        if (st) {
+            testsStatus = testsStatus === st.dataset.tstatus ? '' : st.dataset.tstatus;
             testsPos = 0;
             renderTests();
             testsOverlay.scrollTop = 0;
@@ -2714,6 +2762,7 @@ if (testsOverlay) {
             const t = testsData[parseInt(card.dataset.q, 10)];
             if (!t || testsAnswered[t.q] !== undefined) return;
             testsAnswered[t.q] = parseInt(a.dataset.a, 10);
+            testsSave();
             const keep = testsOverlay.scrollTop;
             renderTests();
             testsOverlay.scrollTop = keep;
@@ -10038,6 +10087,7 @@ if (instantStart) instantStart.remove();
 <button type="button" id="tests-reset" title="Почати спочатку">↺</button>
 </div>
 <div id="tests-body"></div>
+<div id="tests-stat"></div>
 </div>
 <div id="norma-overlay" aria-hidden="true">
 <div class="nrm-bar"><button id="norma-close" type="button">‹ Назад</button></div>
