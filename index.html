@@ -2561,7 +2561,7 @@ function testsThemeLabel(k) {
     return m ? m[1] : k;
 }
 function testsIsStandard(t) {
-    return /[A-Za-z]/.test(t.q);
+    return /[A-Za-z]/.test(t.q) || t.answers.some(a => /[A-Za-z]/.test(a.t));
 }
 function testsIdx() {
     const out = [];
