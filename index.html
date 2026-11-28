@@ -1896,6 +1896,54 @@ html.theme-dark #norma .cfg[open] { background:#262a4a; }
 html.theme-dark #norma .cfg[open] summary { color:#a5b4fc; }
 
 </style>
+<style>
+/* Кольори проводів: смужка на нижній рамці, без текстових кодів. */
+.wire-color-field { display:inline-block; position:relative; padding:3px 6px 11px; border:1px solid #d1d5db; border-radius:9px; white-space:nowrap; }
+.wire-row:has(> .wire-color-band), .pm-group-item:has(> .wire-color-band), td:has(> .wire-color-band) { position:relative; padding-bottom:12px; }
+.wire-color-band { position:absolute; left:0; right:0; bottom:0; height:7px; border-top:1px solid #9ca3af; border-bottom-left-radius:inherit; border-bottom-right-radius:inherit; background:var(--wire-colors); pointer-events:none; display:block; }
+html.theme-dark .wire-color-field { border-color:#535965; }
+/* Пошук: кольори лише на нижньому краї номера матеріалу.
+   Кнопка залишається самостійним елементом, щоб зірочка та кількість не зміщувались. */
+#result .mat-pick.wire-color-field {
+    display:inline-block;
+    position:relative;
+    flex:0 0 auto;
+    margin:0;
+    padding:3px 7px 9px;
+    border:1px solid #d1d5db;
+    border-radius:9px;
+    background:#fff;
+    color:#111;
+    line-height:1.1;
+    white-space:nowrap;
+    overflow:hidden;
+    vertical-align:middle;
+}
+#result .mat-pick.wire-color-field > .wire-color-band {
+    height:5px;
+    bottom:0;
+    left:0;
+    right:0;
+    border-radius:0;
+    border-top:1px solid #9ca3af;
+    pointer-events:none;
+}
+#result .mat-pick.wire-color-field > mark.hl {
+    background:#fde047;
+    color:#111;
+    font-weight:inherit;
+}
+#result .mat-pick.wire-color-field:active,
+#result .mat-pick.wire-color-field.qty-target { background:#eef2ff; }
+html.theme-dark #result .mat-pick.wire-color-field {
+    background:#1c1e23;
+    color:#e8eaed;
+    border-color:#535965;
+}
+html.theme-dark #result .mat-pick.wire-color-field:active,
+html.theme-dark #result .mat-pick.wire-color-field.qty-target { background:#262a4a; }
+
+</style>
 </head>
 <body class="mode-public">
 <div id="instant-start" aria-label="Пошук">
@@ -2045,7 +2093,7 @@ setTimeout(() => document.getElementById("instant-start")?.remove(), 2200);
 requestAnimationFrame(() => setTimeout(() => {
 /* ==================== ДЖЕРЕЛО ДАНИХ ==================== */
 /* ==================== ВЕРСІЯ КОДУ ==================== */
-const CODE_VERSION = 244;
+const CODE_VERSION = 245;
 const SPREADSHEET_ID = "1ii4oiQvbayKKN1tffS4X7WxH0NPZ0oiooaHPP6Ku6W8";
 const SEARCH_GID = "1679964111";
 const AUDI_GID = SEARCH_GID;
@@ -2068,6 +2116,120 @@ const SEARCH_PAGE_INDEX = 1;
 const ARTICLES_PAGE_INDEX = 2;
 let currentPage = SEARCH_PAGE_INDEX;
 let searchData = [];
+
+/* Візуальні кольори з приміток (colD). Не змінюємо вихідні дані. */
+const WIRE_COLORS = Object.freeze({
+    'БІЛ':'#ffffff','ЧОР':'#171717','ЧЕР':'#dc2626','ЗЕЛ':'#258b43',
+    'СИН':'#2563eb','КОР':'#79502f','ЖОВ':'#facc15','СІР':'#92979f',
+    'ФІОЛ':'#8245c4','ПОМ':'#f08a24','РОЖ':'#e678b5','БЛАК':'#57b8ff'
+});
+const WIRE_COLOR_WORDS = Object.keys(WIRE_COLORS).sort((a,b)=>b.length-a.length).join('|');
+const WIRE_COLOR_RUN = '(?:'+WIRE_COLOR_WORDS+')(?:\\s*/\\s*(?:'+WIRE_COLOR_WORDS+'))*';
+const WIRE_NOTE_RE = new RegExp('^('+WIRE_COLOR_RUN+')(?:\\s+М\\s*/\\s*('+WIRE_COLOR_RUN+'))?(?=\\s|$)', 'iu');
+const WIRE_NONCOLOR_RE = /(?:^|[\s;/])(?:SP|TS|MM|ММ|SL|трубка|роз['’ʼ]?єм|заглушка)(?=$|[\s;/\d])/iu;
+function parseWireColors(note) {
+    const combos = [], rest = [];
+    const raw = String(note || '').trim();
+    if (WIRE_NONCOLOR_RE.test(raw)) return {combos, text:raw, isColorNote:false};
+    for (const segment of raw.split(';')) {
+        const t = segment.trim().replace(/\bM(?=\s*\/)/gi,'М');
+        if (!t) continue;
+        const m = t.match(WIRE_NOTE_RE);
+        if (m) {
+            const colors = m[1].toUpperCase().split(/\s*\/\s*/).map(c=>WIRE_COLORS[c]);
+            const marks = m[2] ? m[2].toUpperCase().split(/\s*\/\s*/).map(c=>WIRE_COLORS[c]) : [];
+            combos.push({colors, marks});
+            const tail = t.slice(m[0].length).trim();
+            if (tail) rest.push(tail);
+        } else if (/^невідомий\s+колір(?:\s|$)/iu.test(t)) {
+            // Невідомий колір не підмінюємо сірим або білим.
+            rest.push(t);
+        } else rest.push(t);
+    }
+    return {combos, text:rest.join('; '), isColorNote:combos.length>0 || /^невідомий\s+колір(?:\s|$)/iu.test(raw)};
+}
+function isColorWireNumber(material) {
+    return /^15[2378]\d{5}$/.test(String(material||'').trim());
+}
+let wireIndexSource = null;
+let wireColorIndex = new Map();
+function wireRows(material, article, station, address) {
+    if (wireIndexSource !== searchData) {
+        wireIndexSource = searchData;
+        wireColorIndex = new Map();
+        searchData.forEach(r=>{
+            const m = String(r.material||'').trim();
+            if (!isColorWireNumber(m) || r.sourceGid === ADDRESS_GID) return;
+            if (!wireColorIndex.has(m)) wireColorIndex.set(m, []);
+            wireColorIndex.get(m).push(r);
+        });
+    }
+    const st = String(station||'').trim().toLowerCase();
+    const art = article ? String(article).trim() : '';
+    return (wireColorIndex.get(String(material||'').trim())||[]).filter(r=>
+        (!art || expandArticleValue(r.article).includes(art)) &&
+        (!st || st === '—' || st === '-' || String(r.station||'').trim().toLowerCase()===st) &&
+        (!address || String(r.address||'').trim()===String(address).trim())
+    );
+}
+function wireBandGradient(combos) {
+    if (!combos.length) return '';
+    const stops = [];
+    const n = combos.length;
+    combos.forEach(({colors,marks},i)=>{
+        const points = [0,100];
+        if (colors.length>1) for (let j=0;j<colors.length-1;j++) points.push(70+j*30/(colors.length-1));
+        if (marks.length) {
+            points.push(10,15,85,90);
+            for(let j=1;j<marks.length;j++) points.push(10+j*5/marks.length,85+j*5/marks.length);
+        }
+        const edges=[...new Set(points)].sort((a,b)=>a-b);
+        for(let j=0;j<edges.length-1;j++) {
+            const a=edges[j], b=edges[j+1], mid=(a+b)/2;
+            let color = colors[0];
+            if (colors.length>1 && mid>=70) color=colors[Math.min(colors.length-1,1+Math.floor((mid-70)/30*(colors.length-1)))];
+            if (marks.length && ((mid>=10&&mid<15)||(mid>=85&&mid<90))) {
+                const start=mid<15?10:85;
+                color=marks[Math.min(marks.length-1,Math.floor((mid-start)/5*marks.length))];
+            }
+            const pos=p=>((i+p/100)*100/n).toFixed(5)+'%';
+            stops.push(color+' '+pos(a),color+' '+pos(b));
+        }
+    });
+    return 'linear-gradient(to right,'+stops.join(',')+')';
+}
+function wireBandHtml(material, article='', station='', address='', exactRows=null) {
+    if (!isColorWireNumber(material)) return '';
+    const rows = exactRows || wireRows(material,article,station,address);
+    const unique = new Map();
+    rows.forEach(r=>{
+        if (String(r.material||'').trim()!==String(material).trim() || r.sourceGid===ADDRESS_GID) return;
+        parseWireColors(r.colD).combos.forEach(c=>unique.set(JSON.stringify(c),c));
+    });
+    const gradient = wireBandGradient([...unique.values()]);
+    return gradient ? `<span class="wire-color-band" aria-hidden="true" style="--wire-colors:${gradient}"></span>` : '';
+}
+function wireColorField(html, material, article='', station='', address='', rows=null) {
+    const band=wireBandHtml(material,article,station,address,rows);
+    return band ? `<span class="wire-color-field">${html}${band}</span>` : html;
+}
+function wireBandForItem(item) {
+    const k=String(item.key||'').split('|');
+    if (k[0]==='pm') return '';
+    if (k[0]==='spts') {
+        const action=k[2]||'';
+        if (action==='sp'||action==='ts') return '';
+        return wireBandHtml(item.material,k[1],action.startsWith('pm:')?action.slice(3):k[3],item.address);
+    }
+    const arts=Object.keys(item.articles||{}).flatMap(a=>expandArticleValue(a));
+    const rows=wireRows(item.material,'','',item.address).filter(r=>!arts.length||expandArticleValue(r.article).some(a=>arts.includes(a)));
+    return wireBandHtml(item.material,'','','',rows);
+}
+function wireFieldForItem(html,item) {
+    const band=wireBandForItem(item);
+    return band?`<span class="wire-color-field">${html}${band}</span>`:html;
+}
+
 let selectedSearchFilters = [];
 let filterOptionsOpen = false;
 let interfaceOptionsOpen = false;
@@ -3586,8 +3748,7 @@ function parseSearchCSV(parts) {
             if (String(part.gid) === SHARED_GID) {
                 return parseSharedSheet(csv, part.gid);
             }
-            return csv.split(/\r?\n/).map(r => {
-                const c = r.split(",");
+            return parseCsvRows(csv).map(c => {
                 return {
                     station: c[0] || "",
                     material: c[1] || "",
@@ -4320,7 +4481,7 @@ function renderWaitlistPage() {
                             data-star-idx="${idx}"
                             aria-label="Прибрати з обраних">★</button>
                         <span class="box-icon ico">📦</span>
-                        ${escapeHtml(item.material)}
+                        ${wireFieldForItem(escapeHtml(item.material),item)}
                     </span>
                     <div style="display:flex; align-items:center; gap:8px;">
                         ${item.qty
@@ -4568,7 +4729,7 @@ function buildPmGroupHtml(article, items) {
                 data-pm-edit="${idx}">
                 <div class="pm-group-line">
                     <span class="pm-group-name">
-                        ${escapeHtml(item.material)}${kindHtml}
+                        ${wireFieldForItem(escapeHtml(item.material),item)}${kindHtml}
                     </span>
                     <span class="pm-group-right">
                         ${addrHtml}
@@ -4706,6 +4867,7 @@ function buildPmGroupHtml(article, items) {
                 <span class="wire-location">
                     ${escapeHtml(li.address)}
                 </span>
+                ${wireBandForItem(x.it)}
             </div>
             ${hasComment
                 ? `<div class="waitlist-comment-text" style="margin-top:0;">${escapeHtml(x.it.comment)}</div>`
@@ -5257,7 +5419,7 @@ function getSearchRowsForFilters() {
                         String(row.colD || "").trim();
                     const noted152 =
                         /^152/.test(material) &&
-                        Boolean(hasNote);
+                        Boolean(hasNote) && !parseWireColors(hasNote).isColorNote;
                     return material &&
                         !/^158/.test(material) &&
                         (
@@ -5516,13 +5678,8 @@ function getWireRowsForArticle(article) {
         ) {
             return false;
         }
-        if (
-            String(
-                row.colD || ""
-            ).trim()
-        ) {
-            return false;
-        }
+        const note = String(row.colD || "").trim();
+        if (note && !parseWireColors(note).isColorNote) return false;
         return isWireMaterial(
             row.material
         );
@@ -5837,7 +5994,7 @@ function getNoteWordsForArticle(article) {
         const m = note.match(/^[\p{L}'’ʼ`]+/u);
         if (!m) return;
         const w = m[0];
-        if (w.length < 3 || NOTE_WORD_SKIP.has(w)) return;
+        if (w.length < 3 || NOTE_WORD_SKIP.has(w) || parseWireColors(note).isColorNote) return;
         if (/^(стр|передмонтаж)/.test(w)) return;
         words.add(w);
     });
@@ -6111,6 +6268,8 @@ function buildArticlesLevelHtml(
                     station: r.station,
                     material: r.material,
                     address: r.address,
+                    colD: r.colD,
+                    sourceGid: r.sourceGid,
                     shade: 0
                 }));
             let shadeIdx = -1;
@@ -6223,7 +6382,7 @@ function buildArticlesLevelHtml(
                                 ? ' style="border-top:2px solid #b6c0cf;"'
                                 : '';
                             const left = i < x.la.length
-                                ? `<b>${escapeHtml(x.la[i])}</b> ${escapeHtml(x.m)}${i === 0 ? `<span class="level-head-tail"> Σ${x.total}</span>` : ''}`
+                                ? `<b>${escapeHtml(x.la[i])}</b> ${wireColorField(escapeHtml(x.m),x.m,state.article,x.la[i])}${i === 0 ? `<span class="level-head-tail"> Σ${x.total}</span>` : ''}`
                                 : '';
                             const right = i < x.lb.length
                                 ? `<b>${escapeHtml(x.lb[i])}</b>`
@@ -6275,7 +6434,7 @@ function buildArticlesLevelHtml(
                             ${toSearchAttr(r.material)}
                             style="cursor:pointer;">
                             <td${tdStyle}>${escapeHtml(r.station)}</td>
-                            <td${tdStyle}>${escapeHtml(r.material)}</td>
+                            <td${tdStyle}>${escapeHtml(r.material)}${wireBandHtml(r.material,state.article,r.station,r.address,[r])}</td>
                             <td${addrStyle}>${escapeHtml(r.address)}</td>
                             ${sharedOn
                                 ? `<td style="white-space:normal; word-break:break-word; min-width:90px;${bg}">${escapeHtml(others.join(", "))}</td>`
@@ -6531,7 +6690,7 @@ function buildArticlesLevelHtml(
                         <div class="result-top">
                             <span class="result-material-badge qty-slot">
                                 <span class="box-icon ico">📦</span>
-                                ${escapeHtml(matName)}${sptsBadge(sptsCardKey(state, matName, matAddr))}
+                                ${wireColorField(escapeHtml(matName),matName,state.article,'',matAddr)}${sptsBadge(sptsCardKey(state, matName, matAddr))}
                             </span>
                             <span class="result-address-new">
                                 ${escapeHtml(matAddr)}
@@ -6587,7 +6746,7 @@ function buildArticlesLevelHtml(
                         <div class="result-top">
                             <span class="result-material-badge qty-slot">
                                 <span class="box-icon ico">📦</span>
-                                ${escapeHtml(matName)}${sptsBadge(sptsCardKey(state, matName, matAddr))}
+                                ${wireColorField(escapeHtml(matName),matName,state.article,'',matAddr)}${sptsBadge(sptsCardKey(state, matName, matAddr))}
                             </span>
                             <span class="result-address-new">
                                 ${escapeHtml(matAddr)}
@@ -6673,7 +6832,7 @@ function buildArticlesLevelHtml(
                 '<div class="wire-list">';
             /* Спочатку матеріали з примітками (за алфавітом приміток) */
             const noteOf = w =>
-                String(w.colD || "").trim();
+                isColorWireNumber(w.material) ? parseWireColors(w.colD).text : String(w.colD || "").trim();
             const sortedWires =
                 [...wires].sort((a, b) => {
                     const an = noteOf(a);
@@ -6723,10 +6882,7 @@ function buildArticlesLevelHtml(
                         w.address || ""
                     ).trim();
                 /* Примітка (4-й стовпець): назва, примітка, адреса */
-                const note =
-                    String(
-                        w.colD || ""
-                    ).trim();
+                const note = noteOf(w);
                 const wireKey = [
                     'spts',
                     state.article,
@@ -6750,6 +6906,7 @@ function buildArticlesLevelHtml(
                         <span class="wire-location" style="justify-self:end;">
                             ${escapeHtml(address)}
                         </span>
+                        ${wireBandHtml(wireName,state.article,state.category,address,[w])}
                     </div>
                 `;
             });
@@ -6839,6 +6996,7 @@ function buildArticlesLevelHtml(
                         <span class="wire-location">
                             ${escapeHtml(matAddr)}
                         </span>
+                        ${wireBandHtml(matName,state.article,state.station,matAddr)}
                     </div>
                 `;
             });
@@ -6886,6 +7044,7 @@ function buildArticlesLevelHtml(
                     <span class="wire-location">
                         ${escapeHtml(it.address)}
                     </span>
+                    ${it.order===0||it.order===3 ? wireBandHtml(it.material,state.article,it.order===3?it.group:it.station,it.address) : ''}
                 </div>
             `;
             const closedPm = loadListPmClosed();
@@ -8421,11 +8580,14 @@ function search() {
     const grouped = {};
     /* Артикули зі спільної лінії (аркуш SHARED_GID) для кожного матеріалу */
     const sharedByMat = {};
+    const wireRowsByMat = new Map();
     filtered.forEach(x => {
         const matKey =
             x.material +
             "|" +
             x.address;
+        if (!wireRowsByMat.has(matKey)) wireRowsByMat.set(matKey, []);
+        wireRowsByMat.get(matKey).push(x);
         if (!grouped[matKey]) {
             grouped[matKey] = {};
         }
@@ -8489,6 +8651,7 @@ function search() {
             isInWaitlist(
                 matKey
             );
+        const searchWireBand = wireBandHtml(matName,'','',matAddr,wireRowsByMat.get(matKey));
         html += `
             <div class="result-card">
                 <div class="result-top">
@@ -8499,10 +8662,7 @@ function search() {
                             ${selected ? '★' : '☆'}
                         </button>
                         <span class="box-icon ico">📦</span>
-                        <button
-                            type="button"
-                            class="mat-pick"
-                            data-idx="${cardIdx}">${matHtml}</button>${
+                        <button type="button" class="mat-pick${searchWireBand ? ' wire-color-field' : ''}" data-idx="${cardIdx}">${matHtml}${searchWireBand}</button>${
                         (() => {
                             const wlQ =
                                 (loadWaitlist().find(
